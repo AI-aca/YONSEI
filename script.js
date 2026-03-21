@@ -4528,7 +4528,8 @@ function printReport() {
         if (canvasEl && imgDataMap[id]) {
             const img = document.createElement('img');
             img.src = imgDataMap[id].dataUrl;
-            img.style.width = '100%';
+            img.style.width = imgDataMap[id].width + 'px';
+            img.style.maxWidth = '100%';
             img.style.maxHeight = (canvasEl.style.maxHeight || '400px');
             img.style.objectFit = 'contain';
             canvasEl.parentNode.replaceChild(img, canvasEl);
