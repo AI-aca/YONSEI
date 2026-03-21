@@ -4113,7 +4113,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
             <div class="flex items-stretch gap-6">
 
                 <!-- 권장학급 (통합 박스: 배경색 구분) -->
-                <div style="border:2px solid #013976;border-radius:1rem;height:80px;min-width:160px;display:flex;align-items:stretch;overflow:hidden;">
+                <div style="border:2px solid #013976;border-radius:1rem;height:65px;min-width:160px;display:flex;align-items:stretch;overflow:hidden;">
                     <!-- 라벨 (네이비 배경) -->
                     <div style="background:#013976;color:white;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 14px;white-space:nowrap;letter-spacing:0.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
                         권장<br>학급
@@ -4132,7 +4132,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
                 <div style="width:1px;background:#cbd5e1;align-self:stretch;margin:0 2px;"></div>
 
                 <!-- 총점 -->
-                <div style="background:linear-gradient(135deg,#013976 0%,#1a5276 100%);border-radius:1rem;width:160px;height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;" class="shadow-lg">
+                <div style="background:linear-gradient(135deg,#013976 0%,#1a5276 100%);border-radius:1rem;width:160px;height:65px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;" class="shadow-lg">
                     <div style="font-size:24px;font-weight:900;line-height:1;">${sTotal}</div>
                     <div style="font-size:14px;opacity:0.75;margin-top:5px;">/ ${sMax}점 (${sRate}%)</div>
                 </div>
