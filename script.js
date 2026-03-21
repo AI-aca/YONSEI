@@ -4112,19 +4112,15 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
             <!-- 우상단: 등록권장 학급 + 총점 -->
             <div class="flex items-stretch gap-6">
 
-                <!-- 등록권장 학급 -->
-                <div class="flex items-center gap-4">
+                <!-- 등록권장 학급 (통합 박스) -->
+                <div style="border:2px solid #013976;border-radius:1rem;height:80px;display:flex;align-items:center;padding:0 16px;gap:10px;background:white;">
                     <!-- 라벨 -->
-                    <div class="flex items-center">
-                        <div class="text-slate-700 font-bold leading-tight text-center" style="font-size:17px;font-weight:700">
-                            등록<br>권장<br>학급
-                        </div>
+                    <div class="text-slate-700 font-bold leading-tight text-center" style="font-size:15px;font-weight:700;white-space:nowrap;">
+                        등록<br>권장<br>학급
                     </div>
-                    <!-- 콜론 -->
-                    <div style="font-size:20px;font-weight:900;color:#013976;">:</div>
                     <!-- 드롭다운 -->
                     <select id="report-student-class"
-                        style="border:2px solid #013976;border-radius:1rem;width:120px;height:80px;font-size:20px;font-weight:900;color:#013976;background:white;text-align:center;cursor:pointer;-webkit-appearance:none;">
+                        style="border:none;outline:none;font-size:20px;font-weight:900;color:#013976;background:transparent;text-align:center;cursor:pointer;-webkit-appearance:none;min-width:70px;">
                         <option value="" style="font-size:16px;">선택</option>
                         ${(getClassesForGrade(record['학년']||record.grade||'') || []).map(c =>
                             `<option value="${c}" style="font-size:16px;" ${(record.studentClass||record['등록학급']||'')===c?'selected':''}>${c}</option>`
@@ -4545,7 +4541,7 @@ function printReport() {
     const _clsSel = clone.querySelector('#report-student-class');
     if (_clsSel) {
         const _clsSpan = document.createElement('span');
-        _clsSpan.style.cssText = 'font-size:24px;font-weight:900;color:#013976;border:2px solid #013976;border-radius:1rem;width:120px;height:80px;display:inline-flex;align-items:center;justify-content:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
+        _clsSpan.style.cssText = 'font-size:20px;font-weight:900;color:#013976;display:inline-flex;align-items:center;justify-content:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
         _clsSpan.textContent = clsVal || '미선택';
         _clsSel.parentNode.replaceChild(_clsSpan, _clsSel);
     }
