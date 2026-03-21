@@ -1287,6 +1287,11 @@ async function gradeWithAI(q, userAns) {
     if (!userAns) return { score: 0, feedback: "답안이 입력되지 않았습니다." };
     if (!globalConfig.geminiKey) return null; // Fallback
 
+    // [Fix] 묶음 지문 + 개별 지문을 AI에게 전달하여 문맥 파악 가능하게 함
+    const bundleText = q.bundlePassageText || '';
+    const passageText = q.passage1 || q.text || '';
+    const fullContext = bundleText ? '[묶음 지문]\n' + bundleText + '\n\n[개별 문항 지문]\n' + passageText : passageText;
+
     const prompt = `
 [AI Online Grading Request]
  문항: ${q.questionTitle || q.text}
@@ -1296,12 +1301,14 @@ async function gradeWithAI(q, userAns) {
  모범 답안: ${q.modelAnswer || '없음'}
  학생 답안: ${userAns}
  배점: ${q.score}
+${fullContext ? ' 지문(문맥):\n' + fullContext : ''}
 
 [Instructions]
-1. 학생의 답안이 정답/모범 답안과 의미적으로 일치하는지 분석하세요.
-2. [주관형]: 스펠링이 약간 틀리거나 동의어를 사용했더라도 전체적인 의미가 맞다면 정답(만점)으로 인정합니다.
-3. [작문형]: 문맥, 문법, 핵심 단어 포함 여부를 종합 평가하여 0점에서 배점 사이의 점수를 부여하세요.
-4. 출력은 반드시 아래 JSON 형식으로만 하세요. (기타 텍스트 금지)
+1. 위 지문(문맥)을 반드시 읽고, 학생의 답안이 빈칸/문맥에 알맞은지 판단하세요.
+2. 학생의 답안이 정답/모범 답안과 의미적으로 일치하는지 분석하세요.
+3. [주관형]: 스펠링이 약간 틀리거나 동의어를 사용했더라도 전체적인 의미가 맞다면 정답(만점)으로 인정합니다. 아포스트로피와 백틱은 동일한 문자로 간주하세요.
+4. [작문형]: 문맥, 문법, 핵심 단어 포함 여부를 종합 평가하여 0점에서 배점 사이의 점수를 부여하세요.
+5. 출력은 반드시 아래 JSON 형식으로만 하세요. (기타 텍스트 금지)
 
 {"score": 점수숫자, "feedback": "간략한 채점 근거(한국어)"}
     `;
@@ -3342,7 +3349,20 @@ async function submitExam() {
         };
 
         const questionScores = [];
-        const questions = globalConfig.questions.filter(q => String(q.catId) === String(examSession.categoryId));
+        const rawQuestions = globalConfig.questions.filter(q => String(q.catId) === String(examSession.categoryId));
+
+        // [Fix] 묶음 지문 데이터 주입 (AI 채점 시 지문 문맥 전달을 위해)
+        const questions = rawQuestions.map(q => {
+            const copy = { ...q };
+            if (copy.setId) {
+                const bundle = globalConfig.bundles ? globalConfig.bundles.find(b => b.id === copy.setId) : null;
+                if (bundle) {
+                    copy.bundlePassageText = bundle.text;
+                    copy.commonTitle = bundle.title;
+                }
+            }
+            return copy;
+        });
 
         for (const q of questions) {
             const studentAns = examSession.answers[q.id] || "";
@@ -3363,7 +3383,7 @@ async function submitExam() {
                     earnedScore = 0;
                 } else if (correctAns) {
                     // 1단계: 관대한 키워드 매칭 (대소문자·띄어쓰기·구두점 무시)
-                    const normalize = s => s.toLowerCase().replace(/[\s,.\-_'"!?;:()]/g, '').trim();
+                    const normalize = s => s.toLowerCase().replace(/[\s,.\-_'"!?;:()`\u2018\u2019\u201C\u201D]/g, '').trim();
                     const acceptableAnswers = correctAns.split(',').map(a => normalize(a));
                     const normalizedStudentAns = normalize(String(studentAns));
                     isCorrect = acceptableAnswers.includes(normalizedStudentAns);
@@ -4216,7 +4236,7 @@ async function regradeStudent(silent = false) {
         const catQs = (globalConfig.questions || []).filter(q => String(q.catId) === String(categoryId));
 
         // 3. 새 로직으로 재채점
-        const normalize = s => s.toLowerCase().replace(/[\s,.\-_'"!?;:()]/g, '').trim();
+        const normalize = s => s.toLowerCase().replace(/[\s,.\-_'"!?;:()`\u2018\u2019\u201C\u201D]/g, '').trim();
         const sections = { Grammar:{s:0,m:0}, Writing:{s:0,m:0}, Reading:{s:0,m:0}, Listening:{s:0,m:0}, Vocabulary:{s:0,m:0} };
         const difficulties = { '최상':{s:0,m:0}, '상':{s:0,m:0}, '중':{s:0,m:0}, '하':{s:0,m:0}, '기초':{s:0,m:0} };
         let totalScore = 0, maxScore = 0;
