@@ -4560,11 +4560,11 @@ function printReport() {
         }
     });
 
-    // 3b-2. 등록권장 학급 <select> → 텍스트 span으로 교체 (select는 클론 시 JS 선택값 소실)
+    // 3b-2. 권장학급 <select> → 텍스트 span으로 교체 (select는 클론 시 JS 선택값 소실)
     const _clsSel = clone.querySelector('#report-student-class');
     if (_clsSel) {
         const _clsSpan = document.createElement('span');
-        _clsSpan.style.cssText = 'font-size:20px;font-weight:900;color:#013976;display:inline-flex;align-items:center;justify-content:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
+        _clsSpan.style.cssText = 'font-size:20px;font-weight:900;color:#013976;background:white;display:inline-flex;align-items:center;justify-content:center;min-width:80px;padding:0 12px;height:100%;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
         _clsSpan.textContent = clsVal || '미선택';
         _clsSel.parentNode.replaceChild(_clsSpan, _clsSel);
     }
