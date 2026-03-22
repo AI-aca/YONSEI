@@ -35,6 +35,14 @@
 ---
 
 ## 2026-03-23
+
+### 등록학급 AI 자동 추천 기능
+- **지시**: 시험지 학생DB 기반으로 학급별 평균점수 계산 후 학생 점수에 맞는 등록학급 자동 추천
+- **수행**:
+  - `recommendClassByScore(totalScore, grade)` 함수 추가
+  - Canvas 06: `updateClassDropdown06`에 ⭐ 추천 옵션 및 badge div 추가, `calcAndRecommendClass06` q-score 변경 시 자동 추천
+  - Canvas 05-1: report-student-class에 ⭐ 추천 옵션, `recCls05` 자동 선택, `warnClassChange05` 수동 변경 경고
+  - 저장 함수에서 `__RECOMMEND__` 값을 실제 추천 학급명으로 치환
 ### script.js 손상 복구 및 4가지 버그 수정
 - **지시**: 앱 비정상 종료로 script.js 3839줄에서 라인 잘림 손상 발생. Git HEAD로 복원 후 4가지 버그 수정 이어서 진행
 - **수행**:
