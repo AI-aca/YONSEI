@@ -2577,7 +2577,7 @@ function renderScoreInput(c) {
                             <select id="input-student-class" class="ys-field" style="border-color:#a5b4fc;background:#f5f3ff;color:#4338ca;">
                                 <option value="">&#xC120;&#xD0DD;</option>
                             </select>
-                             <div id="class-recommend-badge06" style="font-size:12px;margin-top:3px;color:#94a3b8;">점수 입력 시 학급이 자동 추천됩니다</div>
+                             <div id="class-recommend-badge06" style="font-size:12px;margin-top:3px;color:#94a3b8;"></div>
                         </div>
                         <div>
                             <label class="ys-label">&#x1F464; &#xD559;&#xC0DD;ID <span style="font-size:14px;">(&#xC790;&#xB3D9;&#xC0DD;&#xC131;)</span></label>
@@ -2896,8 +2896,8 @@ function updateClassDropdown06(grade) {
     const sel = document.getElementById('input-student-class');
     if (!sel) return;
     const list = getClassesForGrade(grade);
-    sel.innerHTML = '<option value="">' + (list.length ? '학급 선택 (선택 안해도 됨)' : '등록된 학급 없음') + '</option>'
-        + '<option value="__RECOMMEND__" style="font-weight:bold;color:#6366f1;">⭐ 추천 (점수 입력 후 자동결정)</option>'
+    sel.innerHTML = '<option value="">' + (list.length ? '점수입력 시 자동 추천' : '등록된 학급 없음') + '</option>'
+        + '<option value="__RECOMMEND__" style="font-weight:bold;color:#6366f1;">⭐ 추천</option>'
         + list.map(function(n) { return '<option value="' + n + '">' + n + '</option>'; }).join('');
     sel.dataset.recommendedClass = '';
     sel.dataset.autoSelected = '0';
