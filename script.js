@@ -4176,7 +4176,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
         </div>
 
         <!-- 3. 레이더 차트 -->
-        <div>
+        <div id="radar-section">
             <h4 style="font-size:18px;font-weight:900;color:#013976;margin-bottom:1rem;">🕸 영역별 균형도</h4>
             <!-- 차트+범례+요약표가 단일 캔버스로 중앙 배치 -->
             <div class="flex justify-center" style="width:100%;">
@@ -4518,6 +4518,10 @@ function printReport() {
         const aiSection = aiHeader.closest('div[class]');
         if (aiSection) aiSection.style.cssText += ';page-break-before:always;break-before:page;';
     }
+
+    // 3c-2. 영역별 코멘트 시작 앞 페이지 강제 분리 (영역별 균형도까지 1페이지에 몰아넣기)
+    const sectionsWrapper = clone.querySelector('#sections-container')?.parentElement;
+    if (sectionsWrapper) sectionsWrapper.style.cssText = (sectionsWrapper.style.cssText||'') + ';page-break-before:always;break-before:page;';
 
     // 3d. 각 차트 컨테이너 페이지 분리 방지
     clone.querySelectorAll('canvas, img').forEach(el => {
