@@ -1852,6 +1852,25 @@ function recommendClassByScore(totalScore, grade) {
     return bestClass;
 }
 
+// 선택 학급의 영역별 평균 계산
+function computeClassAvg(className, grade, secMap) {
+    if (!className || !grade) return null;
+    const records = (window.cachedStudentRecords || []).filter(r => {
+        const rGrade = r['학년'] || r.grade || '';
+        const rClass = r.studentClass || r['등록학급'] || '';
+        return rGrade === grade && rClass === className;
+    });
+    if (!records.length) return null;
+    const avg = {};
+    const totals = records.map(r => parseFloat(r['종점'] || r.totalScore || 0)).filter(v => !isNaN(v) && v >= 0);
+    if (totals.length) avg['종점'] = totals.reduce((s,v)=>s+v,0)/totals.length;
+    if (secMap) Object.keys(secMap).forEach(sec => {
+        const vals = records.map(r => parseFloat(r[sec+'_점수'] || r[secMap[sec]] || 0)).filter(v => !isNaN(v) && v >= 0);
+        if (vals.length) avg[sec+'_점수'] = vals.reduce((s,v)=>s+v,0)/vals.length;
+    });
+    return avg;
+}
+
 
 // 등록된 학급이 있는 학년만 반환 (순서: 초1~고3)
 function getRegisteredGrades() {
@@ -2853,6 +2872,29 @@ function warnClassChange05(sel) {
         const ok = confirm('AI 추천 학급은 "' + rec + '"입니다.\n다른 학급("' + sel.value + '")을 선택하시겠습니까?');
         if (!ok) { sel.value = rec; }
     }
+    rerenderReportCharts();
+}
+
+// 성적표 평균 표시 모드 변경
+function setReportAvgMode(mode) {
+    window._reportAvgMode = mode;
+    ['all','overall','class'].forEach(function(m) {
+        const btn = document.getElementById('avg-btn-'+m);
+        if (!btn) return;
+        btn.style.background = m===mode ? '#013976' : '#e2e8f0';
+        btn.style.color = m===mode ? 'white' : '#64748b';
+    });
+    rerenderReportCharts();
+}
+
+function rerenderReportCharts() {
+    const d = window.currentReportData;
+    if (!d || !d.secMap) return;
+    const selCls = document.getElementById('report-student-class')?.value||'';
+    const clsAvg = (selCls&&selCls!=='__RECOMMEND__') ? computeClassAvg(selCls, d.sGrade, d.secMap) : null;
+    const mode = window._reportAvgMode||'all';
+    renderTotalChart(d.record, d.averages, d.sTotal, d.sMax, clsAvg, mode);
+    renderSectionsBarChart(d.record, d.averages, d.activeSections, d.secMap, d.maxMap, clsAvg, mode);
 }
 
 // Canvas 06: 학년 선택 시 해당 학년 학급만 dropdown에 표시
@@ -4285,6 +4327,14 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
 
         <!-- 1. 총점 막대그래프 -->
         <div>
+        <!-- 평균 표시 토글 -->
+        <div style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;">
+            <span style="font-size:13px;font-weight:700;color:#64748b;">평균 표시:</span>
+            <button id="avg-btn-all" onclick="setReportAvgMode('all')" style="padding:4px 12px;font-size:12px;font-weight:700;background:#013976;color:white;border:none;border-radius:7px;cursor:pointer;">모두</button>
+            <button id="avg-btn-overall" onclick="setReportAvgMode('overall')" style="padding:4px 12px;font-size:12px;font-weight:700;background:#e2e8f0;color:#64748b;border:none;border-radius:7px;cursor:pointer;">전체평균만</button>
+            <button id="avg-btn-class" onclick="setReportAvgMode('class')" style="padding:4px 12px;font-size:12px;font-weight:700;background:#e2e8f0;color:#64748b;border:none;border-radius:7px;cursor:pointer;">학급평균만</button>
+        </div>
+
             <h4 style="font-size:18px;font-weight:900;color:#013976;margin-bottom:1rem;">📊 총점 비교</h4>
             <canvas id="chart-total" style="max-height:240px;"></canvas>
         </div>
@@ -4389,9 +4439,13 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
     </div>`;
 
     // 차트 렌더링
+    if (window.currentReportData) { window.currentReportData.secMap=secMap; window.currentReportData.maxMap=maxMap; window.currentReportData.sTotal=sTotal; window.currentReportData.sMax=sMax; window.currentReportData.sGrade=sGrade; }
     setTimeout(() => {
-        renderTotalChart(record, averages, sTotal, sMax);
-        renderSectionsBarChart(record, averages, activeSections, secMap, maxMap);
+        const selCls = document.getElementById('report-student-class')?.value||'';
+        const clsAvg = (selCls&&selCls!=='__RECOMMEND__') ? computeClassAvg(selCls,sGrade,secMap) : null;
+        const mode = window._reportAvgMode||'all';
+        renderTotalChart(record, averages, sTotal, sMax, clsAvg, mode);
+        renderSectionsBarChart(record, averages, activeSections, secMap, maxMap, clsAvg, mode);
         renderRadarChart(record, averages, activeSections, secMap, maxMap);
     }, 100);
 }
@@ -4468,7 +4522,7 @@ function toggleAllQuestionDetail(checked) {
     } catch(e) { showToast('❌ 문항 데이터 오류: ' + e.message); }
 }
 
-function renderTotalChart(record, averages, sTotal, sMax) {
+function renderTotalChart(record, averages, sTotal, sMax, classAvg, mode) {
     const ctx = document.getElementById('chart-total');
     if (!ctx) return;
     if (ctx._chartInstance) ctx._chartInstance.destroy();
@@ -4481,11 +4535,7 @@ function renderTotalChart(record, averages, sTotal, sMax) {
         plugins: [clPlugin],
         data: {
             labels: ['총점'],
-            datasets: [
-                { label: '개인 점수', data: [sTotal], backgroundColor: '#e74c3c', borderRadius: 8 },
-                { label: '평균',      data: [avgTotal], backgroundColor: '#94a3b8', borderRadius: 8 },
-                { label: '만점',      data: [sMax],     backgroundColor: '#013976', borderRadius: 8 }
-            ]
+            datasets: (() => { const _ds=[{label:'개인 점수',data:[sTotal],backgroundColor:'#e74c3c',borderRadius:8}]; if((mode||'all')!=='class') _ds.push({label:'전체 평균',data:[avgTotal],backgroundColor:'#94a3b8',borderRadius:8}); if(classAvg&&(mode||'all')!=='overall') _ds.push({label:'학급 평균',data:[parseFloat((classAvg['종점']||0).toFixed(1))],backgroundColor:'#22c55e',borderRadius:8}); _ds.push({label:'만점',data:[sMax],backgroundColor:'#013976',borderRadius:8}); return _ds; })()
         },
         options: {
             responsive: true, maintainAspectRatio: false,
@@ -4502,7 +4552,7 @@ function renderTotalChart(record, averages, sTotal, sMax) {
 }
 
 // 영역별 막대 (그룹)
-function renderSectionsBarChart(record, averages, activeSections, secMap, maxMap) {
+function renderSectionsBarChart(record, averages, activeSections, secMap, maxMap, classAvg, mode) {
     const ctx = document.getElementById('chart-sections-bar');
     if (!ctx) return;
     if (ctx._chartInstance) ctx._chartInstance.destroy();
@@ -4517,11 +4567,7 @@ function renderSectionsBarChart(record, averages, activeSections, secMap, maxMap
         plugins: [clPlugin2],
         data: {
             labels,
-            datasets: [
-                { label: '개인 점수', data: personal, backgroundColor: '#e74c3c', borderRadius: 6 },
-                { label: '평균',      data: avg.map(v => +parseFloat(v).toFixed(1)), backgroundColor: '#94a3b8', borderRadius: 6 },
-                { label: '만점',      data: maxV,     backgroundColor: '#013976', borderRadius: 6 }
-            ]
+            datasets: (() => { const _ds=[{label:'개인 점수',data:personal,backgroundColor:'#e74c3c',borderRadius:6}]; if((mode||'all')!=='class') _ds.push({label:'전체 평균',data:avg.map(v=>+parseFloat(v).toFixed(1)),backgroundColor:'#94a3b8',borderRadius:6}); if(classAvg&&(mode||'all')!=='overall') _ds.push({label:'학급 평균',data:activeSections.map(s=>parseFloat((classAvg[s+'_점수']||0).toFixed(1))),backgroundColor:'#22c55e',borderRadius:6}); _ds.push({label:'만점',data:maxV,backgroundColor:'#013976',borderRadius:6}); return _ds; })()
         },
         options: {
             responsive: true, maintainAspectRatio: false,
