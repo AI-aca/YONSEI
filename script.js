@@ -4591,17 +4591,41 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap) {
     const pctPersonal = rawPersonal.map((v, i) => maxScores[i] > 0 ? +((v / maxScores[i]) * 100).toFixed(1) : 0);
     const pctAvg      = rawAvg.map((v, i)      => maxScores[i] > 0 ? +((v / maxScores[i]) * 100).toFixed(1) : 0);
 
+    const DL = window.ChartDataLabels;
+    if (DL && !Chart._dlRegistered) { Chart.register(DL); Chart._dlRegistered = true; }
+
     ctx._chartInstance = new Chart(ctx.getContext('2d'), {
         type: 'radar',
+        plugins: DL ? [DL] : [],
         data: {
             labels: activeSections,
             datasets: [
-                { label:'개인 정답률(%)', data:pctPersonal, borderColor:'#e74c3c', backgroundColor:'rgba(231,76,60,0.15)', borderWidth:2.5, pointBackgroundColor:'#e74c3c', pointBorderColor:'#fff', pointRadius:4 },
-                { label:'평균 정답률(%)', data:pctAvg,      borderColor:'#94a3b8', backgroundColor:'rgba(148,163,184,0.1)', borderWidth:2, pointBackgroundColor:'#94a3b8' }
+                {
+                    label:'개인 정답률(%)', data:pctPersonal,
+                    borderColor:'#e74c3c', backgroundColor:'rgba(231,76,60,0.15)',
+                    borderWidth:2.5, pointBackgroundColor:'#e74c3c', pointBorderColor:'#fff', pointRadius:5,
+                    datalabels: DL ? {
+                        display: true,
+                        color: '#e74c3c',
+                        font: { size: 16, weight: 'bold' },
+                        formatter: (v) => v + '%',
+                        anchor: 'end',
+                        align: 'end',
+                        offset: 8,
+                        clip: false
+                    } : { display: false }
+                },
+                {
+                    label:'평균 정답률(%)', data:pctAvg,
+                    borderColor:'#94a3b8', backgroundColor:'rgba(148,163,184,0.1)',
+                    borderWidth:2, pointBackgroundColor:'#94a3b8',
+                    datalabels: { display: false }
+                }
             ]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
+            layout: { padding: 30 },
             scales: {
                 r: {
                     min: 0, max: 100,
@@ -4622,7 +4646,8 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap) {
                             return ` ${ctx.dataset.label}: ${parseFloat(ctx.raw).toFixed(1)}% (${parseFloat(raw).toFixed(1)}/${mx}점)`;
                         }
                     }
-                }
+                },
+                datalabels: DL ? {} : { display: false }
             }
         }
     });
