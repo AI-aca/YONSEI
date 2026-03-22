@@ -2895,7 +2895,7 @@ function rerenderReportCharts() {
     const mode = window._reportAvgMode||'all';
     renderTotalChart(d.record, d.averages, d.sTotal, d.sMax, clsAvg, mode);
     renderSectionsBarChart(d.record, d.averages, d.activeSections, d.secMap, d.maxMap, clsAvg, mode);
-    renderRadarChart(d.record, d.averages, d.activeSections, d.secMap, d.maxMap, clsAvg);
+    renderRadarChart(d.record, d.averages, d.activeSections, d.secMap, d.maxMap, clsAvg, mode);
 }
 
 // Canvas 06: 학년 선택 시 해당 학년 학급만 dropdown에 표시
@@ -4449,7 +4449,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
         const mode = window._reportAvgMode||'all';
         renderTotalChart(record, averages, sTotal, sMax, clsAvg, mode);
         renderSectionsBarChart(record, averages, activeSections, secMap, maxMap, clsAvg, mode);
-        renderRadarChart(record, averages, activeSections, secMap, maxMap, clsAvg);
+        renderRadarChart(record, averages, activeSections, secMap, maxMap, clsAvg, mode);
     }, 100);
 }
 
@@ -4775,7 +4775,7 @@ window.onload = function() { setTimeout(function(){ window.print(); }, 800); };
 }
 
 // 레이더 차트 — 정답률(%) 기준으로 정규화 (만점 다른 영역 공정 비교)
-function renderRadarChart(record, averages, activeSections, secMap, maxMap, classAvg) {
+function renderRadarChart(record, averages, activeSections, secMap, maxMap, classAvg, mode) {
     const ctx = document.getElementById('chart-radar');
     if (!ctx || activeSections.length < 3) return;
     if (ctx._chartInstance) ctx._chartInstance.destroy();
@@ -4868,7 +4868,7 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap, clas
         plugins: [radarTablePlugin],
         data: {
             labels: activeSections,
-            datasets: (() => { const _rds=[{ label:'개인 정답률(%)', data:pctPersonal, borderColor:'#e74c3c', backgroundColor:'transparent', borderWidth:2.5, pointRadius:0 },{ label:'평균 정답률(%)', data:pctAvg, borderColor:'#94a3b8', backgroundColor:'transparent', borderWidth:2, pointRadius:0 }]; if(pctClass) _rds.push({ label:'학급 평균(%)', data:pctClass, borderColor:'#22c55e', backgroundColor:'transparent', borderWidth:2, pointRadius:0 }); return _rds; })()
+            datasets: (() => { const _rds=[{ label:'개인 정답률(%)', data:pctPersonal, borderColor:'#e74c3c', backgroundColor:'transparent', borderWidth:2.5, pointRadius:0 }]; if((mode||'all')!=='class') _rds.push({ label:'평균 정답률(%)', data:pctAvg, borderColor:'#94a3b8', backgroundColor:'transparent', borderWidth:2, pointRadius:0 }); if(pctClass&&(mode||'all')!=='overall') _rds.push({ label:'학급 평균 정답률(%)', data:pctClass, borderColor:'#22c55e', backgroundColor:'transparent', borderWidth:2, pointRadius:0 }); return _rds; })()
         },
         options: {
             responsive: true, maintainAspectRatio: false,
