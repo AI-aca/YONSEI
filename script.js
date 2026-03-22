@@ -5158,7 +5158,7 @@ function renderStudentStatsUI(students, _unused) {
                     ${yearSelect('stats-year-overall', "document.getElementById('stats-overall-body').innerHTML=window._renderOverall(this.value); window._drawStudentChart(this.value);")}
                 </div>
                 <div id="stats-overall-body">${renderOverall('')}</div>
-                <div class="mt-4"><canvas id="student-bar-chart" height="120"></canvas></div>
+                <div class="mt-4"><canvas id="student-bar-chart" height="84"></canvas></div>
             </div>
             <div class="card">
                 <div class="flex items-center mb-1">
@@ -5175,6 +5175,8 @@ function renderStudentStatsUI(students, _unused) {
 
     // === 영역별 평균+없는영역제외 바차트 ===
     window._drawStudentChart = (yrVal) => {
+        const DL = window.ChartDataLabels;
+        if (DL && !Chart._dlRegistered) { Chart.register(DL); Chart._dlRegistered = true; }
         const filtered = yrVal ? all.filter(s => dateToYear(s['응시일']||s.testDate||s.date||'') === yrVal) : all;
         // 데이터 있는 영역만
         const validSecs = SECTIONS.filter(s => calcMax(filtered, s) !== '-');
@@ -5255,11 +5257,11 @@ function renderStudentStatsUI(students, _unused) {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div class="card">
                         <h3 class="ys-label mb-0">📊 학급별 평균 점수</h3>
-                        <div style="height:300px;"><canvas id="${barId}"></canvas></div>
+                        <div style="height:210px;"><canvas id="${barId}"></canvas></div>
                     </div>
                     <div class="card">
                         <h3 class="ys-label mb-0">👥 학생수 비율</h3>
-                        <div style="height:300px;"><canvas id="${dntId}"></canvas></div>
+                        <div style="height:210px;"><canvas id="${dntId}"></canvas></div>
                     </div>
                 </div>
             </div>`;
@@ -5280,6 +5282,8 @@ function renderStudentStatsUI(students, _unused) {
                 })).sort((a,b) => b.avg - a.avg);
 
                 // 바차트 (가로 막대)
+                const DL = window.ChartDataLabels;
+                if (DL && !Chart._dlRegistered) { Chart.register(DL); Chart._dlRegistered = true; }
                 const ctxBar = document.getElementById(barId);
                 if (ctxBar) {
                     const PALETTE = ['#4A90E2','#50C878','#FFB84D','#FF6B6B','#9B59B6','#1ABC9C','#E74C3C','#3498DB'];
