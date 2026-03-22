@@ -2957,14 +2957,7 @@ function updateClassDropdown06(grade) {
 }
 
 // q-score 변경 시 추천 계산 (이벤트 위임 - 한 번만 등록)
-if (!window._qscoreListenerAdded) {
-    document.addEventListener('change', function(e) {
-        if (e.target && e.target.id && e.target.id.indexOf('q-score-') === 0) {
-            calcAndRecommendClass06();
-        }
-    });
-    window._qscoreListenerAdded = true;
-}
+// AI 추천: calculateTotalScore()에서 직접 호출하므로 별도 이벤트 불필요
 
 function clampQScore(input) {
     const max = parseInt(input.dataset.max) || 0;
@@ -3007,6 +3000,7 @@ function calculateTotalScore() {
     if (qHasInput) {
         const d = document.getElementById('score-total-display');
         if (d) d.textContent = qSum;
+        calcAndRecommendClass06();
         return;
     }
 
@@ -3021,6 +3015,7 @@ function calculateTotalScore() {
 
     const d = document.getElementById('score-total-display');
     if (d) d.textContent = finalTotal;
+    calcAndRecommendClass06();
 }
 
 function clearScoreInputs(resetCat = true, showMsg = true) {
