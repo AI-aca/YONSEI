@@ -4363,9 +4363,10 @@ function renderTotalChart(record, averages, sTotal, sMax) {
     const avgTotal = averages['총점'] || 0;
     const DL = window.ChartDataLabels;
     if (DL && !Chart._dlRegistered) { Chart.register(DL); Chart._dlRegistered = true; }
+    const clPlugin={id:'cl',afterDatasetsDraw(ch){const c=ch.ctx,FS=15;ch.data.datasets.forEach((ds,di)=>{ch.getDatasetMeta(di).data.forEach((bar,bi)=>{const v=ds.data[bi];if(!v||v<=0)return;const h=Math.abs(bar.base-bar.y),txt=parseFloat(v).toFixed(1);c.save();c.font=`bold ${FS}px sans-serif`;c.textAlign='center';if(h>=FS*2+4){c.textBaseline='middle';c.fillStyle='white';c.fillText(txt,bar.x,(bar.y+bar.base)/2);}else{c.textBaseline='bottom';c.fillStyle='#013976';c.fillText(txt,bar.x,bar.y-4);}c.restore();});});}};
     ctx._chartInstance = new Chart(ctx.getContext('2d'), {
         type: 'bar',
-        plugins: DL ? [DL] : [],
+        plugins: [clPlugin],
         data: {
             labels: ['총점'],
             datasets: [
@@ -4382,15 +4383,7 @@ function renderTotalChart(record, averages, sTotal, sMax) {
             plugins: {
                 legend: { position: 'right', labels:{font:{size:16}, padding:15} },
                 tooltip: { bodyFont:{size:16}, titleFont:{size:16}, callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + parseFloat(ctx.raw).toFixed(1) } },
-                datalabels: DL ? {
-                    anchor: (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; return b&&Math.abs(b.base-b.y)<30?'end':'center'; },
-                    align:  (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; return b&&Math.abs(b.base-b.y)<30?'top':'center'; },
-                    offset: (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; const h=b?Math.abs(b.base-b.y):100; return h<5?50:h<30?20:0; },
-                    font: { size: 15, weight: 'bold' },
-                    color: (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; return b&&Math.abs(b.base-b.y)<30?'#013976':'white'; },
-                    clamp: false,
-                    formatter: (v) => v > 0 ? parseFloat(v).toFixed(1) : ''
-                } : false
+                datalabels: { display: false }
             }
         }
     });
@@ -4406,9 +4399,10 @@ function renderSectionsBarChart(record, averages, activeSections, secMap, maxMap
     const personal = activeSections.map(s => parseFloat(record[s+'_점수'] || record[secMap[s]] || 0));
     const avg      = activeSections.map(s => parseFloat(averages[s+'_점수'] || averages[secMap[s]] || 0));
     const maxV     = activeSections.map(s => parseFloat(record[s+'_만점'] || record[maxMap[s]] || averages[maxMap[s]] || 0));
+    const clPlugin2={id:'cl2',afterDatasetsDraw(ch){const c=ch.ctx,FS=15;ch.data.datasets.forEach((ds,di)=>{ch.getDatasetMeta(di).data.forEach((bar,bi)=>{const v=ds.data[bi];if(!v||v<=0)return;const h=Math.abs(bar.base-bar.y),txt=parseFloat(v).toFixed(1);c.save();c.font=`bold ${FS}px sans-serif`;c.textAlign='center';if(h>=FS*2+4){c.textBaseline='middle';c.fillStyle='white';c.fillText(txt,bar.x,(bar.y+bar.base)/2);}else{c.textBaseline='bottom';c.fillStyle='#013976';c.fillText(txt,bar.x,bar.y-4);}c.restore();});});}};
     ctx._chartInstance = new Chart(ctx.getContext('2d'), {
         type: 'bar',
-        plugins: DL ? [DL] : [],
+        plugins: [clPlugin2],
         data: {
             labels,
             datasets: [
@@ -4425,15 +4419,7 @@ function renderSectionsBarChart(record, averages, activeSections, secMap, maxMap
             plugins: {
                 legend: { position: 'right', labels:{font:{size:16}, padding:15} },
                 tooltip: { bodyFont:{size:16}, titleFont:{size:16}, callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + parseFloat(ctx.raw).toFixed(1) } },
-                datalabels: DL ? {
-                    anchor: (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; return b&&Math.abs(b.base-b.y)<30?'end':'center'; },
-                    align:  (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; return b&&Math.abs(b.base-b.y)<30?'top':'center'; },
-                    offset: (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; const h=b?Math.abs(b.base-b.y):100; return h<5?50:h<30?20:0; },
-                    font: { size: 15, weight: 'bold' },
-                    color: (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; return b&&Math.abs(b.base-b.y)<30?'#013976':'white'; },
-                    clamp: false,
-                    formatter: (v) => v > 0 ? parseFloat(v).toFixed(1) : ''
-                } : false
+                datalabels: { display: false }
             }
         }
     });
@@ -5160,7 +5146,7 @@ function renderStudentStatsUI(students, _unused) {
                     ${yearSelect('stats-year-overall', "document.getElementById('stats-overall-body').innerHTML=window._renderOverall(this.value); window._drawStudentChart(this.value);")}
                 </div>
                 <div id="stats-overall-body">${renderOverall('')}</div>
-                <div class="mt-4" style="height:180px;"><canvas id="student-bar-chart"></canvas></div>
+                <div class="mt-4" style="height:230px;"><canvas id="student-bar-chart"></canvas></div>
             </div>
             <div class="card">
                 <div class="flex items-center mb-1">
@@ -5192,8 +5178,10 @@ function renderStudentStatsUI(students, _unused) {
         const ctx = document.getElementById('student-bar-chart');
         if (!ctx) return;
         if (ctx._chartInstance) ctx._chartInstance.destroy();
+        const clPlugin3={id:'cl3',afterDatasetsDraw(ch){const c=ch.ctx,FS=14;ch.data.datasets.forEach((ds,di)=>{ch.getDatasetMeta(di).data.forEach((bar,bi)=>{const v=ds.data[bi];if(!v||v<=0)return;const h=Math.abs(bar.base-bar.y),txt=parseFloat(v).toFixed(1);c.save();c.font=`bold ${FS}px sans-serif`;c.textAlign='center';if(h>=FS*2+4){c.textBaseline='middle';c.fillStyle='white';c.fillText(txt,bar.x,(bar.y+bar.base)/2);}else{c.textBaseline='bottom';c.fillStyle='#013976';c.fillText(txt,bar.x,bar.y-4);}c.restore();});});}};
         ctx._chartInstance = new Chart(ctx.getContext('2d'), {
             type: 'bar',
+            plugins: [clPlugin3],
             data: {
                 labels: allLabels,
                 datasets: [
@@ -5204,19 +5192,10 @@ function renderStudentStatsUI(students, _unused) {
                 responsive: true,
                 maintainAspectRatio: false,
                 clip: false,
-                layout: { padding: { top: 50 } },
+                layout: { padding: { top: 20 } },
                 plugins: {
                     legend: { display: false },
-                    datalabels: {
-                        display: true,
-                        anchor: (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; return b&&Math.abs(b.base-b.y)<30?'end':'center'; },
-                        align:  (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; return b&&Math.abs(b.base-b.y)<30?'top':'center'; },
-                        offset: (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; const h=b?Math.abs(b.base-b.y):100; return h<5?50:h<30?25:0; },
-                        color: (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; return b&&Math.abs(b.base-b.y)<30?'#013976':'white'; },
-                        clamp: false,
-                        font: { size: 14, weight: 'bold' },
-                        formatter: (v) => v > 0 ? parseFloat(v).toFixed(1) : ''
-                    },
+                    datalabels: { display: false },
                     tooltip: { callbacks: { afterLabel: (ctx) => `만점: ${allMaxes[ctx.dataIndex]}점` } }
                 },
                 scales: {
