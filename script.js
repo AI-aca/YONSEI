@@ -2657,7 +2657,22 @@ async function handleScoreCategoryChange(catId) {
         else { el.textContent = '영역 없음'; el.style.color = '#94a3b8'; }
         // 연결된 input의 max 속성도 갱신
         const inp = document.querySelector(`[data-max-id="${spanId}"]`);
-        if (inp) inp.max = val > 0 ? val : 9999;
+        if (inp) {
+            if (val > 0) {
+                inp.max = val;
+                inp.disabled = false;
+                inp.placeholder = '0';
+                inp.style.opacity = '';
+                inp.style.cursor = '';
+            } else {
+                inp.max = 0;
+                inp.value = '';
+                inp.disabled = true;
+                inp.placeholder = '-';
+                inp.style.opacity = '0.4';
+                inp.style.cursor = 'not-allowed';
+            }
+        }
     };
     const cqs = catQuestions;
     const sm = (sec) => cqs.filter(q => q.section === sec).reduce((s,q) => s+(parseInt(q.score)||0), 0);
