@@ -4178,28 +4178,10 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
         <!-- 3. 레이더 차트 -->
         <div>
             <h4 style="font-size:18px;font-weight:900;color:#013976;margin-bottom:1rem;">🕸 영역별 균형도</h4>
-            <div class="flex flex-row w-full gap-6 items-center">
-                <div class="flex-1 relative">
-                    <canvas id="chart-radar" style="max-height:380px;"></canvas>
-                </div>
-                <!-- 우측 영역별 텍스트 박스 -->
-                <div class="w-56 bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-2xl p-6 shadow-sm shrink-0">
-                    <h5 class="font-bold text-[#013976] border-b border-slate-200 pb-3 mb-4 fs-16 text-center">개인 정답률</h5>
-                    <div class="space-y-3">
-                    ${activeSections.map(s => {
-                        const score = parseFloat(record[s+'_점수'] || record[secMap[s]] || 0);
-                        let maxScore = parseFloat(record[s+'_만점'] || record[maxMap?.[s]] || averages[maxMap[s]] || 0);
-                        if(maxScore === 0) {
-                            const catQs = globalConfig?.questions || [];
-                            maxScore = catQs.filter(q => q.section === s).reduce((sum, q) => sum + (parseInt(q.score)||0), 0) || 100;
-                        }
-                        const pct = maxScore > 0 ? (score / maxScore * 100).toFixed(1) : 0;
-                        return `<div class="flex justify-between items-center text-slate-700">
-                            <span class="font-semibold fs-15">${s}</span>
-                            <span class="font-bold text-[#e74c3c] bg-red-50 px-2 py-0.5 rounded text-sm">${pct}%</span>
-                        </div>`;
-                    }).join('')}
-                    </div>
+            <!-- 차트+범례+요약표가 단일 캔버스로 중앙 배치 -->
+            <div class="flex justify-center" style="width:100%;">
+                <div style="width:780px;max-width:100%;height:380px;position:relative;">
+                    <canvas id="chart-radar" style="width:100%;height:100%;"></canvas>
                 </div>
             </div>
         </div>
@@ -4630,8 +4612,70 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap) {
     const DL = window.ChartDataLabels;
     if (DL && !Chart._dlRegistered) { Chart.register(DL); Chart._dlRegistered = true; }
 
+    // 요약표를 캔버스 우측 패딩 영역에만 그림 (범례는 Chart.js 내장 것 사용)
+    const radarTablePlugin = {
+        id: 'radarTablePlugin',
+        afterDraw(chart) {
+            const c2 = chart.ctx;
+            const w = chart.width, h = chart.height;
+            const pW = 190, pX = w - pW - 4;
+            const rowH = 30;
+            const N = activeSections.length;
+            const pH = 44 + N * rowH + 8;
+            const pY = (h - pH) / 2;
+
+            const rr = (x, y, rw, rh, r) => {
+                c2.beginPath();
+                c2.moveTo(x+r, y); c2.arcTo(x+rw, y, x+rw, y+rh, r);
+                c2.arcTo(x+rw, y+rh, x, y+rh, r); c2.arcTo(x, y+rh, x, y, r);
+                c2.arcTo(x, y, x+r, y, r); c2.closePath();
+            };
+
+            c2.save();
+            // 패널 배경
+            c2.fillStyle = '#f8fafc';
+            c2.shadowColor = 'rgba(0,0,0,0.06)'; c2.shadowBlur = 8; c2.shadowOffsetY = 3;
+            rr(pX, pY, pW, pH, 14); c2.fill();
+            c2.shadowColor = 'transparent';
+            c2.strokeStyle = '#e2e8f0'; c2.lineWidth = 1;
+            rr(pX, pY, pW, pH, 14); c2.stroke();
+
+            // 타이틀
+            c2.textAlign = 'center'; c2.textBaseline = 'middle';
+            c2.fillStyle = '#013976'; c2.font = 'bold 14px sans-serif';
+            c2.fillText('개인 정답률', pX + pW/2, pY + 22);
+            c2.beginPath(); c2.moveTo(pX+14, pY+40); c2.lineTo(pX+pW-14, pY+40);
+            c2.strokeStyle = '#e2e8f0'; c2.stroke();
+
+            // 행 목록
+            let cy = pY + 56;
+            activeSections.forEach(s => {
+                const score = parseFloat(record[s+'_점수'] || record[secMap[s]] || 0);
+                let maxS = parseFloat(record[s+'_만점'] || record[maxMap?.[s]] || 0);
+                if (!maxS) {
+                    maxS = (globalConfig?.questions||[]).filter(q=>q.section===s)
+                           .reduce((a,q)=>a+(parseInt(q.score)||0),0) || 100;
+                }
+                const pct = maxS > 0 ? (score/maxS*100).toFixed(1)+'%' : '0%';
+
+                c2.font = '600 13px sans-serif';
+                c2.fillStyle = '#334155'; c2.textAlign = 'left';
+                c2.fillText(s, pX+14, cy);
+
+                const tw = c2.measureText(pct).width;
+                c2.fillStyle = '#fef2f2';
+                rr(pX+pW-14-tw-10, cy-9, tw+20, 18, 5); c2.fill();
+                c2.fillStyle = '#e74c3c'; c2.textAlign = 'right';
+                c2.fillText(pct, pX+pW-14, cy);
+                cy += rowH;
+            });
+            c2.restore();
+        }
+    };
+
     ctx._chartInstance = new Chart(ctx.getContext('2d'), {
         type: 'radar',
+        plugins: [radarTablePlugin],
         data: {
             labels: activeSections,
             datasets: [
@@ -4649,25 +4693,23 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap) {
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            layout: { padding: 5 },
+            // 우측 210px: Chart.js 범례(약80px) + 클리어런스(30px) + 요약표(190px짜리)
+            layout: { padding: { right: 210, left: 10, top: 10, bottom: 10 } },
             scales: {
                 r: {
                     min: 0, max: 100,
                     ticks: { stepSize: 20, font:{size:16}, backdropColor:'transparent', callback: v => v+'%' },
-                    // padding을 낮춰 바깥 텍스트를 적당히 띄움
                     pointLabels: { font:{size:16}, padding: 10 }
                 }
             },
             plugins: {
-                // 전역 데이터 라벨은 비활성화하여 차트 위에 검은색 숫자가 나타나지 않게 함
                 datalabels: { display: false },
-                legend: { position: 'right', labels: { font:{size:16} } },
+                legend: { position: 'right', labels: { font:{size:14}, boxWidth:24, padding:10 } },
                 tooltip: {
                     bodyFont:{size:16}, titleFont:{size:16},
                     callbacks: {
                         label: (ctx) => {
-                            const i = ctx.dataIndex;
-                            const ds = ctx.datasetIndex;
+                            const i = ctx.dataIndex, ds = ctx.datasetIndex;
                             const raw = ds === 0 ? rawPersonal[i] : rawAvg[i];
                             const mx  = maxScores[i];
                             return ` ${ctx.dataset.label}: ${parseFloat(ctx.raw).toFixed(1)}% (${parseFloat(raw).toFixed(1)}/${mx}점)`;
