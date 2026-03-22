@@ -4156,7 +4156,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
                 <div style="width:1px;background:#cbd5e1;align-self:stretch;margin:0 2px;"></div>
 
                 <!-- 총점 -->
-                <div style="background:linear-gradient(135deg,#013976 0%,#1a5276 100%);border-radius:1rem;width:160px;height:65px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;" class="shadow-lg">
+                <div style="background:#013976;border-radius:1rem;width:160px;height:65px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;" class="shadow-lg">
                     <div style="font-size:24px;font-weight:900;line-height:1;">${sTotal}</div>
                     <div style="font-size:14px;opacity:0.75;margin-top:5px;">/ ${sMax}점 (${sRate}%)</div>
                 </div>
