@@ -4376,6 +4376,8 @@ function renderTotalChart(record, averages, sTotal, sMax) {
         },
         options: {
             responsive: true, maintainAspectRatio: false,
+            clip: false,
+            layout: { padding: { top: 30 } },
             scales: { y: { beginAtZero:true, max:sMax, ticks:{font:{size:16}, callback: v => Number.isInteger(v) ? v : parseFloat(v).toFixed(1)} }, x:{ticks:{font:{size:16}}} },
             plugins: {
                 legend: { position: 'right', labels:{font:{size:16}, padding:15} },
@@ -4385,6 +4387,7 @@ function renderTotalChart(record, averages, sTotal, sMax) {
                     align:  (ctx) => ctx.raw / (ctx.chart.scales.y.max||1) < 0.12 ? 'top'  : 'center',
                     font: { size: 15, weight: 'bold' },
                     color: (ctx) => ctx.raw / (ctx.chart.scales.y.max||1) < 0.12 ? '#013976' : 'white',
+                    clamp: false,
                     formatter: (v) => v > 0 ? parseFloat(v).toFixed(1) : ''
                 } : false
             }
@@ -4415,6 +4418,8 @@ function renderSectionsBarChart(record, averages, activeSections, secMap, maxMap
         },
         options: {
             responsive: true, maintainAspectRatio: false,
+            clip: false,
+            layout: { padding: { top: 28 } },
             scales: { y:{beginAtZero:true, ticks:{font:{size:16}, callback: v => Number.isInteger(v) ? v : parseFloat(v).toFixed(1)}}, x:{ticks:{font:{size:16}}} },
             plugins: {
                 legend: { position: 'right', labels:{font:{size:16}, padding:15} },
@@ -4424,6 +4429,7 @@ function renderSectionsBarChart(record, averages, activeSections, secMap, maxMap
                     align:  (ctx) => ctx.raw / (ctx.chart.scales.y.max||1) < 0.12 ? 'top'  : 'center',
                     font: { size: 15, weight: 'bold' },
                     color: (ctx) => ctx.raw / (ctx.chart.scales.y.max||1) < 0.12 ? '#013976' : 'white',
+                    clamp: false,
                     formatter: (v) => v > 0 ? parseFloat(v).toFixed(1) : ''
                 } : false
             }
@@ -5192,13 +5198,16 @@ function renderStudentStatsUI(students, _unused) {
             },
             options: {
                 responsive: true,
+                clip: false,
+                layout: { padding: { top: 28 } },
                 plugins: {
                     legend: { display: false },
+                    datalabels: { display: false },
                     tooltip: { callbacks: { afterLabel: (ctx) => `만점: ${allMaxes[ctx.dataIndex]}점` } }
                 },
                 scales: {
                     x: { ticks: { font: { size: 14 } } },
-                    y: { beginAtZero: true, max: totalMax2 || undefined, ticks: { font: { size: 14 } } }
+                    y: { beginAtZero: true, ticks: { font: { size: 14 } } }
                 }
             }
         });
@@ -5534,13 +5543,14 @@ function renderStatDoughnut(canvasId, data, total, label) {
                 padding: { top: -20, bottom: 0 }
             },
             plugins: {
+                datalabels: { display: false },
                 tooltip: {
                     callbacks: {
                         label: function (context) {
                             const itemLabel = context.label || '';
                             const value = context.parsed;
                             const percentage = ((value / total) * 100).toFixed(1);
-                            return `${itemLabel}: ${value}개 (${percentage}%)`;
+                            return `${itemLabel}: ${value}명 (${percentage}%)`;
                         }
                     }
                 },
@@ -5548,9 +5558,7 @@ function renderStatDoughnut(canvasId, data, total, label) {
                     position: 'right',
                     labels: {
                         padding: 12,
-                        font: {
-                            size: 14
-                        }
+                        font: { size: 14 }
                     }
                 }
             }
@@ -5581,6 +5589,7 @@ function renderStatBar(canvasId, data) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
+                datalabels: { display: false },
                 tooltip: {
                     callbacks: {
                         label: function (context) {
@@ -5588,23 +5597,11 @@ function renderStatBar(canvasId, data) {
                         }
                     }
                 },
-                legend: {
-                    display: false
-                }
+                legend: { display: false }
             },
             scales: {
-                x: {
-                    ticks: {
-                        font: { size: 14 }
-                    }
-                },
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1,
-                        font: { size: 14 }
-                    }
-                }
+                x: { ticks: { font: { size: 14 } } },
+                y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 14 } } }
             }
         }
     });
