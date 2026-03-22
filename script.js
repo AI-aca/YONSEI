@@ -1862,8 +1862,8 @@ function computeClassAvg(className, grade, secMap) {
     });
     if (!records.length) return null;
     const avg = {};
-    const totals = records.map(r => parseFloat(r['종점'] || r.totalScore || 0)).filter(v => !isNaN(v) && v >= 0);
-    if (totals.length) avg['종점'] = totals.reduce((s,v)=>s+v,0)/totals.length;
+    const totals = records.map(r => parseFloat(r['총점'] || r['완스코어'] || r.totalScore || r.total || 0)).filter(v => !isNaN(v) && v > 0);
+    if (totals.length) avg['총점'] = totals.reduce((s,v)=>s+v,0)/totals.length;
     if (secMap) Object.keys(secMap).forEach(sec => {
         const vals = records.map(r => parseFloat(r[sec+'_점수'] || r[secMap[sec]] || 0)).filter(v => !isNaN(v) && v >= 0);
         if (vals.length) avg[sec+'_점수'] = vals.reduce((s,v)=>s+v,0)/vals.length;
@@ -2895,6 +2895,7 @@ function rerenderReportCharts() {
     const mode = window._reportAvgMode||'all';
     renderTotalChart(d.record, d.averages, d.sTotal, d.sMax, clsAvg, mode);
     renderSectionsBarChart(d.record, d.averages, d.activeSections, d.secMap, d.maxMap, clsAvg, mode);
+    renderRadarChart(d.record, d.averages, d.activeSections, d.secMap, d.maxMap, clsAvg);
 }
 
 // Canvas 06: 학년 선택 시 해당 학년 학급만 dropdown에 표시
@@ -4446,7 +4447,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
         const mode = window._reportAvgMode||'all';
         renderTotalChart(record, averages, sTotal, sMax, clsAvg, mode);
         renderSectionsBarChart(record, averages, activeSections, secMap, maxMap, clsAvg, mode);
-        renderRadarChart(record, averages, activeSections, secMap, maxMap);
+        renderRadarChart(record, averages, activeSections, secMap, maxMap, clsAvg);
     }, 100);
 }
 
@@ -4535,7 +4536,7 @@ function renderTotalChart(record, averages, sTotal, sMax, classAvg, mode) {
         plugins: [clPlugin],
         data: {
             labels: ['총점'],
-            datasets: (() => { const _ds=[{label:'개인 점수',data:[sTotal],backgroundColor:'#e74c3c',borderRadius:8}]; if((mode||'all')!=='class') _ds.push({label:'전체 평균',data:[avgTotal],backgroundColor:'#94a3b8',borderRadius:8}); if(classAvg&&(mode||'all')!=='overall') _ds.push({label:'학급 평균',data:[parseFloat((classAvg['종점']||0).toFixed(1))],backgroundColor:'#22c55e',borderRadius:8}); _ds.push({label:'만점',data:[sMax],backgroundColor:'#013976',borderRadius:8}); return _ds; })()
+            datasets: (() => { const _ds=[{label:'개인 점수',data:[sTotal],backgroundColor:'#e74c3c',borderRadius:8}]; if((mode||'all')!=='class') _ds.push({label:'전체 평균',data:[avgTotal],backgroundColor:'#94a3b8',borderRadius:8}); if(classAvg&&(mode||'all')!=='overall') _ds.push({label:'학급 평균',data:[parseFloat((classAvg['총점']||0).toFixed(1))],backgroundColor:'#22c55e',borderRadius:8}); _ds.push({label:'만점',data:[sMax],backgroundColor:'#013976',borderRadius:8}); return _ds; })()
         },
         options: {
             responsive: true, maintainAspectRatio: false,
@@ -4772,7 +4773,7 @@ window.onload = function() { setTimeout(function(){ window.print(); }, 800); };
 }
 
 // 레이더 차트 — 정답률(%) 기준으로 정규화 (만점 다른 영역 공정 비교)
-function renderRadarChart(record, averages, activeSections, secMap, maxMap) {
+function renderRadarChart(record, averages, activeSections, secMap, maxMap, classAvg) {
     const ctx = document.getElementById('chart-radar');
     if (!ctx || activeSections.length < 3) return;
     if (ctx._chartInstance) ctx._chartInstance.destroy();
@@ -4793,6 +4794,8 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap) {
     // 정답률(%) 변환
     const pctPersonal = rawPersonal.map((v, i) => maxScores[i] > 0 ? +((v / maxScores[i]) * 100).toFixed(1) : 0);
     const pctAvg      = rawAvg.map((v, i)      => maxScores[i] > 0 ? +((v / maxScores[i]) * 100).toFixed(1) : 0);
+    const rawClass    = classAvg ? activeSections.map(s => parseFloat(classAvg[s+'_점수'] || 0)) : null;
+    const pctClass    = rawClass ? rawClass.map((v, i) => maxScores[i] > 0 ? +((v / maxScores[i]) * 100).toFixed(1) : 0) : null;
 
     const DL = window.ChartDataLabels;
     if (DL && !Chart._dlRegistered) { Chart.register(DL); Chart._dlRegistered = true; }
@@ -4863,18 +4866,7 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap) {
         plugins: [radarTablePlugin],
         data: {
             labels: activeSections,
-            datasets: [
-                {
-                    label:'개인 정답률(%)', data:pctPersonal,
-                    borderColor:'#e74c3c', backgroundColor:'transparent',
-                    borderWidth:2.5, pointBackgroundColor:'#e74c3c', pointBorderColor:'#fff', pointRadius:5
-                },
-                {
-                    label:'평균 정답률(%)', data:pctAvg,
-                    borderColor:'#94a3b8', backgroundColor:'transparent',
-                    borderWidth:2, pointBackgroundColor:'#94a3b8'
-                }
-            ]
+            datasets: (() => { const _rds=[{ label:'개인 정답률(%)', data:pctPersonal, borderColor:'#e74c3c', backgroundColor:'transparent', borderWidth:2.5, pointRadius:0 },{ label:'평균 정답률(%)', data:pctAvg, borderColor:'#94a3b8', backgroundColor:'transparent', borderWidth:2, pointRadius:0 }]; if(pctClass) _rds.push({ label:'학급 평균(%)', data:pctClass, borderColor:'#22c55e', backgroundColor:'transparent', borderWidth:2, pointRadius:0 }); return _rds; })()
         },
         options: {
             responsive: true, maintainAspectRatio: false,
