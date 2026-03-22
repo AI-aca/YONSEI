@@ -5270,8 +5270,10 @@ function renderStudentStatsUI(students, _unused) {
                 const ctxBar = document.getElementById(barId);
                 if (ctxBar) {
                     const PALETTE = ['#4A90E2','#50C878','#FFB84D','#FF6B6B','#9B59B6','#1ABC9C','#E74C3C','#3498DB'];
+                    const clPluginH={id:'clH'+barId,afterDatasetsDraw(ch){const c=ch.ctx,FS=14;ch.data.datasets.forEach((ds,di)=>{ch.getDatasetMeta(di).data.forEach((bar,bi)=>{const v=ds.data[bi];if(!v||v<=0)return;const txt=parseFloat(v).toFixed(1)+'점';const bw=Math.abs(bar.x-bar.base);c.save();c.font=`bold ${FS}px sans-serif`;c.textBaseline='middle';const tw=c.measureText(txt).width;if(bw>=tw+20){c.fillStyle='white';c.textAlign='center';c.fillText(txt,(bar.x+bar.base)/2,bar.y);}else{c.fillStyle='#013976';c.textAlign='left';c.fillText(txt,bar.x+4,bar.y);}c.restore();});});}};
                     ctxBar._chartInstance = new Chart(ctxBar.getContext('2d'), {
                         type: 'bar',
+                        plugins: [clPluginH],
                         data: {
                             labels: clsScores.map(x=>x.cls),
                             datasets: [{ label: '평균 점수', data: clsScores.map(x=>x.avg), backgroundColor: clsScores.map((_,i)=>PALETTE[i%PALETTE.length]), borderRadius: 6 }]
@@ -5279,18 +5281,11 @@ function renderStudentStatsUI(students, _unused) {
                         options: {
                             responsive: true, maintainAspectRatio: false,
                             clip: false,
-                            layout: { padding: { right: 50 } },
+                            layout: { padding: { right: 10 } },
                             indexAxis: 'y',
                             plugins: {
                                 legend: { display: false },
-                                datalabels: {
-                                    display: true,
-                                    anchor: 'end', align: 'right',
-                                    clamp: false,
-                                    formatter: (v) => v + '점',
-                                    color: '#013976',
-                                    font: { size: 14, weight: 'bold' }
-                                },
+                                datalabels: { display: false },
                                 tooltip: { callbacks: { label: (ctx) => ` 평균: ${ctx.parsed.x}점` } }
                             },
                             scales: {
