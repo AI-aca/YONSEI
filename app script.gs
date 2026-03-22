@@ -231,20 +231,26 @@ function doPost(e) {
       var hdrai = sai.getRange(1, 1, 1, lcai).getValues()[0];
       var aiOvCol = hdrai.indexOf("AI_종합코멘트") + 1;
       var aiScCol = hdrai.indexOf("AI_영역코멘트(JSON)") + 1;
+      var notesCol = hdrai.indexOf("기타사항") + 1;
       if (aiOvCol === 0) {
         aiOvCol = lcai + 1; lcai++;
         sai.getRange(1, aiOvCol).setValue("AI_종합코멘트").setFontWeight("bold").setBackground("#6c5ce7").setFontColor("#FFFFFF");
       }
       if (aiScCol === 0) {
-        aiScCol = lcai + 1;
+        aiScCol = lcai + 1; lcai++;
         sai.getRange(1, aiScCol).setValue("AI_영역코멘트(JSON)").setFontWeight("bold").setBackground("#6c5ce7").setFontColor("#FFFFFF");
+      }
+      if (notesCol === 0) {
+        notesCol = lcai + 1; lcai++;
+        sai.getRange(1, notesCol).setValue("기타사항").setFontWeight("bold").setBackground("#6c5ce7").setFontColor("#FFFFFF");
       }
       var lrai = sai.getLastRow();
       var sidai = String(data.studentId);
       for (var ii = 2; ii <= lrai; ii++) {
         if (String(sai.getRange(ii, 2).getValue()) === sidai) {
-          sai.getRange(ii, aiOvCol).setValue(data.overallComment || "");
-          sai.getRange(ii, aiScCol).setValue(JSON.stringify(data.sectionComments || {}));
+          if (data.overallComment !== undefined) sai.getRange(ii, aiOvCol).setValue(data.overallComment || "");
+          if (data.sectionComments !== undefined) sai.getRange(ii, aiScCol).setValue(JSON.stringify(data.sectionComments || {}));
+          if (data.notes !== undefined) sai.getRange(ii, notesCol).setValue(data.notes || "");
           break;
         }
       }
@@ -319,6 +325,7 @@ function doPost(e) {
             else if (headerName === "Vocabulary_만점") report.vocabMax = val;
             else if (headerName === "문항별상세(JSON)") report.questionScores = val;
             else if (headerName === "등록학급") report.studentClass = val || null;
+            else if (headerName === "기타사항") report.notes = val || null;
             else if (headerName === "AI_종합코멘트") report.aiOverallComment = val || null;
             else if (headerName === "AI_영역코멘트(JSON)") {
               try { report.aiSectionComments = val ? JSON.parse(val) : {}; }
