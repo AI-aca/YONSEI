@@ -4381,9 +4381,10 @@ function renderTotalChart(record, averages, sTotal, sMax) {
                 legend: { position: 'right', labels:{font:{size:16}, padding:15} },
                 tooltip: { bodyFont:{size:16}, titleFont:{size:16}, callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + parseFloat(ctx.raw).toFixed(1) } },
                 datalabels: DL ? {
-                    anchor: 'center', align: 'center',
-                    font: { size: 16, weight: 'bold' },
-                    color: 'white',
+                    anchor: (ctx) => ctx.raw / (ctx.chart.scales.y.max||1) < 0.12 ? 'end' : 'center',
+                    align:  (ctx) => ctx.raw / (ctx.chart.scales.y.max||1) < 0.12 ? 'top'  : 'center',
+                    font: { size: 15, weight: 'bold' },
+                    color: (ctx) => ctx.raw / (ctx.chart.scales.y.max||1) < 0.12 ? '#013976' : 'white',
                     formatter: (v) => v > 0 ? parseFloat(v).toFixed(1) : ''
                 } : false
             }
@@ -4419,9 +4420,10 @@ function renderSectionsBarChart(record, averages, activeSections, secMap, maxMap
                 legend: { position: 'right', labels:{font:{size:16}, padding:15} },
                 tooltip: { bodyFont:{size:16}, titleFont:{size:16}, callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + parseFloat(ctx.raw).toFixed(1) } },
                 datalabels: DL ? {
-                    anchor: 'center', align: 'center',
-                    font: { size: 16, weight: 'bold' },
-                    color: 'white',
+                    anchor: (ctx) => ctx.raw / (ctx.chart.scales.y.max||1) < 0.12 ? 'end' : 'center',
+                    align:  (ctx) => ctx.raw / (ctx.chart.scales.y.max||1) < 0.12 ? 'top'  : 'center',
+                    font: { size: 15, weight: 'bold' },
+                    color: (ctx) => ctx.raw / (ctx.chart.scales.y.max||1) < 0.12 ? '#013976' : 'white',
                     formatter: (v) => v > 0 ? parseFloat(v).toFixed(1) : ''
                 } : false
             }
@@ -5158,10 +5160,7 @@ function renderStudentStatsUI(students, _unused) {
                     ${yearSelect('stats-year-class', "document.getElementById('stats-class-body').innerHTML=window._renderClassStats(this.value); window._drawClassCharts(this.value);")}
                 </div>
                 <div id="stats-class-body">${renderClass('')}</div>
-                <div class="mt-4 grid grid-cols-2 gap-4" style="min-height:220px;">
-                    <div><h4 class="text-center font-bold text-[#013976] mb-2" style="font-size:14px;">학급별 평균 총점</h4><canvas id="student-class-bar"></canvas></div>
-                    <div><h4 class="text-center font-bold text-purple-700 mb-2" style="font-size:14px;">학급별 학생수 비율</h4><canvas id="student-class-doughnut"></canvas></div>
-                </div>
+                <div id="stats-class-charts" class="mt-4 space-y-8"></div>
             </div>
         </div>`;
 
@@ -5177,7 +5176,7 @@ function renderStudentStatsUI(students, _unused) {
         const maxes    = validSecs.map(s => parseFloat(calcMax(filtered, s)));
         const totalAvg = avgs.reduce((a,b)=>a+b, 0);
         const totalMax2 = maxes.reduce((a,b)=>a+b, 0);
-        const allLabels = ['\uc8fc\uc810 (\ud569\uc0b0)', ...validSecs];
+        const allLabels = ['점수 (합산)', ...validSecs];
         const allAvgs   = [totalAvg, ...avgs].map(Number);
         const allMaxes  = [totalMax2, ...maxes].map(Number);
         const ctx = document.getElementById('student-bar-chart');
@@ -5205,58 +5204,95 @@ function renderStudentStatsUI(students, _unused) {
         });
     };
 
-    // === 학급별 총점 바차트 + 학생수 도닛 차트 ===
+    // === 학급별 평균점수 + 학생수 도닛 — 학년별 그룹 ===
     window._drawClassCharts = (yrVal) => {
         const filtered = yrVal ? all.filter(s => dateToYear(s['응시일']||s.testDate||s.date||'') === yrVal) : all;
         const groups = {};
-        filtered.forEach(s => { const cls = s.studentClass || s['등록\ud559\uae09'] || '(\ubbf8\uc785\ub825)'; if(!groups[cls]) groups[cls]=[]; groups[cls].push(s); });
-        const clsNames = Object.keys(groups).sort((a,b)=>a.localeCompare(b));
-        const PALETTE = ['#013976','#7e22ce','#0ea5e9','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899'];
+        filtered.forEach(s => { const cls = s.studentClass || s['등록학급'] || '(미입력)'; if(!groups[cls]) groups[cls]=[]; groups[cls].push(s); });
 
-        // 학급별 총점 바차트
-        const ctxBar = document.getElementById('student-class-bar');
-        if (ctxBar) {
-            if (ctxBar._chartInstance) ctxBar._chartInstance.destroy();
-            const clsAvgs = clsNames.map(cls => {
-                const list = groups[cls];
-                const total = SECTIONS.reduce((sum,s)=>{ const a=parseFloat(calcAvg(list,s)); return sum+(isNaN(a)?0:a); },0);
-                return parseFloat(total.toFixed(1));
-            });
-            ctxBar._chartInstance = new Chart(ctxBar.getContext('2d'), {
-                type: 'bar',
-                data: { labels: clsNames, datasets: [{ label: '\ud3c9\uade0 \ucd1d\uc810', data: clsAvgs, backgroundColor: clsNames.map((_,i)=>PALETTE[i%PALETTE.length]), borderRadius: 6 }] },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { beginAtZero: true, ticks: { font: { size: 13 } } },
-                        y: { ticks: { font: { size: 13 } } }
-                    }
-                }
-            });
-        }
+        // 학년별 그룹uc218 (학급명 앞 숫자 = 학년)
+        const gradeMap = {};
+        Object.keys(groups).forEach(cls => {
+            const m = cls.match(/^(\d+)/);
+            const grade = m ? m[1] + '학년' : '기타';
+            if (!gradeMap[grade]) gradeMap[grade] = [];
+            gradeMap[grade].push(cls);
+        });
+        const grades = Object.keys(gradeMap).sort();
 
-        // 학생수 도닛
-        const ctxDnt = document.getElementById('student-class-doughnut');
-        if (ctxDnt) {
-            if (ctxDnt._chartInstance) ctxDnt._chartInstance.destroy();
-            ctxDnt._chartInstance = new Chart(ctxDnt.getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: clsNames,
-                    datasets: [{ data: clsNames.map(c=>groups[c].length), backgroundColor: clsNames.map((_,i)=>PALETTE[i%PALETTE.length]), borderWidth: 2 }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'bottom', labels: { font: { size: 13 }, boxWidth: 14 } },
-                        datalabels: { display: false },
-                        tooltip: { callbacks: { label: (ctx) => { const total = ctx.dataset.data.reduce((a,b)=>a+b,0); const pct = total>0?Math.round(ctx.parsed/total*100):0; return ` ${ctx.label}: ${ctx.parsed}명 (${pct}%)`; } } }
-                    }
+        const container = document.getElementById('stats-class-charts');
+        if (!container) return;
+
+        // 이전 차트 인스턴스 정리
+        container.querySelectorAll('canvas').forEach(c => { if(c._chartInstance) c._chartInstance.destroy(); });
+
+        let html = '';
+        const ts = Date.now();
+        grades.forEach(grade => {
+            const clsInGrade = gradeMap[grade];
+            const barId = `cls-bar-${grade}-${ts}`;
+            const dntId = `cls-dnt-${grade}-${ts}`;
+            html += `
+            <div>
+                <h4 class="ys-label mb-4">🎓 ${grade}</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="card">
+                        <h3 class="ys-label mb-0">📊 학급별 평균 점수</h3>
+                        <div style="height:300px;"><canvas id="${barId}"></canvas></div>
+                    </div>
+                    <div class="card">
+                        <h3 class="ys-label mb-0">👥 학생수 비율</h3>
+                        <div style="height:300px;"><canvas id="${dntId}"></canvas></div>
+                    </div>
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
+
+        // 실제 차트 그리기 (DOM 삽입 후)
+        setTimeout(() => {
+            grades.forEach(grade => {
+                const clsInGrade = gradeMap[grade];
+                const barId = `cls-bar-${grade}-${ts}`;
+                const dntId = `cls-dnt-${grade}-${ts}`;
+
+                // 평균점수 내림차순 정렬
+                const clsScores = clsInGrade.map(cls => ({
+                    cls,
+                    avg: parseFloat(SECTIONS.reduce((sum,s)=>{ const a=parseFloat(calcAvg(groups[cls],s)); return sum+(isNaN(a)?0:a); },0).toFixed(1))
+                })).sort((a,b) => b.avg - a.avg);
+
+                // 바차트 (가로 막대)
+                const ctxBar = document.getElementById(barId);
+                if (ctxBar) {
+                    const PALETTE = ['#4A90E2','#50C878','#FFB84D','#FF6B6B','#9B59B6','#1ABC9C','#E74C3C','#3498DB'];
+                    ctxBar._chartInstance = new Chart(ctxBar.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: clsScores.map(x=>x.cls),
+                            datasets: [{ label: '평균 점수', data: clsScores.map(x=>x.avg), backgroundColor: clsScores.map((_,i)=>PALETTE[i%PALETTE.length]), borderRadius: 6 }]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            indexAxis: 'y',
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: { callbacks: { label: (ctx) => ` 평균: ${ctx.parsed.x}점` } }
+                            },
+                            scales: {
+                                x: { beginAtZero: true, ticks: { font: { size: 14 } } },
+                                y: { ticks: { font: { size: 14 } } }
+                            }
+                        }
+                    });
                 }
+
+                // 도닛 (학생수)
+                const countObj = {};
+                clsInGrade.forEach(cls => { countObj[cls] = groups[cls].length; });
+                renderStatDoughnut(dntId, countObj, clsInGrade.reduce((s,c)=>s+groups[c].length,0), '학급');
             });
-        }
+        }, 80);
     };
 
     window._drawStudentChart('');
