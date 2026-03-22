@@ -4180,7 +4180,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
             <h4 style="font-size:18px;font-weight:900;color:#013976;margin-bottom:1rem;">🕸 영역별 균형도</h4>
             <!-- 차트+범례+요약표가 단일 캔버스로 중앙 배치 -->
             <div class="flex justify-center" style="width:100%;">
-                <div style="width:780px;max-width:100%;height:380px;position:relative;">
+                <div style="width:700px;max-width:100%;height:342px;position:relative;">
                     <canvas id="chart-radar" style="width:100%;height:100%;"></canvas>
                 </div>
             </div>
@@ -4646,7 +4646,7 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap) {
 
             // 타이틀
             c2.textAlign = 'center'; c2.textBaseline = 'middle';
-            c2.fillStyle = '#013976'; c2.font = 'bold 14px sans-serif';
+            c2.fillStyle = '#013976'; c2.font = 'bold 16px sans-serif';
             c2.fillText('개인 정답률', pX + pW/2, pY + 22);
             c2.beginPath(); c2.moveTo(pX+14, pY+40); c2.lineTo(pX+pW-14, pY+40);
             c2.strokeStyle = '#e2e8f0'; c2.stroke();
@@ -4662,7 +4662,7 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap) {
                 }
                 const pct = maxS > 0 ? (score/maxS*100).toFixed(1)+'%' : '0%';
 
-                c2.font = '600 13px sans-serif';
+                c2.font = '600 16px sans-serif';
                 c2.fillStyle = '#334155'; c2.textAlign = 'left';
                 c2.fillText(s, pX+14, cy);
 
@@ -4697,8 +4697,8 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap) {
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            // 우측 210px: Chart.js 범례(약80px) + 클리어런스(30px) + 요약표(190px짜리)
-            layout: { padding: { right: 210, left: 10, top: 10, bottom: 10 } },
+            // 우측 200px: Chart.js 범례 + 요약표 영역
+            layout: { padding: { right: 200, left: 10, top: 10, bottom: 10 } },
             scales: {
                 r: {
                     min: 0, max: 100,
@@ -4708,7 +4708,7 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap) {
             },
             plugins: {
                 datalabels: { display: false },
-                legend: { position: 'right', labels: { font:{size:14}, boxWidth:24, padding:10 } },
+                legend: { position: 'right', labels: { font:{size:16}, boxWidth:24, padding:4 } },
                 tooltip: {
                     bodyFont:{size:16}, titleFont:{size:16},
                     callbacks: {
