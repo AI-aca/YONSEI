@@ -5085,21 +5085,29 @@ function renderStudentStatsUI(students, _unused) {
     // 섹션 헤더 (공통 함수)
     const makeHeader = (list, bgClass, labelTh) => {
         const mx = calcTotalMax(list);
+        const mxStr = mx > 0 ? `(만점 ${mx}점)` : '-';
         return `<thead class="${bgClass} text-white"><tr>
-            <th class="px-4 py-2.5 text-left" style="font-size:14px;">${labelTh}</th>
-            <th class="px-4 py-2.5 text-center" style="font-size:14px;">응시자수</th>
-            <th class="px-4 py-2.5 text-center" style="font-size:14px;">만점<br><span style="font-size:11px;font-weight:400;opacity:0.8;">(${mx > 0 ? mx : '-'}점)</span></th>
-            ${SECTIONS.map(s => { const smx = calcMax(list, s); return `<th class="px-3 py-2.5 text-center" style="font-size:14px;">${s}${smx !== '-' ? `<br><span style="font-size:11px;font-weight:400;opacity:0.8;">/${smx}점</span>` : ''}</th>`; }).join('')}
+            <th class="px-4 py-2.5 text-center" style="font-size:14px;">${labelTh}</th>
+            <th class="px-4 py-2.5 text-center" style="font-size:14px;">응시자수<br><span style="font-size:11px;font-weight:400;opacity:0.8;">(명)</span></th>
+            <th class="px-4 py-2.5 text-center" style="font-size:14px;">총점<br><span style="font-size:11px;font-weight:400;opacity:0.8;">${mxStr}</span></th>
+            ${SECTIONS.map(s => {
+                const smx = calcMax(list, s);
+                const sub = smx !== '-' ? `(${smx}점)` : '(영역 없음)';
+                return `<th class="px-3 py-2.5 text-center" style="font-size:14px;">${s}<br><span style="font-size:11px;font-weight:400;opacity:0.8;">${sub}</span></th>`;
+            }).join('')}
         </tr></thead>`;
     };
 
-    const dataRow = (label, count, list, totalMax, extraClass='') =>
-        `<tr class="${extraClass} border-b border-slate-100">
-            <td class="px-4 py-3 font-bold" style="font-size:14px;">${label}</td>
+    const dataRow = (label, count, list, extraClass='') => {
+        const totalScore = SECTIONS.reduce((sum, s) => { const a = calcAvg(list, s); return sum + (a !== '-' ? parseFloat(a) : 0); }, 0);
+        const scoreStr = totalScore > 0 ? totalScore.toFixed(1) : '-';
+        return `<tr class="${extraClass} border-b border-slate-100">
+            <td class="px-4 py-3 font-bold text-center" style="font-size:14px;">${label}</td>
             <td class="px-4 py-3 text-center font-bold text-[#013976]" style="font-size:14px;">${count}</td>
-            <td class="px-3 py-3 text-center font-bold text-orange-600" style="font-size:14px;">${totalMax > 0 ? totalMax : '-'}</td>
+            <td class="px-3 py-3 text-center font-bold text-orange-600" style="font-size:14px;">${scoreStr}</td>
             ${SECTIONS.map(s => { const avg = calcAvg(list, s); return `<td class="px-3 py-3 text-center" style="font-size:14px;">${avg === '-' ? '<span class="text-slate-300">-</span>' : `<span class="font-bold">${avg}</span>`}</td>`; }).join('')}
         </tr>`;
+    };
 
     // 전체 통계 렌더 함수
     const renderOverall = (yrVal) => {
@@ -5110,7 +5118,7 @@ function renderStudentStatsUI(students, _unused) {
             : `<div class="overflow-x-auto rounded-xl border border-slate-200">
                 <table class="w-full" style="font-size:14px;">
                     ${makeHeader(filtered, 'bg-[#013976]', '구분')}
-                    <tbody>${dataRow('전체 평균', filtered.length, filtered, mx, 'bg-blue-50/40')}</tbody>
+                    <tbody>${dataRow('전체 평균', filtered.length, filtered, 'bg-blue-50/40')}</tbody>
                 </table></div>`;
     };
 
@@ -5122,7 +5130,7 @@ function renderStudentStatsUI(students, _unused) {
         filtered.forEach(s => { const cls = s.studentClass || s['등록학급'] || '(미입력)'; if (!groups[cls]) groups[cls] = []; groups[cls].push(s); });
         if (Object.keys(groups).length === 0) return `<p class="text-slate-400 text-center py-6" style="font-size:14px;">등록학급 정보가 없습니다.</p>`;
         const rows = Object.entries(groups).sort(([a],[b])=>a.localeCompare(b))
-            .map(([cls, list], i) => dataRow(`<span class="text-purple-700">${cls}</span>`, list.length, list, mx, i%2===0?'bg-purple-50/30':'')).join('');
+            .map(([cls, list], i) => dataRow(`<span class="text-purple-700">${cls}</span>`, list.length, list, i%2===0?'bg-purple-50/30':'')).join('');
         return `<div class="overflow-x-auto rounded-xl border border-slate-200">
             <table class="w-full" style="font-size:14px;">
                 ${makeHeader(filtered, 'bg-purple-700', '학급')}
