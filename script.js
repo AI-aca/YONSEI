@@ -5054,120 +5054,102 @@ function onStudentStatsYearChange(sel) {
     if (newSel) newSel.value = year;
 }
 
-function renderStudentStatsUI(students, yearLabel) {
+function renderStudentStatsUI(students, _unused) {
     const display = document.getElementById('stats-display');
+    const all = window._allStudentStatsData || students;
     const SECTIONS = ['Grammar', 'Writing', 'Reading', 'Listening', 'Vocabulary'];
     const scoreKey = { Grammar:'grammarScore', Writing:'writingScore', Reading:'readingScore', Listening:'listeningScore', Vocabulary:'vocabScore' };
     const maxKey   = { Grammar:'grammarMax',   Writing:'writingMax',   Reading:'readingMax',   Listening:'listeningMax',  Vocabulary:'vocabMax' };
 
     const calcAvg = (list, sec) => {
-        const vals = list.map(s => {
-            const v = parseFloat(s[scoreKey[sec]] ?? s[sec+'_점수'] ?? '');
-            return isNaN(v) ? null : v;
-        }).filter(v => v !== null);
+        const vals = list.map(s => { const v = parseFloat(s[scoreKey[sec]] ?? s[sec+'_점수'] ?? ''); return isNaN(v) ? null : v; }).filter(v => v !== null);
         return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '-';
     };
     const calcMax = (list, sec) => {
-        const vals = list.map(s => {
-            const v = parseFloat(s[maxKey[sec]] ?? s[sec+'_만점'] ?? '');
-            return isNaN(v) ? null : v;
-        }).filter(v => v !== null && v > 0);
+        const vals = list.map(s => { const v = parseFloat(s[maxKey[sec]] ?? s[sec+'_만점'] ?? ''); return isNaN(v) ? null : v; }).filter(v => v !== null && v > 0);
         if (!vals.length) return '-';
-        // 최빈값(가장 많이 나오는 만점)
         const freq = {}; vals.forEach(v => freq[v] = (freq[v]||0)+1);
         return String(Object.entries(freq).sort((a,b)=>b[1]-a[1])[0][0]);
     };
+    const calcTotalMax = (list) => SECTIONS.reduce((sum, s) => { const mx = calcMax(list, s); return sum + (mx !== '-' ? parseFloat(mx) : 0); }, 0);
 
     // 년도 목록 (실제 데이터 기반)
-    const allStudents = window._allStudentStatsData || students;
-    const years = [...new Set(allStudents.map(s => dateToYear(s['응시일']||s.testDate||s.date||'')).filter(y => /^\d{4}$/.test(y)))].sort((a,b)=>b-a);
-    const yearFilterHtml = `
-        <div class="flex items-center gap-3 mb-5 pb-3 border-b border-slate-200">
-            <span style="font-size:15px;font-weight:700;color:#64748b;white-space:nowrap;">📅 년도</span>
-            <select id="stats-year-inline" onchange="onStudentStatsYearChange(this)" class="ys-field !w-36" style="font-size:14px;">
-                <option value="">전체</option>
-                ${years.map(y => `<option value="${y}"${yearLabel===y?' selected':''}>${y}년</option>`).join('')}
-            </select>
-            <span style="font-size:14px;color:#94a3b8;">· 총 ${students.length}명</span>
-        </div>`;
+    const years = [...new Set(all.map(s => dateToYear(s['응시일']||s.testDate||s.date||'')).filter(y => /^\d{4}$/.test(y)))].sort((a,b)=>b-a);
+    const yearSelect = (id, onChange) => `
+        <select id="${id}" onchange="${onChange}" class="ys-field !w-28 !py-1 !text-[13px] !font-normal !bg-white ml-3">
+            <option value="">전체</option>
+            ${years.map(y => `<option value="${y}">${y}년</option>`).join('')}
+        </select>`;
 
-    // 영역별 만점 헤더 + 첫 행
-    const sectionHeader = SECTIONS.map(s => {
-        const mx = calcMax(students, s);
-        const mxStr = mx !== '-' ? `<br><span style="font-size:12px;font-weight:400;opacity:0.8;">/${mx}점</span>` : '';
-        return `<th class="px-3 py-2.5 text-center" style="font-size:14px;">${s}${mxStr}</th>`;
-    }).join('');
+    // 섹션 헤더 (공통 함수)
+    const makeHeader = (list, bgClass, labelTh) => {
+        const mx = calcTotalMax(list);
+        return `<thead class="${bgClass} text-white"><tr>
+            <th class="px-4 py-2.5 text-left" style="font-size:14px;">${labelTh}</th>
+            <th class="px-4 py-2.5 text-center" style="font-size:14px;">응시자수</th>
+            <th class="px-4 py-2.5 text-center" style="font-size:14px;">만점<br><span style="font-size:11px;font-weight:400;opacity:0.8;">(${mx > 0 ? mx : '-'}점)</span></th>
+            ${SECTIONS.map(s => { const smx = calcMax(list, s); return `<th class="px-3 py-2.5 text-center" style="font-size:14px;">${s}${smx !== '-' ? `<br><span style="font-size:11px;font-weight:400;opacity:0.8;">/${smx}점</span>` : ''}</th>`; }).join('')}
+        </tr></thead>`;
+    };
 
-    // 만점 첫 행 (bg 연횟)
-    const maxRow = `<tr class="bg-yellow-50/60 border-b-2 border-yellow-200">
-        <td class="px-4 py-2.5 font-bold text-yellow-700" style="font-size:14px;">만점</td>
-        <td class="px-4 py-2.5 text-center text-slate-400" style="font-size:14px;">-</td>
-        ${SECTIONS.map(s => {
-            const mx = calcMax(students, s);
-            return `<td class="px-3 py-2.5 text-center font-bold text-yellow-700" style="font-size:14px;">${mx !== '-' ? mx : '<span class="text-slate-300">-</span>'}</td>`;
-        }).join('')}
-    </tr>`;
-    const totalRow = (label, count, list, extraClass='') =>
+    const dataRow = (label, count, list, totalMax, extraClass='') =>
         `<tr class="${extraClass} border-b border-slate-100">
             <td class="px-4 py-3 font-bold" style="font-size:14px;">${label}</td>
             <td class="px-4 py-3 text-center font-bold text-[#013976]" style="font-size:14px;">${count}</td>
-            ${SECTIONS.map(s => {
-                const avg = calcAvg(list, s);
-                return `<td class="px-3 py-3 text-center" style="font-size:14px;">${avg === '-' ? '<span class="text-slate-300">-</span>' : `<span class="font-bold">${avg}</span>`}</td>`;
-            }).join('')}
+            <td class="px-3 py-3 text-center font-bold text-orange-600" style="font-size:14px;">${totalMax > 0 ? totalMax : '-'}</td>
+            ${SECTIONS.map(s => { const avg = calcAvg(list, s); return `<td class="px-3 py-3 text-center" style="font-size:14px;">${avg === '-' ? '<span class="text-slate-300">-</span>' : `<span class="font-bold">${avg}</span>`}</td>`; }).join('')}
         </tr>`;
 
-    // 학급별 그룹핑
-    const groups = {};
-    students.forEach(s => {
-        const cls = s.studentClass || s['등록학급'] || '(미입력)';
-        if (!groups[cls]) groups[cls] = [];
-        groups[cls].push(s);
-    });
+    // 전체 통계 렌더 함수
+    const renderOverall = (yrVal) => {
+        const filtered = yrVal ? all.filter(s => dateToYear(s['응시일']||s.testDate||s.date||'') === yrVal) : all;
+        const mx = calcTotalMax(filtered);
+        return filtered.length === 0
+            ? `<p class="text-slate-400 text-center py-6" style="font-size:14px;">해당 년도의 학생 데이터가 없습니다.</p>`
+            : `<div class="overflow-x-auto rounded-xl border border-slate-200">
+                <table class="w-full" style="font-size:14px;">
+                    ${makeHeader(filtered, 'bg-[#013976]', '구분')}
+                    <tbody>${dataRow('전체 평균', filtered.length, filtered, mx, 'bg-blue-50/40')}</tbody>
+                </table></div>`;
+    };
 
-    const groupRows = Object.entries(groups)
-        .sort(([a],[b])=>a.localeCompare(b))
-        .map(([cls, list], i) => totalRow(
-            `<span class="text-purple-700">${cls}</span>`, list.length, list,
-            i % 2 === 0 ? 'bg-purple-50/30' : ''
-        )).join('');
+    // 학급별 통계 렌더 함수
+    const renderClass = (yrVal) => {
+        const filtered = yrVal ? all.filter(s => dateToYear(s['응시일']||s.testDate||s.date||'') === yrVal) : all;
+        const mx = calcTotalMax(filtered);
+        const groups = {};
+        filtered.forEach(s => { const cls = s.studentClass || s['등록학급'] || '(미입력)'; if (!groups[cls]) groups[cls] = []; groups[cls].push(s); });
+        if (Object.keys(groups).length === 0) return `<p class="text-slate-400 text-center py-6" style="font-size:14px;">등록학급 정보가 없습니다.</p>`;
+        const rows = Object.entries(groups).sort(([a],[b])=>a.localeCompare(b))
+            .map(([cls, list], i) => dataRow(`<span class="text-purple-700">${cls}</span>`, list.length, list, mx, i%2===0?'bg-purple-50/30':'')).join('');
+        return `<div class="overflow-x-auto rounded-xl border border-slate-200">
+            <table class="w-full" style="font-size:14px;">
+                ${makeHeader(filtered, 'bg-purple-700', '학급')}
+                <tbody>${rows}</tbody>
+            </table></div>`;
+    };
 
     display.innerHTML = `
-        <div class="space-y-6 animate-fade-in">
-            ${yearFilterHtml}
+        <div class="space-y-6 animate-fade-in" id="student-stats-wrap">
             <div class="card">
-                <h3 class="fs-18 font-black text-[#013976] mb-4">📊 전체 통계</h3>
-                ${students.length === 0 ? '<p class="text-slate-400 text-center py-6" style="font-size:14px;">해당 조건의 학생 데이터가 없습니다.</p>' : `
-                <div class="overflow-x-auto rounded-xl border border-slate-200">
-                    <table class="w-full" style="font-size:14px;">
-                        <thead class="bg-[#013976] text-white"><tr>
-                            <th class="px-4 py-2.5 text-left" style="font-size:14px;">구분</th>
-                            <th class="px-4 py-2.5 text-center" style="font-size:14px;">응시자수</th>
-                            ${sectionHeader}
-                        </tr></thead>
-                        <tbody>
-                            ${maxRow}
-                            ${totalRow('전체 평균', students.length, students, 'bg-blue-50/40')}
-                        </tbody>
-                    </table>
-                </div>`}
+                <div class="flex items-center mb-4">
+                    <h3 class="fs-18 font-black text-[#013976]">📊 전체 통계</h3>
+                    ${yearSelect('stats-year-overall', "document.getElementById('stats-overall-body').innerHTML=window._renderOverall(this.value)")}
+                </div>
+                <div id="stats-overall-body">${renderOverall('')}</div>
             </div>
-
             <div class="card">
-                <h3 class="fs-18 font-black text-[#013976] mb-4">🏫 학급별 통계</h3>
-                ${Object.keys(groups).length === 0 ? '<p class="text-slate-400 text-center py-6" style="font-size:14px;">등록학급 정보가 없습니다.</p>' : `
-                <div class="overflow-x-auto rounded-xl border border-slate-200">
-                    <table class="w-full" style="font-size:14px;">
-                        <thead class="bg-purple-700 text-white"><tr>
-                            <th class="px-4 py-2.5 text-left" style="font-size:14px;">학급</th>
-                            <th class="px-4 py-2.5 text-center" style="font-size:14px;">응시자수</th>
-                            ${sectionHeader}
-                        </tr></thead>
-                        <tbody>${maxRow}${groupRows}</tbody>
-                    </table>
-                </div>`}
+                <div class="flex items-center mb-4">
+                    <h3 class="fs-18 font-black text-[#013976]">🏫 학급별 통계</h3>
+                    ${yearSelect('stats-year-class', "document.getElementById('stats-class-body').innerHTML=window._renderClassStats(this.value)")}
+                </div>
+                <div id="stats-class-body">${renderClass('')}</div>
             </div>
         </div>`;
+
+    // 전역 노출 (select onchange에서 접근)
+    window._renderOverall    = renderOverall;
+    window._renderClassStats = renderClass;
 }
 
 // 문항 통계 데이터 로드
