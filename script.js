@@ -2576,7 +2576,7 @@ function renderScoreInput(c) {
 
                 <!-- Student Info -->
                 <div class="card space-y-4">
-                    <div class="grid grid-cols-5 gap-4">
+                    <div class="grid grid-cols-4 gap-4">
                         <div>
                             <label class="ys-label font-bold">&#x1F4DD; &#xD559;&#xC0DD;&#xBA85;</label>
                             <input type="text" id="input-student-name" class="ys-field" placeholder="&#xC774;&#xB984; &#xC785;&#xB825;" autocomplete="off">
@@ -2597,10 +2597,6 @@ function renderScoreInput(c) {
                                 <option value="">&#xC120;&#xD0DD;</option>
                             </select>
                              <div id="class-recommend-badge06" style="font-size:12px;margin-top:3px;color:#94a3b8;"></div>
-                        </div>
-                        <div>
-                            <label class="ys-label">&#x1F464; &#xD559;&#xC0DD;ID <span style="font-size:14px;">(&#xC790;&#xB3D9;&#xC0DD;&#xC131;)</span></label>
-                            <input type="text" id="input-student-id" class="ys-field bg-slate-100 text-slate-500 font-mono" placeholder="&#xC800;&#xC7A5; &#xC2DC; &#xC790;&#xB3D9;&#xC644;&#xC131;" readonly>
                         </div>
                     </div>
                 </div>
@@ -2907,7 +2903,7 @@ function updateClassBadge06(rec) {
         badge.style.color = '#6366f1';
         badge.style.fontWeight = '700';
     } else {
-        badge.textContent = '점수 입력 시 학급이 자동 추천됩니다';
+        badge.textContent = '';
         badge.style.color = '#94a3b8';
         badge.style.fontWeight = '400';
     }
