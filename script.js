@@ -4383,11 +4383,11 @@ function renderTotalChart(record, averages, sTotal, sMax) {
                 legend: { position: 'right', labels:{font:{size:16}, padding:15} },
                 tooltip: { bodyFont:{size:16}, titleFont:{size:16}, callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + parseFloat(ctx.raw).toFixed(1) } },
                 datalabels: DL ? {
-                    anchor: (ctx) => ctx.raw / (ctx.chart.scales.y.max||1) < 0.12 ? 'end' : 'center',
-                    align:  (ctx) => ctx.raw / (ctx.chart.scales.y.max||1) < 0.12 ? 'top'  : 'center',
-                    offset: (ctx) => { const r = ctx.raw / (ctx.chart.scales.y.max||1); return r < 0.02 ? 50 : r < 0.12 ? 10 : 0; },
+                    anchor: (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; return b&&Math.abs(b.base-b.y)<30?'end':'center'; },
+                    align:  (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; return b&&Math.abs(b.base-b.y)<30?'top':'center'; },
+                    offset: (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; const h=b?Math.abs(b.base-b.y):100; return h<5?50:h<30?20:0; },
                     font: { size: 15, weight: 'bold' },
-                    color: (ctx) => ctx.raw / (ctx.chart.scales.y.max||1) < 0.12 ? '#013976' : 'white',
+                    color: (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; return b&&Math.abs(b.base-b.y)<30?'#013976':'white'; },
                     clamp: false,
                     formatter: (v) => v > 0 ? parseFloat(v).toFixed(1) : ''
                 } : false
@@ -4426,11 +4426,11 @@ function renderSectionsBarChart(record, averages, activeSections, secMap, maxMap
                 legend: { position: 'right', labels:{font:{size:16}, padding:15} },
                 tooltip: { bodyFont:{size:16}, titleFont:{size:16}, callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + parseFloat(ctx.raw).toFixed(1) } },
                 datalabels: DL ? {
-                    anchor: (ctx) => ctx.raw / (ctx.chart.scales.y.max||1) < 0.12 ? 'end' : 'center',
-                    align:  (ctx) => ctx.raw / (ctx.chart.scales.y.max||1) < 0.12 ? 'top'  : 'center',
-                    offset: (ctx) => { const r = ctx.raw / (ctx.chart.scales.y.max||1); return r < 0.02 ? 50 : r < 0.12 ? 10 : 0; },
+                    anchor: (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; return b&&Math.abs(b.base-b.y)<30?'end':'center'; },
+                    align:  (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; return b&&Math.abs(b.base-b.y)<30?'top':'center'; },
+                    offset: (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; const h=b?Math.abs(b.base-b.y):100; return h<5?50:h<30?20:0; },
                     font: { size: 15, weight: 'bold' },
-                    color: (ctx) => ctx.raw / (ctx.chart.scales.y.max||1) < 0.12 ? '#013976' : 'white',
+                    color: (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; return b&&Math.abs(b.base-b.y)<30?'#013976':'white'; },
                     clamp: false,
                     formatter: (v) => v > 0 ? parseFloat(v).toFixed(1) : ''
                 } : false
@@ -5209,10 +5209,10 @@ function renderStudentStatsUI(students, _unused) {
                     legend: { display: false },
                     datalabels: {
                         display: true,
-                        anchor: (ctx) => ctx.raw / (ctx.chart.scales.y.max||1) < 0.12 ? 'end' : 'center',
-                        align:  (ctx) => ctx.raw / (ctx.chart.scales.y.max||1) < 0.12 ? 'top'  : 'center',
-                        offset: (ctx) => { const r = ctx.raw / (ctx.chart.scales.y.max||1); return r < 0.02 ? 50 : r < 0.12 ? 30 : 0; },
-                        color: (ctx) => ctx.raw / (ctx.chart.scales.y.max||1) < 0.12 ? '#013976' : 'white',
+                        anchor: (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; return b&&Math.abs(b.base-b.y)<30?'end':'center'; },
+                        align:  (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; return b&&Math.abs(b.base-b.y)<30?'top':'center'; },
+                        offset: (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; const h=b?Math.abs(b.base-b.y):100; return h<5?50:h<30?25:0; },
+                        color: (ctx) => { const b=ctx.chart.getDatasetMeta(ctx.datasetIndex)?.data?.[ctx.dataIndex]; return b&&Math.abs(b.base-b.y)<30?'#013976':'white'; },
                         clamp: false,
                         font: { size: 14, weight: 'bold' },
                         formatter: (v) => v > 0 ? parseFloat(v).toFixed(1) : ''
