@@ -2520,14 +2520,14 @@ function renderScoreInput(c) {
                             </select>
                         </div>
                         <div>
-                            <label class="ys-label font-bold">&#x1F3EB; &#xB4F1;&#xB85D;&#xD559;&#xAE09;</label>
-                            <select id="input-student-class" class="ys-field">
-                                <option value="">학급 선택 (학년 먼저 선택)</option>
-                            </select>
-                        </div>
-                        <div>
                             <label class="ys-label font-bold">&#x1F4C5; &#xC751;&#xC2DC;&#xC77C;</label>
                             <input type="text" id="input-test-date" class="ys-field" placeholder="YYYY-MM-DD" autocomplete="off">
+                        </div>
+                        <div>
+                            <label class="ys-label font-bold" style="color:#6366f1;">&#x1F3EB; &#xB4F1;&#xB85D;&#xD559;&#xAE09; <span style="font-weight:normal;color:#94a3b8;font-size:13px;">(&#xC120;&#xD0DD;)</span></label>
+                            <select id="input-student-class" class="ys-field" style="border-color:#a5b4fc;background:#f5f3ff;color:#4338ca;">
+                                <option value="">&#xD559;&#xAE09; &#xC120;&#xD0DD; (&#xC120;&#xD0DD;&#xC0AC;&#xD56D;)</option>
+                            </select>
                         </div>
                         <div>
                             <label class="ys-label">&#x1F464; &#xD559;&#xC0DD;ID (&#xC790;&#xB3D9;&#xC0DD;&#xC131;)</label>
