@@ -4178,7 +4178,30 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
         <!-- 3. 레이더 차트 -->
         <div>
             <h4 style="font-size:18px;font-weight:900;color:#013976;margin-bottom:1rem;">🕸 영역별 균형도</h4>
-            <canvas id="chart-radar" style="max-height:380px;"></canvas>
+            <div class="flex flex-col md:flex-row gap-6 items-center">
+                <div class="flex-1 w-full relative">
+                    <canvas id="chart-radar" style="max-height:380px;"></canvas>
+                </div>
+                <!-- 우측 영역별 텍스트 박스 -->
+                <div class="w-full md:w-56 bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-2xl p-6 shadow-sm shrink-0">
+                    <h5 class="font-bold text-[#013976] border-b border-slate-200 pb-3 mb-4 fs-16 text-center">개인 정답률</h5>
+                    <div class="space-y-3">
+                    ${activeSections.map(s => {
+                        const score = parseFloat(record[s+'_점수'] || record[secMap[s]] || 0);
+                        let maxScore = parseFloat(record[s+'_만점'] || record[maxMap?.[s]] || averages[maxMap[s]] || 0);
+                        if(maxScore === 0) {
+                            const catQs = globalConfig?.questions || [];
+                            maxScore = catQs.filter(q => q.section === s).reduce((sum, q) => sum + (parseInt(q.score)||0), 0) || 100;
+                        }
+                        const pct = maxScore > 0 ? (score / maxScore * 100).toFixed(1) : 0;
+                        return `<div class="flex justify-between items-center text-slate-700">
+                            <span class="font-semibold fs-15">${s}</span>
+                            <span class="font-bold text-[#e74c3c] bg-red-50 px-2 py-0.5 rounded text-sm">${pct}%</span>
+                        </div>`;
+                    }).join('')}
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- 4. 영역별 코멘트 -->
@@ -4607,68 +4630,8 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap) {
     const DL = window.ChartDataLabels;
     if (DL && !Chart._dlRegistered) { Chart.register(DL); Chart._dlRegistered = true; }
 
-    // 꼭짓점 바깥 레이블 표시 커스텀 플러그인
-    const outerLabelPlugin = {
-        id: 'radarOuterLabel',
-        afterDraw(chart) {
-            const scale = chart.scales.r;
-            const cx = scale.xCenter, cy = scale.yCenter;
-            const ctx2 = chart.ctx;
-            const N = chart.data.labels.length || 3;
-            // N등분 파이 조각의 약 15% 
-            const baseAngleOffset = (Math.PI * 2 / N) * 0.15;
-
-            ctx2.save();
-            
-            // 0: 개인 정답률(빨강), 1: 평균 정답률(스틸블루/회색)
-            [0, 1].forEach(dsIndex => {
-                const meta = chart.getDatasetMeta(dsIndex);
-                if (!meta || !meta.data) return;
-                
-                const isPersonal = (dsIndex === 0);
-                const color = isPersonal ? '#e74c3c' : '#64748b'; // 빨강 or 슬레이트
-                const dataArr = isPersonal ? pctPersonal : pctAvg;
-                // 개인은 시계방향(+), 평균은 반시계방향(-)으로 찢기 (V자 형태)
-                const angleOffset = isPersonal ? baseAngleOffset : -baseAngleOffset;
-
-                meta.data.forEach((pt, i) => {
-                    const px = pt.x, py = pt.y;
-                    const dx = px - cx, dy = py - cy;
-                    const dist = Math.sqrt(dx*dx + dy*dy);
-                    if (dist < 1) return; // 중심점(0점)인 경우 선 안그림
-                    
-                    const theta = Math.atan2(dy, dx);
-                    const offsetTheta = theta + angleOffset;
-                    
-                    const ux2 = Math.cos(offsetTheta);
-                    const uy2 = Math.sin(offsetTheta);
-                    
-                    const x1 = px + ux2*6, y1 = py + uy2*6;
-                    const x2 = px + ux2*25, y2 = py + uy2*25; // 평균 라벨까지 고려해 선 길이를 조금 더 길게
-                    
-                    ctx2.beginPath();
-                    ctx2.moveTo(x1, y1);
-                    ctx2.lineTo(x2, y2);
-                    ctx2.strokeStyle = color;
-                    ctx2.lineWidth = 1.5;
-                    ctx2.setLineDash(isPersonal ? [] : [3, 3]); // 평균선은 점선 처리
-                    ctx2.stroke();
-
-                    const val = dataArr[i];
-                    ctx2.font = isPersonal ? 'bold 15px sans-serif' : '14px sans-serif';
-                    ctx2.fillStyle = color;
-                    ctx2.textAlign = ux2 > 0.1 ? 'left' : ux2 < -0.1 ? 'right' : 'center';
-                    ctx2.textBaseline = uy2 > 0.1 ? 'top' : uy2 < -0.1 ? 'bottom' : 'middle';
-                    ctx2.fillText(val + '%', x2 + ux2*4, y2 + uy2*4);
-                });
-            });
-            ctx2.restore();
-        }
-    };
-
     ctx._chartInstance = new Chart(ctx.getContext('2d'), {
         type: 'radar',
-        plugins: [outerLabelPlugin],
         data: {
             labels: activeSections,
             datasets: [
@@ -4690,13 +4653,13 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap) {
             scales: {
                 r: {
                     min: 0, max: 100,
-                    ticks: { display: false, stepSize: 20 },
-                    // padding을 늘려 바깥 텍스트(Listening 등)를 밀어내어 빨간 점수와 겹침 방지
-                    pointLabels: { font:{size:16}, padding: 25 }
+                    ticks: { stepSize: 20, font:{size:16}, backdropColor:'transparent', callback: v => v+'%' },
+                    // padding을 낮춰 바깥 텍스트를 적당히 띄움
+                    pointLabels: { font:{size:16}, padding: 10 }
                 }
             },
             plugins: {
-                // 이 차트에서는 전역 차트데이터라벨 비활성화 (검은색 100 중복 출력 억제)
+                // 전역 데이터 라벨은 비활성화하여 차트 위에 검은색 숫자가 나타나지 않게 함
                 datalabels: { display: false },
                 legend: { position: 'right', labels: { font:{size:16} } },
                 tooltip: {
