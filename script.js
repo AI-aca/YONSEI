@@ -4801,7 +4801,7 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap, clas
         afterDraw(chart) {
             const c2 = chart.ctx;
             const w = chart.width, h = chart.height;
-            const pW = 190, pX = w - pW - 4;
+            const pW = 190, pX = 4;
             const rowH = 30;
             const N = activeSections.length;
             const pH = 44 + N * rowH + 8;
@@ -4866,7 +4866,7 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap, clas
         options: {
             responsive: true, maintainAspectRatio: false,
             // padding.top:2 제목과 차트 간격 최소화 / right:280 범례-표 간격 확보 / bottom:2 이하 간격 최소화
-            layout: { padding: { right: 360, left: 10, top: 2, bottom: 2 } },
+            layout: { padding: { right: 230, left: 200, top: 2, bottom: 2 } },
             scales: {
                 r: {
                     min: 0, max: 100,
@@ -4876,7 +4876,7 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap, clas
             },
             plugins: {
                 datalabels: { display: false },
-                legend: { position: 'right', labels: { font:{size:16}, padding:15 } },
+                legend: { position: 'right', labels: { font:{size:16}, padding:4 } },
                 tooltip: {
                     bodyFont:{size:16}, titleFont:{size:16},
                     callbacks: {
