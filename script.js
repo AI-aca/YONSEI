@@ -4852,6 +4852,17 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap, clas
                 c2.fillText(pct, pX+pW-14, cy);
                 cy += rowH;
             });
+            // ===== DEBUG 영역 경계선 =====
+            const lw = chart.legend ? (chart.legend.width || 0) : 0;
+            c2.save(); c2.setLineDash([6, 3]); c2.lineWidth = 2;
+            c2.strokeStyle = 'rgba(220,38,38,0.8)';
+            c2.beginPath(); c2.moveTo(pW + 8, 0); c2.lineTo(pW + 8, h); c2.stroke();
+            c2.strokeStyle = 'rgba(37,99,235,0.8)';
+            c2.beginPath(); c2.moveTo(w - lw, 0); c2.lineTo(w - lw, h); c2.stroke();
+            c2.setLineDash([]); c2.font = 'bold 11px sans-serif';
+            c2.fillStyle = 'rgba(220,38,38,0.9)'; c2.fillText('← 테이블끽', pW + 12, 14);
+            c2.fillStyle = 'rgba(37,99,235,0.9)'; c2.fillText('← 범례영역', w - lw + 4, 14);
+            c2.restore();
             c2.restore();
         }
     };
