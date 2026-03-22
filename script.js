@@ -4136,15 +4136,15 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
             <!-- 우상단: 등록권장 학급 + 총점 -->
             <div class="flex items-stretch gap-6">
 
-                <!-- 권장학급 (통합 박스: 배경색 구분) -->
-                <div style="border:2px solid #013976;border-radius:1rem;height:65px;min-width:160px;display:flex;align-items:stretch;overflow:hidden;transform:translateZ(0);-webkit-transform:translateZ(0);">
-                    <!-- 라벨 (네이비 배경) -->
-                    <div style="background:#013976;color:white;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 14px;white-space:nowrap;letter-spacing:0.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+                <!-- 권장학급 (통합 박스: 부모 남색 배경으로 단순화) -->
+                <div style="background:#013976;border-radius:1rem;height:65px;min-width:160px;display:flex;align-items:center;padding-left:14px;gap:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+                    <!-- 라벨 -->
+                    <div style="color:white;font-size:15px;font-weight:800;white-space:nowrap;letter-spacing:0.5px;line-height:1.3;padding-right:12px;">
                         권장<br>학급
                     </div>
-                    <!-- 드롭다운 (흰 배경) -->
+                    <!-- 드롭다운 (흰 배경 + 우측 라운드) -->
                     <select id="report-student-class"
-                        style="flex: 1; border:none;outline:none;font-size:20px;font-weight:900;color:#013976;background:white;text-align:center;text-align-last:center;cursor:pointer;-webkit-appearance:none;min-width:70px;padding:0 12px;">
+                        style="flex: 1; border:none;outline:none;font-size:20px;font-weight:900;color:#013976;background:white;text-align:center;text-align-last:center;cursor:pointer;-webkit-appearance:none;min-width:70px;padding:0 12px;height:100%;border-radius:0 calc(1rem - 2px) calc(1rem - 2px) 0;">
                         <option value="" style="font-size:16px;">선택</option>
                         ${(getClassesForGrade(record['학년']||record.grade||'') || []).map(c =>
                             `<option value="${c}" style="font-size:16px;" ${(record.studentClass||record['등록학급']||'')===c?'selected':''}>${c}</option>`
