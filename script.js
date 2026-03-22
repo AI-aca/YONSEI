@@ -3764,9 +3764,14 @@ async function generateOverallComment(record, averages, activeSections, sectionC
         return `[영역: ${s}] 개인 ${score}점 / 만점 ${max > 0 ? max + '점' : '?'} / 평균 ${avg.toFixed(1)}점\n영역 코멘트: ${cmt}`;
     }).join('\n\n');
 
+    const sName = record['이름'] || record.name || record.studentName || '';
+
     const prompt = `${gradeTone}
 
 아래 학생의 영역별 코멘트를 종합해 전체 피드백을 작성해주세요.
+
+[학생 정보]
+이름: ${sName}
 
 [영역별 분석 요약]
 ${sectionSummary}
@@ -3779,7 +3784,7 @@ ${sectionSummary}
 2) 부족한 영역과 코멘트를 바탕으로 실질적 학습 방향 (1~2문장)
 3) 전체적 격려 메시지 (1문장)
 
-실제 총점/만점을 반드시 언급하세요. 학원명, 교재명, 브랜드명은 절대 언급하지 마세요. 학생 이름이나 "우리 OO 학생" 같은 호칭도 절대 사용하지 마세요. 모든 답변은 순수 한국어로만 작성하세요.`;
+실제 총점/만점을 반드시 언급하세요. 학생을 부를 때는 반드시 "${sName} 학생은" 형식으로 실명을 사용하세요. 학원명, 교재명, 브랜드명은 절대 언급하지 마세요. 모든 답변은 순수 한국어로만 작성하세요.`;
 
     return await callGeminiAPI(prompt);
 }
@@ -3995,9 +4000,14 @@ async function generateSectionComments(record, averages, activeSections) {
 
         const gradeTone = getGradeTone(record.grade || record['학년']);
 
+        const sName = record['이름'] || record.name || record.studentName || '';
+
         const prompt = `${gradeTone}
 
 아래 학생의 ${section} 영역 성적 데이터를 바탕으로 피드백을 작성해주세요.
+
+[학생 정보]
+이름: ${sName}
 
 [성적 데이터]
 개인 점수: ${studentScore}점 / 영역 만점: ${maxScore > 0 ? maxScore + '점' : '정보 없음'} / 반 평균: ${avgScore.toFixed(1)}점 / 성취레벨: ${level}(${rate.toFixed(0)}%)${subTypeInfo}${wrongInfo}
@@ -4007,7 +4017,7 @@ async function generateSectionComments(record, averages, activeSections) {
 2) 미흡한 점 또는 약점 (1문장)
 3) 구체적 학습 방향 제시 (1문장)
 
-실제 점수와 만점을 반드시 언급하세요. 학원명, 교재명, 브랜드명은 절대 언급하지 마세요. 학생 이름이나 "우리 OO 학생" 같은 호칭도 절대 사용하지 마세요. 모든 답변은 순수 한국어바탕으로 하세요.`;
+실제 점수와 만점을 반드시 언급하세요. 학생을 부를 때는 반드시 "${sName} 학생은" 형식으로 실명을 사용하세요. 학원명, 교재명, 브랜드명은 절대 언급하지 마세요. 모든 답변은 순수 한국어바탕으로 하세요.`;
 
         comments[section] = await callGeminiAPI(prompt);
     }
