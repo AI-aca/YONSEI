@@ -4138,8 +4138,8 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
 
                 <!-- 권장학급 (통합 박스: 배경색 구분) -->
                 <div style="border:2px solid #013976;border-radius:1rem;height:65px;min-width:160px;display:flex;align-items:stretch;overflow:hidden;">
-                    <!-- 라벨 (네이비 배경) -->
-                    <div style="background:#013976;color:white;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 14px;white-space:nowrap;letter-spacing:0.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+                    <!-- 라벨 (네이비 배경) — border-radius 직접 부여로 인쇄/축소 시 삐져나옴 방지 -->
+                    <div style="background:#013976;color:white;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 14px;white-space:nowrap;letter-spacing:0.5px;border-radius:calc(1rem - 2px) 0 0 calc(1rem - 2px);-webkit-print-color-adjust:exact;print-color-adjust:exact;">
                         권장<br>학급
                     </div>
                     <!-- 드롭다운 (흰 배경) -->
