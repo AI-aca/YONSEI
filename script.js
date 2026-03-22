@@ -4989,7 +4989,7 @@ function renderStats(c) {
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
                             <button id="btn-q-stats" onclick="switchStatsMode('question')" class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">📊 문항 통계</button>
-                            <button id="btn-s-stats" onclick="switchStatsMode('student')" class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-purple-500 hover:!text-purple-700 !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">👥 학생 통계</button>
+                            <button id="btn-s-stats" onclick="switchStatsMode('student')" class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-purple-500 hover:!text-purple-700 !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">🎓 학생 통계</button>
                         </div>
                     </div>
 
@@ -5088,14 +5088,15 @@ function renderStudentStatsUI(students, _unused) {
         const mx = calcTotalMax(list);
         const mxStr = mx > 0 ? `(만점 ${mx}점)` : '-';
         const colW = 'style="width:12.5%;font-size:16px;"';
+        const sub14 = 'style="font-size:14px;font-weight:400;opacity:0.8;"';
         return `<thead class="${bgClass} text-white"><tr>
             <th class="px-2 py-2.5 text-center" ${colW}>${labelTh}</th>
-            <th class="px-2 py-2.5 text-center" ${colW}>응시자수<br><span style="font-size:12px;font-weight:400;opacity:0.8;">(명)</span></th>
-            <th class="px-2 py-2.5 text-center" ${colW}>점수<br><span style="font-size:12px;font-weight:400;opacity:0.8;">${mxStr}</span></th>
+            <th class="px-2 py-2.5 text-center" ${colW}>응시자수<br><span ${sub14}>(명)</span></th>
+            <th class="px-2 py-2.5 text-center" ${colW}>점수<br><span ${sub14}>${mxStr}</span></th>
             ${SECTIONS.map(s => {
                 const smx = calcMax(list, s);
                 const sub = smx !== '-' ? `(${smx}\uc810)` : '(\uc601\uc5ed \uc5c6\uc74c)';
-                return `<th class="px-2 py-2.5 text-center" ${colW}>${s}<br><span style="font-size:12px;font-weight:400;opacity:0.8;">${sub}</span></th>`;
+                return `<th class="px-2 py-2.5 text-center" ${colW}>${s}<br><span ${sub14}>${sub}</span></th>`;
             }).join('')}
         </tr></thead>`;
     };
@@ -5149,38 +5150,47 @@ function renderStudentStatsUI(students, _unused) {
                     ${yearSelect('stats-year-overall', "document.getElementById('stats-overall-body').innerHTML=window._renderOverall(this.value); window._drawStudentChart(this.value);")}
                 </div>
                 <div id="stats-overall-body">${renderOverall('')}</div>
-                <div class="mt-4">
-                    <canvas id="student-bar-chart" height="120"></canvas>
-                </div>
+                <div class="mt-4"><canvas id="student-bar-chart" height="120"></canvas></div>
             </div>
             <div class="card">
                 <div class="flex items-center mb-1">
                     <h3 class="fs-18 font-black text-[#013976]">🏫 학급별 통계</h3>
-                    ${yearSelect('stats-year-class', "document.getElementById('stats-class-body').innerHTML=window._renderClassStats(this.value)")}
+                    ${yearSelect('stats-year-class', "document.getElementById('stats-class-body').innerHTML=window._renderClassStats(this.value); window._drawClassCharts(this.value);")}
                 </div>
                 <div id="stats-class-body">${renderClass('')}</div>
+                <div class="mt-4 grid grid-cols-2 gap-4" style="min-height:220px;">
+                    <div><h4 class="text-center font-bold text-[#013976] mb-2" style="font-size:14px;">학급별 평균 총점</h4><canvas id="student-class-bar"></canvas></div>
+                    <div><h4 class="text-center font-bold text-purple-700 mb-2" style="font-size:14px;">학급별 학생수 비율</h4><canvas id="student-class-doughnut"></canvas></div>
+                </div>
             </div>
         </div>`;
 
-    // 전역 노왕 (select onchange에서 접근)
     window._renderOverall    = renderOverall;
     window._renderClassStats = renderClass;
 
-    // 영역별 평균 바 차트 그리기
+    // === 영역별 평균+없는영역제외 바차트 ===
     window._drawStudentChart = (yrVal) => {
         const filtered = yrVal ? all.filter(s => dateToYear(s['응시일']||s.testDate||s.date||'') === yrVal) : all;
-        const avgs  = SECTIONS.map(s => { const v = parseFloat(calcAvg(filtered, s)); return isNaN(v) ? 0 : v; });
-        const maxes = SECTIONS.map(s => { const v = parseFloat(calcMax(filtered, s)); return isNaN(v) ? 0 : v; });
+        // 데이터 있는 영역만
+        const validSecs = SECTIONS.filter(s => calcMax(filtered, s) !== '-');
+        const labels  = ['\uc8fc\uc810', ...validSecs];
+        const avgs    = validSecs.map(s => { const v = parseFloat(calcAvg(filtered, s)); return isNaN(v) ? 0 : v; });
+        const maxes   = validSecs.map(s => parseFloat(calcMax(filtered, s)));
+        const totalAvg = avgs.reduce((a,b)=>a+b, 0);
+        const totalMax2 = maxes.reduce((a,b)=>a+b, 0);
+        const allLabels  = ['\uc8fc\uc810 (\ud569\uc0b0)', ...validSecs];
+        const allAvgs    = [totalAvg.toFixed(1), ...avgs];
+        const allMaxes   = [totalMax2, ...maxes];
         const ctx = document.getElementById('student-bar-chart');
         if (!ctx) return;
         if (ctx._chartInstance) ctx._chartInstance.destroy();
         ctx._chartInstance = new Chart(ctx.getContext('2d'), {
             type: 'bar',
             data: {
-                labels: SECTIONS,
+                labels: allLabels,
                 datasets: [
-                    { label: '평균 점수', data: avgs, backgroundColor: 'rgba(1,57,118,0.75)', borderRadius: 6 },
-                    { label: '만점', data: maxes, backgroundColor: 'rgba(203,213,225,0.5)', borderRadius: 6 }
+                    { label: '\ud3c9\uade0 \uc810\uc218', data: allAvgs.map(Number), backgroundColor: 'rgba(1,57,118,0.80)', borderRadius: 6 },
+                    { label: '\ub9cc\uc810', data: allMaxes.map(Number), backgroundColor: 'rgba(203,213,225,0.45)', borderRadius: 6 }
                 ]
             },
             options: {
@@ -5193,7 +5203,64 @@ function renderStudentStatsUI(students, _unused) {
             }
         });
     };
+
+    // === 학급별 총점 바차트 + 학생수 도닛 차트 ===
+    window._drawClassCharts = (yrVal) => {
+        const filtered = yrVal ? all.filter(s => dateToYear(s['응시일']||s.testDate||s.date||'') === yrVal) : all;
+        const groups = {};
+        filtered.forEach(s => { const cls = s.studentClass || s['등록\ud559\uae09'] || '(\ubbf8\uc785\ub825)'; if(!groups[cls]) groups[cls]=[]; groups[cls].push(s); });
+        const clsNames = Object.keys(groups).sort((a,b)=>a.localeCompare(b));
+        const PALETTE = ['#013976','#7e22ce','#0ea5e9','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899'];
+
+        // 학급별 총점 바차트
+        const ctxBar = document.getElementById('student-class-bar');
+        if (ctxBar) {
+            if (ctxBar._chartInstance) ctxBar._chartInstance.destroy();
+            const clsAvgs = clsNames.map(cls => {
+                const list = groups[cls];
+                const total = SECTIONS.reduce((sum,s)=>{ const a=parseFloat(calcAvg(list,s)); return sum+(isNaN(a)?0:a); },0);
+                return parseFloat(total.toFixed(1));
+            });
+            ctxBar._chartInstance = new Chart(ctxBar.getContext('2d'), {
+                type: 'bar',
+                data: { labels: clsNames, datasets: [{ label: '\ud3c9\uade0 \ucd1d\uc810', data: clsAvgs, backgroundColor: clsNames.map((_,i)=>PALETTE[i%PALETTE.length]), borderRadius: 6 }] },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { beginAtZero: true, ticks: { font: { size: 13 } } },
+                        y: { ticks: { font: { size: 13 } } }
+                    }
+                }
+            });
+        }
+
+        // 학생수 도닛
+        const ctxDnt = document.getElementById('student-class-doughnut');
+        if (ctxDnt) {
+            if (ctxDnt._chartInstance) ctxDnt._chartInstance.destroy();
+            const DL = Chart.registry?.plugins?.get('datalabels') || (typeof ChartDataLabels !== 'undefined' ? ChartDataLabels : null);
+            if (DL && !Chart._dlRegistered) { Chart.register(DL); Chart._dlRegistered = true; }
+            ctxDnt._chartInstance = new Chart(ctxDnt.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: clsNames,
+                    datasets: [{ data: clsNames.map(c=>groups[c].length), backgroundColor: clsNames.map((_,i)=>PALETTE[i%PALETTE.length]), borderWidth: 2 }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { font: { size: 13 }, boxWidth: 14 } },
+                        datalabels: DL ? { color:'#fff', font:{ size:12, weight:'bold' }, formatter:(v,ctx2)=>{ const total=ctx2.dataset.data.reduce((a,b)=>a+b,0); return total>0?Math.round(v/total*100)+'%':''; } } : undefined
+                    }
+                }
+            });
+        }
+    };
+
     window._drawStudentChart('');
+    window._drawClassCharts('');
 }
 
 // 문항 통계 데이터 로드
