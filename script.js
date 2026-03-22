@@ -3901,8 +3901,9 @@ async function loadStudentReport() {
 
             const savedSections = report.aiSectionComments || {};
             const savedOverall  = report.aiOverallComment  || null;
-            window.currentReportData = { record: report, averages, activeSections, sectionComments: savedSections, overallComment: savedOverall };
-            renderReportCard(report, averages, savedSections, savedOverall, activeSections);
+            const savedNotes    = report.notes || null; // 수정: DB에서 기타사항 불러오기
+            window.currentReportData = { record: report, averages, activeSections, sectionComments: savedSections, overallComment: savedOverall, notes: savedNotes };
+            renderReportCard(report, averages, savedSections, savedOverall, activeSections, savedNotes);
             showToast(`✅ 성적표 로드 완료 (평균 ${validRecs.length}명 기준)`);
 
         } else {
@@ -4100,7 +4101,7 @@ async function callGeminiAPI(prompt, silent = false) {
 }
 
 // 성적표 렌더링 (Chart.js 포함)
-function renderReportCard(record, averages, sectionComments, overallComment, activeSections) {
+function renderReportCard(record, averages, sectionComments, overallComment, activeSections, notes) {
     const display = document.getElementById('report-display');
     if (!display) return;
 
@@ -4230,17 +4231,22 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
             }
         </div>
 
-        <!-- 6. 기타(비고) -->
+        <!-- 6. 기타사항 -->
         <div id="notes-section">
             <div class="no-print mt-2 text-right">
-                <button onclick="toggleNotesBox()" class="text-sm text-slate-400 hover:text-slate-600 underline" id="notes-toggle-btn">+ 기타(비고) 추가</button>
+                <button onclick="toggleNotesBox()" class="text-sm text-slate-400 hover:text-slate-600 underline" id="notes-toggle-btn">+ 기타사항 추가</button>
             </div>
             <div id="notes-box" class="hidden mt-3 bg-amber-50 border-2 border-amber-200 rounded-2xl p-5">
                 <div class="flex items-center justify-between mb-2">
-                    <h4 class="ys-label text-amber-700 !mb-0">📝 기타 / 비고</h4>
-                    <button onclick="toggleNotesBox()" class="no-print text-slate-400 hover:text-red-400 text-sm px-2" title="비고란 닫기">✕ 제거</button>
+                    <h4 class="ys-label text-amber-700 !mb-0">📝 기타사항</h4>
+                    <button onclick="toggleNotesBox()" class="no-print text-slate-400 hover:text-red-400 text-sm px-2" title="기타사항 닫기">✕ 제거</button>
                 </div>
-                <textarea id="notes-textarea" class="w-full ys-field !bg-white resize-none fs-15" rows="3" placeholder="담당 교사 메모, 특이사항 등 자유롭게 입력하세요."></textarea>
+                <div id="notes-content-wrap">
+                    ${notes
+                        ? `<p class="text-amber-900 leading-relaxed fs-15" id="notes-text" style="cursor:pointer;" onclick="editComment('notes')" title="클릭하여 수정">${notes.split(/\n+/).map(l=>l.trim()).filter(l=>l).join('<br>')}</p>`
+                        : `<p class="text-amber-600/50 italic fs-15" id="notes-text" style="cursor:pointer;" onclick="editComment('notes')" title="클릭하여 수정">내용이 없습니다. 클릭하여 새로 작성하세요.</p>`
+                    }
+                </div>
             </div>
         </div>
 
@@ -4734,6 +4740,17 @@ function editComment(type, section) {
                 </div>
                 <textarea id="sec-comment-edit-${section}" class="flex-1 ys-field !bg-white resize-none fs-15" rows="4">${cur}</textarea>
             </div>`;
+    } else if (type === 'notes') {
+        const el = document.getElementById('notes-text');
+        const cur = el ? el.innerHTML.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g,'').trim() : (window.currentReportData?.notes || '');
+        const wrap = document.getElementById('notes-content-wrap');
+        wrap.innerHTML = `<div class="flex gap-3 items-start no-print">
+                <div class="flex flex-col gap-2 flex-shrink-0">
+                    <button onclick="saveCommentEdit('notes')" class="btn-ys !py-1.5 !px-4 !text-sm !bg-amber-600 !text-white border-amber-700">저장</button>
+                    <button onclick="cancelCommentEdit('notes')" class="btn-ys !py-1.5 !px-4 !text-sm border-amber-300 text-amber-800 bg-white">취소</button>
+                </div>
+                <textarea id="notes-edit" class="flex-1 ys-field !bg-white resize-none fs-15 border-amber-300" rows="3" placeholder="담당 교사 메모, 특이사항 등 자유롭게 입력하세요.">${cur}</textarea>
+            </div>`;
     }
 }
 function saveCommentEdit(type, section) {
@@ -4751,8 +4768,38 @@ function saveCommentEdit(type, section) {
         if (window.currentReportData && window.currentReportData.sectionComments) window.currentReportData.sectionComments[section] = newText;
         const wrap = document.getElementById('sec-comment-wrap-' + section);
         wrap.innerHTML = `<p class="fs-15 text-slate-600 leading-relaxed" id="sec-comment-text-${section}" style="cursor:pointer;" onclick="editComment('section','${section}')" title="클릭하여 수정">${newText.split('\n').map(l=>l.trim()).filter(l=>l).join('<br>')}</p>`;
+    } else if (type === 'notes') {
+        const ta = document.getElementById('notes-edit');
+        if (!ta) return;
+        const newText = ta.value.trim();
+        if (window.currentReportData) window.currentReportData.notes = newText;
+        const wrap = document.getElementById('notes-content-wrap');
+        if (newText) {
+            wrap.innerHTML = `<p class="text-amber-900 leading-relaxed fs-15" id="notes-text" style="cursor:pointer;" onclick="editComment('notes')" title="클릭하여 수정">${newText.split(/\n+/).map(l=>l.trim()).filter(l=>l).join('<br>')}</p>`;
+        } else {
+            wrap.innerHTML = `<p class="text-amber-600/50 italic fs-15" id="notes-text" style="cursor:pointer;" onclick="editComment('notes')" title="클릭하여 수정">내용이 없습니다. 클릭하여 새로 작성하세요.</p>`;
+        }
     }
-    showToast('✅ 코멘트가 수정되었습니다.');
+    showToast('✅ 코멘트가 임시 적용되었습니다.');
+
+    // 서버에 즉시 자동 저장 연동 (GAS)
+    const catVal = document.getElementById('report-category')?.value;
+    const stuVal = document.getElementById('report-student')?.value;
+    if (catVal && stuVal && window.currentReportData) {
+        const _aiCat = globalConfig.categories?.find(c => c.id === catVal);
+        const _aiFolId = _aiCat ? extractFolderId(_aiCat.targetFolderUrl) : null;
+        if (_aiFolId) {
+            sendReliableRequest({
+                type: 'SAVE_AI_COMMENT',
+                parentFolderId: _aiFolId,
+                studentId: stuVal,
+                overallComment: window.currentReportData.overallComment,
+                sectionComments: window.currentReportData.sectionComments,
+                notes: window.currentReportData.notes // 비고란 추가
+            }).then(() => showToast('💾 서버에 저장되었습니다.'))
+              .catch(e => console.warn('개별 저장 중 GAS 통신 실패:', e));
+        }
+    }
 }
 function cancelCommentEdit(type, section) {
     if (type === 'overall') {
@@ -4763,6 +4810,13 @@ function cancelCommentEdit(type, section) {
         const txt = (window.currentReportData && window.currentReportData.sectionComments && window.currentReportData.sectionComments[section]) || '';
         const wrap = document.getElementById('sec-comment-wrap-' + section);
         if (wrap) wrap.innerHTML = `<p class="fs-15 text-slate-600 leading-relaxed" id="sec-comment-text-${section}" style="cursor:pointer;" onclick="editComment('section','${section}')" title="클릭하여 수정">${txt.split('\n').map(l=>l.trim()).filter(l=>l).join('<br>')}</p>`;
+    } else if (type === 'notes') {
+        const txt = window.currentReportData?.notes || '';
+        const wrap = document.getElementById('notes-content-wrap');
+        if (wrap) {
+            if (txt) wrap.innerHTML = `<p class="text-amber-900 leading-relaxed fs-15" id="notes-text" style="cursor:pointer;" onclick="editComment('notes')" title="클릭하여 수정">${txt.split(/\n+/).map(l=>l.trim()).filter(l=>l).join('<br>')}</p>`;
+            else wrap.innerHTML = `<p class="text-amber-600/50 italic fs-15" id="notes-text" style="cursor:pointer;" onclick="editComment('notes')" title="클릭하여 수정">내용이 없습니다. 클릭하여 새로 작성하세요.</p>`;
+        }
     }
 }
 
@@ -4782,14 +4836,14 @@ async function regenerateOverallComment() {
     finally { if (btn) { btn.disabled = false; btn.textContent = '🔄'; } }
 }
 
-// 비고란 토글
+// 기타사항 토글
 function toggleNotesBox() {
     const box = document.getElementById('notes-box');
     const btn = document.getElementById('notes-toggle-btn');
     if (!box) return;
     const isHidden = box.classList.contains('hidden');
     box.classList.toggle('hidden', !isHidden);
-    if (btn) btn.textContent = isHidden ? '− 기타(비고) 제거' : '+ 기타(비고) 추가';
+    if (btn) btn.textContent = isHidden ? '− 기타사항 제거' : '+ 기타사항 추가';
 }
 
 async function triggerAIAnalysis() {
@@ -4825,8 +4879,9 @@ async function triggerAIAnalysis() {
                     parentFolderId: _aiFolId,
                     studentId: stuVal2,
                     overallComment,
-                    sectionComments
-                }).then(() => showToast('💾 AI 코멘트 저장 완료'))
+                    sectionComments,
+                    notes: window.currentReportData?.notes
+                }).then(() => showToast('💾 AI 코멘트 및 기타사항 저장 완료'))
                   .catch(e => console.warn('AI 코멘트 GAS 저장 실패:', e));
             }
         }
