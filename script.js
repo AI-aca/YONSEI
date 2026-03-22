@@ -4988,7 +4988,7 @@ function renderStats(c) {
                             </select>
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
-                            <button id="btn-q-stats" onclick="switchStatsMode('question')" class="btn-ys !bg-[#013976] !text-white hover:brightness-110 !px-5 !py-2.5 !text-[15px] !font-black rounded-xl shadow-md whitespace-nowrap flex items-center gap-2">📊 문항 통계</button>
+                            <button id="btn-q-stats" onclick="switchStatsMode('question')" class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">📊 문항 통계</button>
                             <button id="btn-s-stats" onclick="switchStatsMode('student')" class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-purple-500 hover:!text-purple-700 !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">👥 학생 통계</button>
                         </div>
                     </div>
@@ -5005,10 +5005,11 @@ function renderStats(c) {
 
 // ===================== 통계 모드 전환 =====================
 function switchStatsMode(mode) {
+    const categoryId = document.getElementById('stats-category')?.value;
+    if (!categoryId) { showToast('⚠️ 시험지를 먼저 선택하세요.'); return; }
     window._statsMode = mode;
     const qBtn = document.getElementById('btn-q-stats');
     const sBtn = document.getElementById('btn-s-stats');
-    // 원래 크기(btn-ys !px-5 !py-2.5 !text-[15px])를 유지한 채 색상만 변경
     const ON  = 'btn-ys !bg-[#013976] !text-white hover:brightness-110 !px-5 !py-2.5 !text-[15px] !font-black rounded-xl shadow-md whitespace-nowrap flex items-center gap-2';
     const OFF = 'btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-purple-500 hover:!text-purple-700 !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2';
     if (qBtn) qBtn.className = mode === 'question' ? ON : OFF;
@@ -5077,23 +5078,24 @@ function renderStudentStatsUI(students, _unused) {
     // 년도 목록 (실제 데이터 기반)
     const years = [...new Set(all.map(s => dateToYear(s['응시일']||s.testDate||s.date||'')).filter(y => /^\d{4}$/.test(y)))].sort((a,b)=>b-a);
     const yearSelect = (id, onChange) => `
-        <select id="${id}" onchange="${onChange}" class="ys-field !w-28 !py-1 !text-[13px] !font-normal !bg-white ml-3">
+        <select id="${id}" onchange="${onChange}" class="ys-field !w-36 !py-0.5 !text-[14px] !font-normal !bg-white ml-3" style="height:32px;">
             <option value="">전체</option>
-            ${years.map(y => `<option value="${y}">${y}년</option>`).join('')}
+            ${years.map(y => `<option value="${y}">${y}\ub144</option>`).join('')}
         </select>`;
 
     // 섹션 헤더 (공통 함수)
     const makeHeader = (list, bgClass, labelTh) => {
         const mx = calcTotalMax(list);
         const mxStr = mx > 0 ? `(만점 ${mx}점)` : '-';
+        const colW = 'style="width:12.5%;font-size:16px;"';
         return `<thead class="${bgClass} text-white"><tr>
-            <th class="px-4 py-2.5 text-center" style="font-size:14px;">${labelTh}</th>
-            <th class="px-4 py-2.5 text-center" style="font-size:14px;">응시자수<br><span style="font-size:11px;font-weight:400;opacity:0.8;">(명)</span></th>
-            <th class="px-4 py-2.5 text-center" style="font-size:14px;">총점<br><span style="font-size:11px;font-weight:400;opacity:0.8;">${mxStr}</span></th>
+            <th class="px-2 py-2.5 text-center" ${colW}>${labelTh}</th>
+            <th class="px-2 py-2.5 text-center" ${colW}>응시자수<br><span style="font-size:12px;font-weight:400;opacity:0.8;">(명)</span></th>
+            <th class="px-2 py-2.5 text-center" ${colW}>점수<br><span style="font-size:12px;font-weight:400;opacity:0.8;">${mxStr}</span></th>
             ${SECTIONS.map(s => {
                 const smx = calcMax(list, s);
-                const sub = smx !== '-' ? `(${smx}점)` : '(영역 없음)';
-                return `<th class="px-3 py-2.5 text-center" style="font-size:14px;">${s}<br><span style="font-size:11px;font-weight:400;opacity:0.8;">${sub}</span></th>`;
+                const sub = smx !== '-' ? `(${smx}\uc810)` : '(\uc601\uc5ed \uc5c6\uc74c)';
+                return `<th class="px-2 py-2.5 text-center" ${colW}>${s}<br><span style="font-size:12px;font-weight:400;opacity:0.8;">${sub}</span></th>`;
             }).join('')}
         </tr></thead>`;
     };
@@ -5101,11 +5103,12 @@ function renderStudentStatsUI(students, _unused) {
     const dataRow = (label, count, list, extraClass='') => {
         const totalScore = SECTIONS.reduce((sum, s) => { const a = calcAvg(list, s); return sum + (a !== '-' ? parseFloat(a) : 0); }, 0);
         const scoreStr = totalScore > 0 ? totalScore.toFixed(1) : '-';
+        const colW = 'style="width:12.5%;font-size:16px;"';
         return `<tr class="${extraClass} border-b border-slate-100">
-            <td class="px-4 py-3 font-bold text-center" style="font-size:14px;">${label}</td>
-            <td class="px-4 py-3 text-center font-bold text-[#013976]" style="font-size:14px;">${count}</td>
-            <td class="px-3 py-3 text-center font-bold text-orange-600" style="font-size:14px;">${scoreStr}</td>
-            ${SECTIONS.map(s => { const avg = calcAvg(list, s); return `<td class="px-3 py-3 text-center" style="font-size:14px;">${avg === '-' ? '<span class="text-slate-300">-</span>' : `<span class="font-bold">${avg}</span>`}</td>`; }).join('')}
+            <td class="px-2 py-3 font-bold text-center" ${colW}>${label}</td>
+            <td class="px-2 py-3 text-center font-bold text-[#013976]" ${colW}>${count}</td>
+            <td class="px-2 py-3 text-center font-bold text-orange-600" ${colW}>${scoreStr}</td>
+            ${SECTIONS.map(s => { const avg = calcAvg(list, s); return `<td class="px-2 py-3 text-center" ${colW}>${avg === '-' ? '<span class="text-slate-300">-</span>' : `<span class="font-bold">${avg}</span>`}</td>`; }).join('')}
         </tr>`;
     };
 
@@ -5132,7 +5135,7 @@ function renderStudentStatsUI(students, _unused) {
         const rows = Object.entries(groups).sort(([a],[b])=>a.localeCompare(b))
             .map(([cls, list], i) => dataRow(`<span class="text-purple-700">${cls}</span>`, list.length, list, i%2===0?'bg-purple-50/30':'')).join('');
         return `<div class="overflow-x-auto rounded-xl border border-slate-200">
-            <table class="w-full" style="font-size:14px;">
+            <table class="w-full table-fixed" style="font-size:16px;">
                 ${makeHeader(filtered, 'bg-purple-700', '학급')}
                 <tbody>${rows}</tbody>
             </table></div>`;
@@ -5141,14 +5144,17 @@ function renderStudentStatsUI(students, _unused) {
     display.innerHTML = `
         <div class="space-y-6 animate-fade-in" id="student-stats-wrap">
             <div class="card">
-                <div class="flex items-center mb-4">
+                <div class="flex items-center mb-1">
                     <h3 class="fs-18 font-black text-[#013976]">📊 전체 통계</h3>
-                    ${yearSelect('stats-year-overall', "document.getElementById('stats-overall-body').innerHTML=window._renderOverall(this.value)")}
+                    ${yearSelect('stats-year-overall', "document.getElementById('stats-overall-body').innerHTML=window._renderOverall(this.value); window._drawStudentChart(this.value);")}
                 </div>
                 <div id="stats-overall-body">${renderOverall('')}</div>
+                <div class="mt-4">
+                    <canvas id="student-bar-chart" height="120"></canvas>
+                </div>
             </div>
             <div class="card">
-                <div class="flex items-center mb-4">
+                <div class="flex items-center mb-1">
                     <h3 class="fs-18 font-black text-[#013976]">🏫 학급별 통계</h3>
                     ${yearSelect('stats-year-class', "document.getElementById('stats-class-body').innerHTML=window._renderClassStats(this.value)")}
                 </div>
@@ -5156,9 +5162,38 @@ function renderStudentStatsUI(students, _unused) {
             </div>
         </div>`;
 
-    // 전역 노출 (select onchange에서 접근)
+    // 전역 노왕 (select onchange에서 접근)
     window._renderOverall    = renderOverall;
     window._renderClassStats = renderClass;
+
+    // 영역별 평균 바 차트 그리기
+    window._drawStudentChart = (yrVal) => {
+        const filtered = yrVal ? all.filter(s => dateToYear(s['응시일']||s.testDate||s.date||'') === yrVal) : all;
+        const avgs  = SECTIONS.map(s => { const v = parseFloat(calcAvg(filtered, s)); return isNaN(v) ? 0 : v; });
+        const maxes = SECTIONS.map(s => { const v = parseFloat(calcMax(filtered, s)); return isNaN(v) ? 0 : v; });
+        const ctx = document.getElementById('student-bar-chart');
+        if (!ctx) return;
+        if (ctx._chartInstance) ctx._chartInstance.destroy();
+        ctx._chartInstance = new Chart(ctx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: SECTIONS,
+                datasets: [
+                    { label: '평균 점수', data: avgs, backgroundColor: 'rgba(1,57,118,0.75)', borderRadius: 6 },
+                    { label: '만점', data: maxes, backgroundColor: 'rgba(203,213,225,0.5)', borderRadius: 6 }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { labels: { font: { size: 14 } } } },
+                scales: {
+                    x: { ticks: { font: { size: 14 } } },
+                    y: { beginAtZero: true, ticks: { font: { size: 14 } } }
+                }
+            }
+        });
+    };
+    window._drawStudentChart('');
 }
 
 // 문항 통계 데이터 로드
