@@ -4136,19 +4136,21 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
             <!-- 우상단: 등록권장 학급 + 총점 -->
             <div class="flex items-stretch gap-6">
 
-                <!-- 권장학급 라벨 박스 (독립) -->
-                <div style="background:#013976;border-radius:1rem;height:65px;width:70px;display:flex;align-items:center;justify-content:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
-                    <span style="color:white;font-size:15px;font-weight:800;white-space:nowrap;letter-spacing:0.5px;line-height:1.3;text-align:center;">권장<br>학급</span>
-                </div>
-                <!-- 드롭다운 박스 (독립) -->
-                <div style="border:2px solid #013976;border-radius:1rem;height:65px;min-width:100px;display:flex;align-items:center;justify-content:center;">
-                    <select id="report-student-class"
-                        style="border:none;outline:none;font-size:20px;font-weight:900;color:#013976;background:transparent;text-align:center;text-align-last:center;cursor:pointer;-webkit-appearance:none;padding:0 12px;width:100%;">
-                        <option value="" style="font-size:16px;">선택</option>
-                        ${(getClassesForGrade(record['학년']||record.grade||'') || []).map(c =>
-                            `<option value="${c}" style="font-size:16px;" ${(record.studentClass||record['등록학급']||'')===c?'selected':''}>${c}</option>`
-                        ).join('')}
-                    </select>
+                <!-- 권장학급 라벨+드롭다운 (두 박스 gap-0으로 붙임) -->
+                <div class="flex items-stretch" style="gap:0;">
+                    <div style="background:#013976;border-radius:1rem 0 0 1rem;height:65px;width:70px;display:flex;align-items:center;justify-content:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+                        <span style="color:white;font-size:15px;font-weight:800;white-space:nowrap;letter-spacing:0.5px;line-height:1.3;text-align:center;">권장<br>학급</span>
+                    </div>
+                    <!-- 드롭다운 박스 -->
+                    <div style="border:2px solid #013976;border-left:none;border-radius:0 1rem 1rem 0;height:65px;min-width:100px;display:flex;align-items:center;justify-content:center;">
+                        <select id="report-student-class"
+                            style="border:none;outline:none;font-size:20px;font-weight:900;color:#013976;background:transparent;text-align:center;text-align-last:center;cursor:pointer;-webkit-appearance:none;padding:0 12px;width:100%;">
+                            <option value="" style="font-size:16px;">선택</option>
+                            ${(getClassesForGrade(record['학년']||record.grade||'') || []).map(c =>
+                                `<option value="${c}" style="font-size:16px;" ${(record.studentClass||record['등록학급']||'')===c?'selected':''}>${c}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
                 </div>
 
                 <!-- 세로 구분선 -->
@@ -4438,9 +4440,11 @@ function printReport() {
         return;
     }
 
-    // [Fix] AI 종합 분석 코멘트가 없으면 경고 팝업
-    const aiSectionTexts = Array.from(document.getElementById('report-display')?.querySelectorAll('p') || []).filter(p => p.textContent.includes('분석 대기 중') || p.textContent.includes('로딩 중'));
-    if (aiSectionTexts.length > 0) {
+    // [Fix] AI 종합 코멘트가 없으면 경고 팝업 (overall-comment-text id로 정확히 체크)
+    const overallCommentEl = document.getElementById('overall-comment-text');
+    const overallTxt = overallCommentEl?.textContent?.trim() || '';
+    const aiNotReady = !overallTxt || overallTxt === '분석 대기 중...' || overallTxt === '로딩 중...' || overallTxt === '분석 중...';
+    if (aiNotReady) {
         if (!confirm('⚠️ AI 분석 코멘트가 아직 생성되지 않았습니다.\n\n코멘트 없이 인쇄하시겠습니까?\n("취소"를 눌러 코멘트를 먼저 생성하세요)')) {
             return;
         }
@@ -4587,6 +4591,23 @@ window.onload = function() { setTimeout(function(){ window.print(); }, 800); };
 <\/script>
 </body></html>`);
     win.document.close();
+
+    // [추가] 인쇄 시 선택된 등록학급을 DB에 자동 저장
+    if (clsVal) {
+        const stuId  = document.getElementById('report-student')?.value;
+        const catId  = document.getElementById('report-category')?.value;
+        const cat    = globalConfig.categories?.find(c => c.id === catId);
+        if (stuId && cat) {
+            sendReliableRequest({
+                type: 'STUDENT_SAVE',
+                parentFolderId: extractFolderId(cat.targetFolderUrl),
+                categoryName:   cat.name,
+                studentId: stuId,
+                data: { 등록학급: clsVal }
+            }).then(() => showToast(`💾 등록학급 '${clsVal}' 저장 완료`))
+              .catch(e  => console.warn('등록학급 저장 실패:', e));
+        }
+    }
 }
 
 // 레이더 차트 — 정답률(%) 기준으로 정규화 (만점 다른 영역 공정 비교)
@@ -4707,7 +4728,7 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap) {
             },
             plugins: {
                 datalabels: { display: false },
-                legend: { position: 'right', labels: { font:{size:16}, padding:4 } },
+                legend: { position: 'right', labels: { font:{size:16}, padding:10 } },
                 tooltip: {
                     bodyFont:{size:16}, titleFont:{size:16},
                     callbacks: {
