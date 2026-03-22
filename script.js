@@ -4178,12 +4178,12 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
         <!-- 3. 레이더 차트 -->
         <div>
             <h4 style="font-size:18px;font-weight:900;color:#013976;margin-bottom:1rem;">🕸 영역별 균형도</h4>
-            <div class="flex flex-col md:flex-row gap-6 items-center">
-                <div class="flex-1 w-full relative">
+            <div class="flex flex-row w-full gap-6 items-center">
+                <div class="flex-1 relative">
                     <canvas id="chart-radar" style="max-height:380px;"></canvas>
                 </div>
                 <!-- 우측 영역별 텍스트 박스 -->
-                <div class="w-full md:w-56 bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-2xl p-6 shadow-sm shrink-0">
+                <div class="w-56 bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-2xl p-6 shadow-sm shrink-0">
                     <h5 class="font-bold text-[#013976] border-b border-slate-200 pb-3 mb-4 fs-16 text-center">개인 정답률</h5>
                     <div class="space-y-3">
                     ${activeSections.map(s => {
@@ -4661,7 +4661,7 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap) {
             plugins: {
                 // 전역 데이터 라벨은 비활성화하여 차트 위에 검은색 숫자가 나타나지 않게 함
                 datalabels: { display: false },
-                legend: { position: 'bottom', labels: { font:{size:16} } },
+                legend: { position: 'right', labels: { font:{size:16} } },
                 tooltip: {
                     bodyFont:{size:16}, titleFont:{size:16},
                     callbacks: {
