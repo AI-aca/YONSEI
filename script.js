@@ -4295,6 +4295,16 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
             <!-- 우상단: 등록권장 학급 + 총점 -->
             <div class="flex items-stretch gap-6">
 
+                <!-- 평균 표시 토글 no-print -->
+                <div class="no-print" style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;margin-right:4px;">
+                    <span style="font-size:14px;font-weight:700;color:#64748b;">평균 표시</span>
+                    <div style="display:flex;gap:5px;">
+                        <button id="avg-btn-all" onclick="setReportAvgMode('all')" style="padding:3px 10px;font-size:16px;font-weight:700;background:#013976;color:white;border:none;border-radius:7px;cursor:pointer;">모두</button>
+                        <button id="avg-btn-overall" onclick="setReportAvgMode('overall')" style="padding:3px 10px;font-size:16px;font-weight:700;background:#e2e8f0;color:#64748b;border:none;border-radius:7px;cursor:pointer;">전체</button>
+                        <button id="avg-btn-class" onclick="setReportAvgMode('class')" style="padding:3px 10px;font-size:16px;font-weight:700;background:#e2e8f0;color:#64748b;border:none;border-radius:7px;cursor:pointer;">학급</button>
+                    </div>
+                </div>
+
                 <!-- 권장학급 라벨+드롭다운 (두 박스 gap-0으로 붙임) -->
                 <div class="flex items-stretch" style="gap:0;">
                     <div style="background:#013976;border-radius:1rem 0 0 1rem;height:65px;width:70px;display:flex;align-items:center;justify-content:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
@@ -4328,14 +4338,6 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
 
         <!-- 1. 총점 막대그래프 -->
         <div>
-        <!-- 평균 표시 토글 -->
-        <div style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;">
-            <span style="font-size:13px;font-weight:700;color:#64748b;">평균 표시:</span>
-            <button id="avg-btn-all" onclick="setReportAvgMode('all')" style="padding:4px 12px;font-size:12px;font-weight:700;background:#013976;color:white;border:none;border-radius:7px;cursor:pointer;">모두</button>
-            <button id="avg-btn-overall" onclick="setReportAvgMode('overall')" style="padding:4px 12px;font-size:12px;font-weight:700;background:#e2e8f0;color:#64748b;border:none;border-radius:7px;cursor:pointer;">전체평균만</button>
-            <button id="avg-btn-class" onclick="setReportAvgMode('class')" style="padding:4px 12px;font-size:12px;font-weight:700;background:#e2e8f0;color:#64748b;border:none;border-radius:7px;cursor:pointer;">학급평균만</button>
-        </div>
-
             <h4 style="font-size:18px;font-weight:900;color:#013976;margin-bottom:1rem;">📊 총점 비교</h4>
             <canvas id="chart-total" style="max-height:240px;"></canvas>
         </div>
