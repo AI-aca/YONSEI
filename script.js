@@ -4853,15 +4853,14 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap, clas
                 cy += rowH;
             });
             // ===== DEBUG 영역 경계선 =====
-            const lw = chart.legend ? (chart.legend.width || 0) : 0;
-            c2.save(); c2.setLineDash([6, 3]); c2.lineWidth = 2;
-            c2.strokeStyle = 'rgba(220,38,38,0.8)';
-            c2.beginPath(); c2.moveTo(w - pW - 8, 0); c2.lineTo(w - pW - 8, h); c2.stroke();
-            c2.strokeStyle = 'rgba(37,99,235,0.8)';
-            c2.beginPath(); c2.moveTo(w - lw, 0); c2.lineTo(w - lw, h); c2.stroke();
-            c2.setLineDash([]); c2.font = 'bold 11px sans-serif';
-            c2.fillStyle = 'rgba(220,38,38,0.9)'; c2.fillText('← 테이블끽', w - pW - 4, 14);
-            c2.fillStyle = 'rgba(37,99,235,0.9)'; c2.fillText('← 범례영역', w - lw + 4, 14);
+            const ca = chart.chartArea;
+            c2.save(); c2.setLineDash([6,3]); c2.lineWidth=2; c2.font='bold 11px sans-serif';
+            // 녹: 레이더끽/범례시작
+            c2.strokeStyle='rgba(0,160,0,0.9)'; c2.beginPath(); c2.moveTo(ca.right,0); c2.lineTo(ca.right,h); c2.stroke();
+            c2.fillStyle='rgba(0,160,0,0.9)'; c2.fillText('← 레이더끽/범례시작', ca.right+4, 14);
+            // 파란: 테이블시작
+            c2.strokeStyle='rgba(37,99,235,0.9)'; c2.beginPath(); c2.moveTo(w-pW-4,0); c2.lineTo(w-pW-4,h); c2.stroke();
+            c2.fillStyle='rgba(37,99,235,0.9)'; c2.fillText('← 테이블시작', w-pW+4, 28);
             c2.restore();
             c2.restore();
         }
@@ -4877,7 +4876,7 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap, clas
         options: {
             responsive: true, maintainAspectRatio: false,
             // padding.top:2 제목과 차트 간격 최소화 / right:280 범례-표 간격 확보 / bottom:2 이하 간격 최소화
-            layout: { padding: { right: 250, left: 10, top: 2, bottom: 2 } },
+            layout: { padding: { right: 430, left: 10, top: 2, bottom: 2 } },
             scales: {
                 r: {
                     min: 0, max: 100,
