@@ -4861,7 +4861,7 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap, clas
         plugins: [radarTablePlugin],
         data: {
             labels: activeSections,
-            datasets: (() => { const _rds=[{ label:'개인(%)', data:pctPersonal, borderColor:'#e74c3c', backgroundColor:'transparent', borderWidth:2.5, pointRadius:0 }]; if((mode||'all')!=='class') _rds.push({ label:'평균(%)', data:pctAvg, borderColor:'#94a3b8', backgroundColor:'transparent', borderWidth:2, pointRadius:0 }); if(pctClass&&(mode||'all')!=='overall') _rds.push({ label:'학급(%)', data:pctClass, borderColor:'#22c55e', backgroundColor:'transparent', borderWidth:2, pointRadius:0 }); return _rds; })()
+            datasets: (() => { const _rds=[{ label:'개인 정답률(%)', data:pctPersonal, borderColor:'#e74c3c', backgroundColor:'transparent', borderWidth:2.5, pointRadius:0 }]; if((mode||'all')!=='class') _rds.push({ label:'평균 정답률(%)', data:pctAvg, borderColor:'#94a3b8', backgroundColor:'transparent', borderWidth:2, pointRadius:0 }); if(pctClass&&(mode||'all')!=='overall') _rds.push({ label:'학급 평균 정답률(%)', data:pctClass, borderColor:'#22c55e', backgroundColor:'transparent', borderWidth:2, pointRadius:0 }); return _rds; })()
         },
         options: {
             responsive: true, maintainAspectRatio: false,
@@ -4876,7 +4876,7 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap, clas
             },
             plugins: {
                 datalabels: { display: false },
-                legend: { position: 'right', labels: { font:{size:12}, boxWidth:16, padding:4 } },
+                legend: { position: 'right', labels: { font:{size:16}, padding:4 } },
                 tooltip: {
                     bodyFont:{size:16}, titleFont:{size:16},
                     callbacks: {
