@@ -5109,7 +5109,7 @@ function renderStudentStatsUI(students, _unused) {
             <td class="px-2 py-3 font-bold text-center" ${colW}>${label}</td>
             <td class="px-2 py-3 text-center font-bold text-[#013976]" ${colW}>${count}</td>
             <td class="px-2 py-3 text-center font-bold text-orange-600" ${colW}>${scoreStr}</td>
-            ${SECTIONS.map(s => { const avg = calcAvg(list, s); return `<td class="px-2 py-3 text-center" ${colW}>${avg === '-' ? '<span class="text-slate-300">-</span>' : `<span class="font-bold">${avg}</span>`}</td>`; }).join('')}
+            ${SECTIONS.map(s => { const avg = calcAvg(list, s); const noData = calcMax(list, s) === '-'; return `<td class="px-2 py-3 text-center" ${colW}>${(avg === '-' || noData) ? '<span class="text-slate-300">-</span>' : `<span class="font-bold">${avg}</span>`}</td>`; }).join('')}
         </tr>`;
     };
 
