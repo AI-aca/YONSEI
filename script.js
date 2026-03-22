@@ -3784,7 +3784,7 @@ ${sectionSummary}
 2) 부족한 영역과 코멘트를 바탕으로 실질적 학습 방향 (1~2문장)
 3) 전체적 격려 메시지 (1문장)
 
-실제 총점/만점을 반드시 언급하세요. 학생을 부를 때는 반드시 "${sName} 학생은" 형식으로 실명을 사용하세요. 학원명, 교재명, 브랜드명은 절대 언급하지 마세요. 모든 답변은 순수 한국어로만 작성하세요.`;
+실제 총점/만점을 반드시 언급하세요. 호칭이 필요한 경우 "${sName} 학생은" 형식으로 실명을 사용하세요. "우리 OO 학생" 같은 가상 호칭은 절대 사용하지 마세요. 학원명, 교재명, 브랜드명은 절대 언급하지 마세요. 모든 답변은 순수 한국어로만 작성하세요.`;
 
     return await callGeminiAPI(prompt);
 }
@@ -4017,7 +4017,7 @@ async function generateSectionComments(record, averages, activeSections) {
 2) 미흡한 점 또는 약점 (1문장)
 3) 구체적 학습 방향 제시 (1문장)
 
-실제 점수와 만점을 반드시 언급하세요. 학생을 부를 때는 반드시 "${sName} 학생은" 형식으로 실명을 사용하세요. 학원명, 교재명, 브랜드명은 절대 언급하지 마세요. 모든 답변은 순수 한국어바탕으로 하세요.`;
+실제 점수와 만점을 반드시 언급하세요. 호칭이 필요한 경우 "${sName} 학생은" 형식으로 실명을 사용하세요. "우리 OO 학생" 같은 가상 호칭은 절대 사용하지 마세요. 학원명, 교재명, 브랜드명은 절대 언급하지 마세요. 모든 답변은 순수 한국어바탕으로 하세요.`;
 
         comments[section] = await callGeminiAPI(prompt);
     }
@@ -4184,7 +4184,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
         <div class="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-3xl border-2 border-blue-200">
             <h4 class="ys-label text-blue-700 mb-3">🤖 종합분석 코멘트</h4>
             ${overallComment
-                ? `<p class="text-slate-700 leading-relaxed whitespace-pre-wrap fs-15">${overallComment}</p>`
+                ? `<div class="text-slate-700 leading-relaxed fs-15">${overallComment.split(/\n+/).map(l=>l.trim()).filter(l=>l).map(l=>`<p class="mb-2">${l}</p>`).join('')}</div>`
                 : `<div class="text-center py-4">
                     <p class="text-slate-500 mb-4 fs-15">AI 심층 분석을 통해 학생의 강점과 약점을 파악해보세요.</p>
                     <button onclick="triggerAIAnalysis()" class="btn-ys !bg-[#013976] !text-white !py-3 !px-8 shadow-lg hover:scale-105 transition-all fs-16 font-bold flex items-center gap-2 mx-auto">✨ AI 분석 생성하기</button>
