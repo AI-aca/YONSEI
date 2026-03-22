@@ -4877,7 +4877,7 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap, clas
         options: {
             responsive: true, maintainAspectRatio: false,
             // padding.top:2 제목과 차트 간격 최소화 / right:280 범례-표 간격 확보 / bottom:2 이하 간격 최소화
-            layout: { padding: { right: 0, left: 250, top: 2, bottom: 2 } },
+            layout: { padding: { right: 200, left: 250, top: 2, bottom: 2 } },
             scales: {
                 r: {
                     min: 0, max: 100,
