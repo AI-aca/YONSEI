@@ -1,0 +1,140 @@
+<!--
+========================================================================================
+[USER DEFINED ABSOLUTE RULES] - PROMPT INJECTION
+이 파일은 다음의 사용자 정의 절대 규칙을 따릅니다. AI는 이 규칙을 최우선으로 준수해야 합니다.
+
+1. [Language] 모든 소통(작업 상태, 아티팩트 설명 등)은 '한국어'로 진행합니다.
+2. [Procedure] 지시받은 코딩/수정은 수행 전 내용을 정리하여 사용자 '컨펌'을 받습니다.
+3. [Structure] HTML(구조), CSS(디자인), JS(로직) 파일을 엄격히 분리합니다.
+4. [External] 구글 앱 스크립트 등 외부 복사/붙여넣기 필요 시 '별도로 강조'합니다.
+5. [Honesty] 모르는 내용은 '모른다'고 솔직히 말하며, 절대 아는 척하지 않습니다.
+========================================================================================
+-->
+<!--
+========================================================================================
+🚨 [CRITICAL WARNING] - DO NOT EDIT WITHOUT READING 'PROJECT_RULES.md' 🚨
+모든 수정/보완/지시 수행 전, 반드시 프로젝트 루트의 `PROJECT_RULES.md`를 읽고
+5대 절대 원칙을 마음속으로 복창한 뒤에만 작업을 진행하십시오.
+이 경고를 무시하면 사용자의 150시간이 다시 사라집니다.
+========================================================================================
+-->
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>연세국제영어 Premium System</title>
+    <!-- 외부 라이브러리 연결 (Tailwind CSS, Chart.js, Google Fonts) -->
+    <script>
+        // Tailwind CSS CDN 경고 메시지 숨김 (로컬 환경 편의성 목적)
+        (function () {
+            const _filter = (args) => args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com');
+            const _warn  = console.warn;  console.warn  = function (...a) { if (_filter(a)) return; _warn.apply(console, a); };
+            const _log   = console.log;   console.log   = function (...a) { if (_filter(a)) return; _log.apply(console, a); };
+            const _error = console.error; console.error = function (...a) { if (_filter(a)) return; _error.apply(console, a); };
+        })();
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Google Sans', 'Noto Sans KR', 'sans-serif'],
+                        serif: ['Google Sans', 'Noto Sans KR', 'sans-serif'],
+                        mono: ['Google Sans', 'Noto Sans KR', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <!-- Google Fonts: Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Flatpickr (Custom Date Picker) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
+</head>
+
+<body class="no-scrollbar">
+    <!-- 1. 최상단바 (Header) -->
+    <header id="app-header">
+        <div class="flex items-center h-full">
+            <div id="h-logo" onclick="goHome()"
+                class="w-[320px] flex-shrink-0 h-16 flex items-center justify-center border-r-2 border-[#013976] text-slate-300 fs-18 uppercase cursor-pointer hover:opacity-100 transition-opacity">
+                Academy Logo
+            </div>
+            <div onclick="goHome()" class="hidden lg:flex flex-col pl-8 h-12 justify-center cursor-pointer">
+                <h1 class="fs-18 text-[#013976] uppercase leading-none font-black">연세국제영어</h1>
+                <p class="fs-18 text-[#000000] mt-1 uppercase font-sans leading-none tracking-tight">
+                    Management Portal
+                </p>
+            </div>
+        </div>
+        <div id="h-nav-group"
+            class="flex items-center bg-slate-100 p-1.5 rounded-2xl border-2 border-[#013976] mr-10 scale-90 origin-right">
+            <button onclick="changeMode('student')"
+                class="px-6 py-3 rounded-xl fs-18 font-black text-purple-500 hover:bg-purple-600 hover:text-white transition-all hover:shadow-md active:scale-95">
+                온라인 평가
+            </button>
+            <div class="w-px h-6 bg-slate-300 mx-1"></div>
+            <button onclick="changeMode('auth_admin')"
+                class="px-6 py-3 rounded-xl fs-18 font-black text-slate-400 hover:bg-[#013976] hover:text-white transition-all hover:shadow-md active:scale-95">
+                관리자
+            </button>
+            <div class="w-px h-6 bg-slate-300 mx-1"></div>
+            <button onclick="changeMode('auth_master')"
+                class="px-6 py-3 rounded-xl fs-18 font-black text-slate-400 hover:bg-[#013976] hover:text-white transition-all hover:shadow-md active:scale-95">
+                설정
+            </button>
+        </div>
+    </header>
+
+    <!-- 2. 메인 컨테이너 (사이드바 + 캔버스) -->
+    <div id="main-container">
+        <!-- 사이드바 -->
+        <aside id="app-sidebar" class="border-r-2 border-slate-300">
+            <div class="m-0 p-0 text-center">
+                <span id="rank-text"
+                    class="fs-32 font-black tracking-[0.1em] uppercase leading-none block admin-text">ADMIN</span>
+            </div>
+            <div class="h-px bg-white/25 my-6 mx-2"></div>
+            <nav id="sidebar-nav" class="space-y-4 flex-grow"></nav>
+            <button onclick="goHome()"
+                class="w-full p-4 rounded-xl fs-18 text-red-400 border-2 border-red-400/10 hover:bg-red-500/10 uppercase transition-all mt-4">
+                🚪 Logout Session
+            </button>
+        </aside>
+
+        <!-- 캔버스 (모든 콘텐츠가 여기 표시됨) -->
+        <main id="app-canvas">
+            <!-- 동적 콘텐츠가 로드되는 영역 -->
+            <div id="dynamic-content" class="w-full h-full"></div>
+        </main>
+    </div>
+
+    <!-- 3. 최하단바 (Footer) -->
+    <footer id="app-footer">
+        <p>&copy; 2026 Yonsei International English. All System Rights Reserved.</p>
+    </footer>
+
+    <!-- 로딩 오버레이 -->
+    <div id="loading-overlay"
+        class="fixed inset-0 bg-black/50 z-[9999] hidden flex-col items-center justify-center backdrop-blur-sm">
+        <div class="animate-spin rounded-full h-16 w-16 border-4 border-white/30 border-t-white mb-4"></div>
+        <p class="text-white fs-18 animate-pulse">Processing...</p>
+    </div>
+
+    <div id="toast" style="display: none;"
+        class="fixed bottom-10 left-1/2 bg-slate-800 text-white px-8 py-4 rounded-full shadow-2xl transition-all duration-300 text-center font-bold fs-18">
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

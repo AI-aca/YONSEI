@@ -471,10 +471,7 @@ function changeMode(mode) {
         const c = document.getElementById('dynamic-content');
 
         // Reset layout state
-        // [Fix] student 모드는 로딩 완료 후 사이드바 제거
-        if (mode !== 'student') {
-            body.classList.remove('has-sidebar');
-        }
+        body.classList.remove('has-sidebar');
 
         if (mode === 'initial') {
             renderInitialScreen(); // Draw Initial Splash Screen (No Banner, No Start Button)
@@ -679,7 +676,7 @@ function startStudentMode() {
 
 
 function renderSidebarNav() {
-    let b = `<button onclick="changeTab('records')" id="btn-records" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📊 학생 성적표 확인</button><button onclick="changeTab('score_input')" id="btn-score_input" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">✏️ 학생 성적 수동 입력</button><button onclick="changeTab('stats')" id="btn-stats" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📈 문항 및 학생 통계</button><button onclick="changeTab('bank')" id="btn-bank" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📋 문항 리스트 등록·수정</button>`;
+    let b = `<button onclick="changeTab('records')" id="btn-records" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📊 학생 성적표 확인</button><button onclick="changeTab('score_input')" id="btn-score_input" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">✏️ 학생 성적 수동 입력</button><button onclick="changeTab('stats')" id="btn-stats" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📈 문항 통계</button><button onclick="changeTab('bank')" id="btn-bank" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📋 문항 리스트 등록·수정</button>`;
     b += `<button onclick="changeTab('cat_manage')" id="btn-cat_manage" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📂 시험지 관리</button>`;
     document.getElementById('sidebar-nav').innerHTML = b;
     applyBranding();
@@ -1319,11 +1316,6 @@ async function gradeWithAI(q, userAns) {
     if (!userAns) return { score: 0, feedback: "답안이 입력되지 않았습니다." };
     if (!globalConfig.geminiKey) return null; // Fallback
 
-    // [Fix] 묶음 지문 + 개별 지문을 AI에게 전달
-    const bundleText = q.bundlePassageText || '';
-    const passageText = q.passage1 || q.text || '';
-    const fullContext = bundleText ? '[묶음 지문]\n' + bundleText + '\n\n[개별 문항 지문]\n' + passageText : passageText;
-
     const prompt = `
 [AI Online Grading Request]
  문항: ${q.questionTitle || q.text}
@@ -1333,14 +1325,12 @@ async function gradeWithAI(q, userAns) {
  모범 답안: ${q.modelAnswer || '없음'}
  학생 답안: ${userAns}
  배점: ${q.score}
-${fullContext ? ' 지문(문맥):\n' + fullContext : ''}
 
 [Instructions]
-1. 위 지문(문맥)을 반드시 읽고, 학생의 답안이 빈칸/문맥에 알맞은지 판단하세요.
-2. 학생의 답안이 정답/모범 답안과 의미적으로 일치하는지 분석하세요.
-3. [주관형]: 스펠링이 약간 틀리거나 동의어를 사용했더라도 전체적인 의미가 맞다면 정답(만점)으로 인정합니다. 아포스트로피와 백틱은 동일한 문자로 간주하세요.
-4. [작문형]: 문맥, 문법, 핵심 단어 포함 여부를 종합 평가하여 0점에서 배점 사이의 점수를 부여하세요.
-5. 출력은 반드시 아래 JSON 형식으로만 하세요. (기타 텍스트 금지)
+1. 학생의 답안이 정답/모범 답안과 의미적으로 일치하는지 분석하세요.
+2. [주관형]: 스펠링이 약간 틀리거나 동의어를 사용했더라도 전체적인 의미가 맞다면 정답(만점)으로 인정합니다.
+3. [작문형]: 문맥, 문법, 핵심 단어 포함 여부를 종합 평가하여 0점에서 배점 사이의 점수를 부여하세요.
+4. 출력은 반드시 아래 JSON 형식으로만 하세요. (기타 텍스트 금지)
 
 {"score": 점수숫자, "feedback": "간략한 채점 근거(한국어)"}
     `;
@@ -2496,7 +2486,7 @@ function renderScoreInput(c) {
 
                 <!-- Student Info -->
                 <div class="card space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-10 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                         <div>
                             <label class="ys-label font-bold">&#x1F4DD; &#xD559;&#xC0DD;&#xBA85;</label>
                             <input type="text" id="input-student-name" class="ys-field" placeholder="&#xC774;&#xB984; &#xC785;&#xB825;" autocomplete="off">
@@ -2571,7 +2561,7 @@ function renderScoreInput(c) {
                             </button>
                             <div id="accordion-section" class="hidden px-6 pb-6 border-t border-slate-100">
                                 <p class="text-sm text-slate-400 mt-3 mb-4">&#xBB38;&#xD56D;&#xBCC4; &#xC785;&#xB825;&#xC774; &#xC5C6;&#xC744; &#xACBD;&#xC6B0;&#xC5D0;&#xB9CC; &#xCD1D;&#xC810; &#xACC4;&#xC0B0;&#xC5D0; &#xBC18;&#xC601;&#xB429;&#xB2C8;&#xB2E4;.</p>
-                                <div class="grid grid-cols-2 lg:grid-cols-10 gap-4">
+                                <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
                                     <div><label class="text-sm font-bold text-slate-500 font-bold mb-0 block">Grammar</label><span id="max-grammar" class="font-normal text-slate-400 text-sm block mb-1"></span>
                                         <input type="number" id="input-grammar" data-max-id="max-grammar" class="ys-field text-center font-bold" placeholder="0" min="0" max="9999" oninput="clampAccordionScore(this); calculateTotalScore()"></div>
                                     <div><label class="text-sm font-bold text-slate-500 font-bold mb-0 block">Writing</label><span id="max-writing" class="font-normal text-slate-400 text-sm block mb-1"></span>
@@ -3385,20 +3375,7 @@ async function submitExam() {
         };
 
         const questionScores = [];
-        const rawQuestions = globalConfig.questions.filter(q => String(q.catId) === String(examSession.categoryId));
-
-        // [Fix] 묶음 지문 데이터 주입 (AI 채점 시 지문 문맥 전달)
-        const questions = rawQuestions.map(q => {
-            const copy = { ...q };
-            if (copy.setId) {
-                const bundle = globalConfig.bundles ? globalConfig.bundles.find(b => b.id === copy.setId) : null;
-                if (bundle) {
-                    copy.bundlePassageText = bundle.text;
-                    copy.commonTitle = bundle.title;
-                }
-            }
-            return copy;
-        });
+        const questions = globalConfig.questions.filter(q => String(q.catId) === String(examSession.categoryId));
 
         questions.forEach(q => {
             const studentAns = examSession.answers[q.id] || "";
@@ -3413,12 +3390,10 @@ async function submitExam() {
                 if (!correctAns || correctAns.includes('모범') || correctAns.length > 80) {
                     // 모범답안 참고형 → 교사 채점 필요, 일단 0점
                     isCorrect = false;
-                } else if (correctAns) {
-                    // 관대한 키워드 매칭 (대소문자·띄어쓰기·구두점 무시)
-                    const normalize = s => s.toLowerCase().replace(/[\s,.\-_'"!?;:()`\u2018\u2019\u201C\u201D]/g, '').trim();
-                    const acceptableAnswers = correctAns.split(',').map(a => normalize(a));
-                    const normalizedStudentAns = normalize(String(studentAns));
-                    isCorrect = acceptableAnswers.includes(normalizedStudentAns);
+                } else {
+                    // 콤마로 구분된 복수 정답 → 하나라도 일치하면 정답
+                    const acceptableAnswers = correctAns.split(',').map(a => a.trim().toLowerCase());
+                    isCorrect = acceptableAnswers.includes(String(studentAns).trim().toLowerCase());
                 }
             }
 
@@ -4094,29 +4069,27 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
                 <p class="fs-18 text-slate-600 mt-2">${sGrade}학년 | 응시일: ${sDate}</p>
             </div>
             <!-- 우상단: 등록권장 학급 + 총점 -->
-            <div class="flex items-stretch gap-6">
+            <div class="flex items-stretch gap-3">
 
-                <!-- 권장학급 (통합 박스: 배경색 구분) -->
-                <div style="border:2px solid #013976;border-radius:1rem;height:65px;min-width:160px;display:flex;align-items:stretch;overflow:hidden;">
-                    <!-- 라벨 (네이비 배경) -->
-                    <div style="background:#013976;color:white;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 14px;white-space:nowrap;letter-spacing:0.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
-                        권장<br>학급
+                <!-- 등록권장 학급 -->
+                <div class="flex items-center gap-2">
+                    <!-- 라벨 -->
+                    <div class="flex items-center">
+                        <div class="text-slate-700 font-bold leading-tight text-center" style="font-size:17px;font-weight:700">
+                            등록<br>권장<br>학급
+                        </div>
                     </div>
-                    <!-- 드롭다운 (흰 배경) -->
-                    <select id="report-student-class"
-                        style="border:none;outline:none;font-size:20px;font-weight:900;color:#013976;background:white;text-align:center;cursor:pointer;-webkit-appearance:none;min-width:70px;padding:0 12px;">
-                        <option value="" style="font-size:16px;">선택</option>
-                        ${(getClassesForGrade(record['학년']||record.grade||'') || []).map(c =>
-                            `<option value="${c}" style="font-size:16px;" ${(record.studentClass||record['등록학급']||'')===c?'selected':''}>${c}</option>`
-                        ).join('')}
-                    </select>
+                    <!-- 텍스트 입력 -->
+                    <input id="report-student-class" type="text" placeholder="학급 입력"
+                        value="${record.studentClass||record['등록학급']||''}"
+                        style="border:2px solid #013976;border-radius:1rem;width:120px;height:80px;font-size:24px;font-weight:900;color:#013976;background:white;text-align:center;">
                 </div>
 
                 <!-- 세로 구분선 -->
                 <div style="width:1px;background:#cbd5e1;align-self:stretch;margin:0 2px;"></div>
 
                 <!-- 총점 -->
-                <div style="background:linear-gradient(135deg,#013976 0%,#1a5276 100%);border-radius:1rem;width:160px;height:65px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;" class="shadow-lg">
+                <div style="background:linear-gradient(135deg,#013976 0%,#1a5276 100%);border-radius:1rem;width:120px;height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;" class="shadow-lg">
                     <div style="font-size:24px;font-weight:900;line-height:1;">${sTotal}</div>
                     <div style="font-size:14px;opacity:0.75;margin-top:5px;">/ ${sMax}점 (${sRate}%)</div>
                 </div>
@@ -4142,7 +4115,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
         </div>
 
         <!-- 4. 영역별 코멘트 -->
-        <div id="qdetail-checkbox-row" class="flex items-center gap-3 py-3 px-4 bg-slate-100 rounded-2xl border">
+        <div class="flex items-center gap-3 py-3 px-4 bg-slate-100 rounded-2xl border">
             <input type="checkbox" id="chk-qdetail" onchange="toggleAllQuestionDetail(this.checked)"
                 class="w-5 h-5 cursor-pointer accent-[#013976]">
             <label for="chk-qdetail" class="cursor-pointer font-bold text-[#013976] fs-16 select-none">문항별 상세 보기</label>
@@ -4276,15 +4249,15 @@ function renderTotalChart(record, averages, sTotal, sMax) {
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            scales: { y: { beginAtZero:true, max:sMax, ticks:{font:{size:16}, callback: v => Number.isInteger(v) ? v : parseFloat(v).toFixed(1)} }, x:{ticks:{font:{size:16}}} },
+            scales: { y: { beginAtZero:true, max:sMax, ticks:{font:{size:16}} }, x:{ticks:{font:{size:16}}} },
             plugins: {
                 legend: { position: 'right', labels:{font:{size:16}} },
-                tooltip: { bodyFont:{size:16}, titleFont:{size:16}, callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + parseFloat(ctx.raw).toFixed(1) } },
+                tooltip: { bodyFont:{size:16}, titleFont:{size:16} },
                 datalabels: DL ? {
                     anchor: 'center', align: 'center',
                     font: { size: 16, weight: 'bold' },
                     color: 'white',
-                    formatter: (v) => v > 0 ? parseFloat(v).toFixed(1) : ''
+                    formatter: (v) => v > 0 ? v : ''
                 } : false
             }
         }
@@ -4314,15 +4287,15 @@ function renderSectionsBarChart(record, averages, activeSections, secMap, maxMap
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            scales: { y:{beginAtZero:true, ticks:{font:{size:16}, callback: v => Number.isInteger(v) ? v : parseFloat(v).toFixed(1)}}, x:{ticks:{font:{size:16}}} },
+            scales: { y:{beginAtZero:true, ticks:{font:{size:16}}}, x:{ticks:{font:{size:16}}} },
             plugins: {
                 legend: { position: 'right', labels:{font:{size:16}} },
-                tooltip: { bodyFont:{size:16}, titleFont:{size:16}, callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + parseFloat(ctx.raw).toFixed(1) } },
+                tooltip: { bodyFont:{size:16}, titleFont:{size:16} },
                 datalabels: DL ? {
                     anchor: 'center', align: 'center',
                     font: { size: 16, weight: 'bold' },
                     color: 'white',
-                    formatter: (v) => v > 0 ? parseFloat(v).toFixed(1) : ''
+                    formatter: (v) => v > 0 ? v : ''
                 } : false
             }
         }
@@ -4347,13 +4320,7 @@ function printReport() {
         return;
     }
 
-    // [Fix] AI 종합 분석 코멘트가 없으면 경고 팝업
-    const aiSectionTexts = Array.from(document.getElementById('report-display')?.querySelectorAll('p') || []).filter(p => p.textContent.includes('분석 대기 중') || p.textContent.includes('로딩 중'));
-    if (aiSectionTexts.length > 0) {
-        if (!confirm('⚠️ AI 분석 코멘트가 아직 생성되지 않았습니다.\n\n코멘트 없이 인쇄하시겠습니까?\n("취소"를 눌러 코멘트를 먼저 생성하세요)')) {
-            return;
-        }
-    }
+    // 참고: 등록권장 학급은 인쇄 화면에 텍스트로 표시됨 (서버 저장 불필요)
 
     const display = document.getElementById('report-display');
     if (!display) return;
@@ -4385,36 +4352,23 @@ function printReport() {
         if (canvasEl && imgDataMap[id]) {
             const img = document.createElement('img');
             img.src = imgDataMap[id].dataUrl;
-            img.style.width = imgDataMap[id].width + 'px';
-            img.style.maxWidth = '100%';
+            img.style.width = '100%';
             img.style.maxHeight = (canvasEl.style.maxHeight || '400px');
             img.style.objectFit = 'contain';
             canvasEl.parentNode.replaceChild(img, canvasEl);
         }
     });
 
-    // 3b. 인쇄 불필요 요소 제거
-    const isDetailChecked = document.getElementById('chk-qdetail')?.checked || false;
-    const chkRow = clone.querySelector('#qdetail-checkbox-row');
-    if (chkRow) chkRow.remove();
-    clone.querySelectorAll('[id^="qdetail-"]').forEach(el => {
-        if (isDetailChecked) { el.classList.remove('hidden'); el.style.display = ''; }
-        else { el.remove(); }
-    });
-    // 로딩 텍스트 제거
-    clone.querySelectorAll('p').forEach(p => {
-        const txt = p.textContent.trim();
-        if (txt === '분석 대기 중...' || txt === '로딩 중...' || txt === '분석 중...') {
-            const parent = p.closest('div');
-            if (parent) parent.remove(); else p.remove();
-        }
-    });
+    // 3b. 인쇄 불필요 요소 제거 (문항별 상세보기 체크박스 + qdetail 영역)
+    const chkEl = clone.querySelector('#chk-qdetail');
+    if (chkEl?.parentElement) chkEl.parentElement.remove();
+    clone.querySelectorAll('[id^="qdetail-"]').forEach(el => el.remove());
 
     // 3b-2. 등록권장 학급 <select> → 텍스트 span으로 교체 (select는 클론 시 JS 선택값 소실)
     const _clsSel = clone.querySelector('#report-student-class');
     if (_clsSel) {
         const _clsSpan = document.createElement('span');
-        _clsSpan.style.cssText = 'font-size:20px;font-weight:900;color:#013976;background:white;display:inline-flex;align-items:center;justify-content:center;min-width:80px;padding:0 12px;height:100%;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
+        _clsSpan.style.cssText = 'font-size:24px;font-weight:900;color:#013976;border:2px solid #013976;border-radius:1rem;width:120px;height:80px;display:inline-flex;align-items:center;justify-content:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
         _clsSpan.textContent = clsVal || '미선택';
         _clsSel.parentNode.replaceChild(_clsSpan, _clsSel);
     }
@@ -4461,13 +4415,6 @@ function printReport() {
 <html><head>
 <meta charset="UTF-8">
 <title>성적표 인쇄</title>
-<script>
-(function(){
-  const _f=a=>a[0]&&typeof a[0]==='string'&&a[0].includes('cdn.tailwindcss.com');
-  const _w=console.warn;console.warn=function(...a){if(_f(a))return;_w.apply(console,a);};
-  const _l=console.log;console.log=function(...a){if(_f(a))return;_l.apply(console,a);};
-})();
-<\/script>
 <script src="https://cdn.tailwindcss.com"><\/script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap">
 <style>
@@ -4545,7 +4492,7 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap) {
                             const ds = ctx.datasetIndex;
                             const raw = ds === 0 ? rawPersonal[i] : rawAvg[i];
                             const mx  = maxScores[i];
-                            return ` ${ctx.dataset.label}: ${parseFloat(ctx.raw).toFixed(1)}% (${parseFloat(raw).toFixed(1)}/${mx}점)`;
+                            return ` ${ctx.dataset.label}: ${ctx.raw}% (${raw}/${mx}점)`;
                         }
                     }
                 }
@@ -5979,7 +5926,7 @@ function renderNavigator(questions) {
         const linkedBundleId = q.getAttribute('data-bundle-id');
 
         const navItem = document.createElement('div');
-        navItem.className = 'bg-white border border-slate-200 rounded p-1.5 text-[14px] flex items-center justify-between cursor-move hover:border-blue-400 select-none shadow-sm gap-2';
+        navItem.className = 'bg-white border border-slate-200 rounded p-1.5 text-[13px] flex items-center justify-between cursor-move hover:border-blue-400 select-none shadow-sm gap-2';
         navItem.setAttribute('draggable', 'true');
         navItem.setAttribute('data-target-id', id); // Link back to Zone B item
 
@@ -6321,11 +6268,11 @@ function getComponentHtml(type, id, data) {
                                 value="">
                         <div class="flex flex-row gap-1 flex-shrink-0">
                             <button onclick="handleBundleLinkInput('${id}', document.getElementById('${id}-link-input').value)" 
-                                    class="btn-ys !bg-orange-600 !text-white !border-orange-600 hover:brightness-110 !px-3 !py-1 !text-[14px] !font-bold rounded shadow-sm whitespace-nowrap">
+                                    class="btn-ys !bg-orange-600 !text-white !border-orange-600 hover:brightness-110 !px-3 !py-1 !text-[13px] !font-bold rounded shadow-sm whitespace-nowrap">
                                 연결
                             </button>
                             <button onclick="handleBundleDisconnect('${id}')" 
-                                    class="btn-ys !bg-white !text-red-500 !border-red-200 hover:bg-red-50 !px-3 !py-1 !text-[14px] !font-bold rounded shadow-sm whitespace-nowrap">
+                                    class="btn-ys !bg-white !text-red-500 !border-red-200 hover:bg-red-50 !px-3 !py-1 !text-[13px] !font-bold rounded shadow-sm whitespace-nowrap">
                                 해제
                             </button>
                         </div>
@@ -6388,7 +6335,7 @@ function getComponentHtml(type, id, data) {
                          <!-- Section -->
                          <select id="${id}-sec" data-field="section" 
                                  onchange="updateSubTypes('${id}', this.value); updateQuestionNumbers(); this.classList.toggle('bg-amber-50', !this.value); this.classList.toggle('bg-white', !!this.value);" 
-                                 class="h-[34px] px-1 text-[14px] font-bold border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-rose-700 ${!d.sec ? 'bg-amber-50' : 'bg-white'}">
+                                 class="h-[34px] px-1 text-[13px] font-bold border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-rose-700 ${!d.sec ? 'bg-amber-50' : 'bg-white'}">
                             <option value="" disabled ${!d.sec ? 'selected' : ''}>영역</option>
                             <option value="Reading" ${d.sec === 'Reading' ? 'selected' : ''}>Reading</option>
                             <option value="Grammar" ${d.sec === 'Grammar' ? 'selected' : ''}>Grammar</option>
@@ -6400,12 +6347,12 @@ function getComponentHtml(type, id, data) {
                          <!-- SubType -->
                          <select id="${id}-subtype" data-field="subtype" 
                                  onchange="this.classList.toggle('bg-amber-50', !this.value); this.classList.toggle('bg-white', !!this.value);"
-                                 class="h-[34px] px-1 text-[14px] font-bold border border-slate-300 rounded-lg outline-none focus:border-blue-500 ${!d.sub ? 'bg-amber-50' : 'bg-white'}">
+                                 class="h-[34px] px-1 text-[13px] font-bold border border-slate-300 rounded-lg outline-none focus:border-blue-500 ${!d.sub ? 'bg-amber-50' : 'bg-white'}">
                              ${renderSubTypeOptions(d.sec, d.sub)}
                          </select>
 
                          <!-- Difficulty -->
-                         <select id="${id}-diff" data-field="difficulty" class="h-[34px] px-2 text-[14px] border border-slate-300 rounded-lg outline-none focus:border-blue-500 bg-white cursor-pointer">
+                         <select id="${id}-diff" data-field="difficulty" class="h-[34px] px-2 text-[13px] border border-slate-300 rounded-lg outline-none focus:border-blue-500 bg-white cursor-pointer">
                              ${['최상', '상', '중', '하', '기초'].map(lvl => `
                                 <option value="${lvl}" ${(d.diff === lvl || (!d.diff && lvl === '중')) ? 'selected' : ''}>${lvl}</option>
                              `).join('')}
@@ -6413,7 +6360,7 @@ function getComponentHtml(type, id, data) {
 
                          <!-- Score -->
                          <div class="flex items-center gap-1 h-[34px]">
-                            <span class="text-[14px] font-bold text-slate-500">배점</span>
+                            <span class="text-[13px] font-bold text-slate-500">배점</span>
                             <input type="number" id="${id}-score" data-field="score" value="${d.score ?? 0}" min="0" max="99" oninput="if(this.value>99) this.value=99; if(this.value<0) this.value=0; updateQuestionNumbers();" class="w-[40px] h-full text-center text-[14px] font-bold border border-slate-300 rounded-lg outline-none focus:border-blue-500" placeholder="0">
                          </div>
                          <!-- Delete Button (X) -->
@@ -8154,9 +8101,6 @@ async function renderStudentLogin() {
     toggleLoading(true);
     await loadConfigFromCloud(true);
     toggleLoading(false);
-
-    // [Fix] 로딩 완료 후 사이드바 제거
-    document.body.classList.remove('has-sidebar');
 
     setCanvasId('02');
 
