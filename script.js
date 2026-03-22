@@ -4321,24 +4321,24 @@ function toggleAllQuestionDetail(checked) {
                 const chunk = secItems.slice(i, i + 10);
                 const cols = chunk.length;
                 gridHtml += `<table class="w-full fs-14 mt-3 border-collapse" style="table-layout:fixed;">
-                    <tr class="bg-[#013976] text-white">${chunk.map((q,idx) =>
-                        `<th class="py-1.5 px-1 text-center font-bold border border-[#013976]${idx===cols-1?' border-r-0':''}" style="width:10%">${q.no||'-'}</th>`
-                    ).join('')}${'<th class="border-0 py-1.5" style="width:10%"></th>'.repeat(10 - cols)}</tr>
-                    <tr class="bg-slate-50">${chunk.map((q,idx) =>
-                        `<td class="py-1 px-1 text-center text-slate-500 border border-slate-200 text-[14px]${idx===cols-1?' border-r-0':''}">${q.maxScore||0}점</td>`
-                    ).join('')}${'<td class="border-0 py-1"></td>'.repeat(10 - cols)}</tr>
-                    <tr class="bg-white">${chunk.map((q,idx) => {
+                    <tr class="bg-[#013976] text-white">${chunk.map(q =>
+                        `<th class="py-1.5 px-1 text-center font-bold border border-[#013976]" style="width:10%">${q.no||'-'}</th>`
+                    ).join('')}${'<th class="py-1.5 border border-[#013976]" style="width:10%"></th>'.repeat(10 - cols)}</tr>
+                    <tr class="bg-slate-50">${chunk.map(q =>
+                        `<td class="py-1 px-1 text-center text-slate-500 border border-slate-200 text-[14px]">${q.maxScore||0}점</td>`
+                    ).join('')}${'<td class="py-1 border border-slate-200"></td>'.repeat(10 - cols)}</tr>
+                    <tr class="bg-white">${chunk.map(q => {
                         const cq = catQs.find(cq => String(cq.no) === String(q.no));
                         const diff = q.difficulty || cq?.difficulty || '-';
                         const diffColor = {'최상':'text-red-600','상':'text-orange-500','중':'text-blue-500','하':'text-green-500','기초':'text-slate-400'}[diff] || 'text-slate-500';
-                        return `<td class="py-1 px-1 text-center border border-slate-200 text-[14px] ${diffColor}${idx===cols-1?' border-r-0':''}">${diff}</td>`;
-                    }).join('')}${'<td class="border-0 py-1"></td>'.repeat(10 - cols)}</tr>
-                    <tr class="bg-slate-50">${chunk.map((q,idx) =>
-                        `<td class="py-1 px-1 text-center font-bold border border-slate-200 text-[14px]${idx===cols-1?' border-r-0':''}">${q.score||0}점</td>`
-                    ).join('')}${'<td class="border-0 py-1"></td>'.repeat(10 - cols)}</tr>
-                    <tr class="bg-white">${chunk.map((q,idx) =>
-                        `<td class="py-1.5 px-1 text-center font-black border border-slate-200 text-[15px]${idx===cols-1?' border-r-0':''}">${mark(q)}</td>`
-                    ).join('')}${'<td class="border-0 py-1.5"></td>'.repeat(10 - cols)}</tr>
+                        return `<td class="py-1 px-1 text-center border border-slate-200 text-[14px] ${diffColor}">${diff}</td>`;
+                    }).join('')}${'<td class="py-1 border border-slate-200"></td>'.repeat(10 - cols)}</tr>
+                    <tr class="bg-slate-50">${chunk.map(q =>
+                        `<td class="py-1 px-1 text-center font-bold border border-slate-200 text-[14px]">${q.score||0}점</td>`
+                    ).join('')}${'<td class="py-1 border border-slate-200"></td>'.repeat(10 - cols)}</tr>
+                    <tr class="bg-white">${chunk.map(q =>
+                        `<td class="py-1.5 px-1 text-center font-black border border-slate-200 text-[15px]">${mark(q)}</td>`
+                    ).join('')}${'<td class="py-1.5 border border-slate-200"></td>'.repeat(10 - cols)}</tr>
                 </table>`;
             }
             el.innerHTML = `<div class="mt-3 space-y-1">
