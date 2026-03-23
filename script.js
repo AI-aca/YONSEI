@@ -3502,26 +3502,24 @@ function getInputHtml(q) {
         if (!options || options.length === 0) return '<div class="text-red-500">보기 데이터 없음</div>';
 
         return `
-            <div class="space-y-3">
+            <div class="flex flex-col gap-3">
                 ${options.map((opt, idx) => {
-            const val = (idx + 1).toString();
-            const isChecked = savedAns === val ? 'checked' : '';
-            const isSelectedClass = savedAns === val ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500' : 'border-slate-200 hover:bg-slate-50';
-
-            return `
-                    <label class="flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all duration-200 group/opt ${isSelectedClass}" onclick="updateAnswer('${q.id}', '${val}')">
-                        <div class="relative flex items-center justify-center">
-                            <input type="radio" name="q-${q.id}" value="${val}" ${isChecked} class="peer sr-only" onchange="updateAnswer('${q.id}', '${val}')">
-                            <div class="w-6 h-6 rounded-full border-2 border-slate-300 peer-checked:border-indigo-500 peer-checked:bg-indigo-500 transition-all flex items-center justify-center">
-                                <div class="w-2.5 h-2.5 rounded-full bg-white opacity-0 peer-checked:opacity-100 transition-opacity"></div>
-                            </div>
-                        </div>
-                        <span class="fs-16 text-slate-700 font-medium group-hover/opt:text-slate-900">${opt}</span>
-                    </label>
-                    `;
+            const _v = (idx + 1).toString();
+            const _sel = savedAns === _v;
+            const _cnums = ['①','②','③','④','⑤','⑥'];
+            const _cnum = _cnums[idx] || _v;
+            return `<button type="button" data-qid="${q.id}" data-val="${_v}"
+                onclick="selectObjAnswer('${q.id}','${_v}')"
+                class="exam-choice-btn flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 text-left w-full"
+                style="border-color:${_sel?'#4f46e5':'#e2e8f0'};background:${_sel?'#eef2ff':'#ffffff'}">
+                <span class="exam-circle-num flex-shrink-0 w-10 h-10 rounded-full border-2 flex items-center justify-center text-[20px] font-bold transition-all"
+                    style="background:${_sel?'#4f46e5':'#ffffff'};color:${_sel?'#ffffff':'#4f46e5'};border-color:${_sel?'#4f46e5':'#c7d2fe'}"
+                >${_cnum}</span>
+                <span class="text-[16px] font-medium" style="color:${_sel?'#3730a3':'#374151'}">${opt}</span>
+            </button>`;
         }).join('')}
             </div>
-        `;
+        `        `;
     } else {
         // Subjective
         return `
@@ -3530,6 +3528,23 @@ function getInputHtml(q) {
                 oninput="updateAnswer('${q.id}', this.value)">${savedAns}</textarea>
         `;
     }
+}
+
+function selectObjAnswer(qId, val) {
+    updateAnswer(qId, val);
+    document.querySelectorAll('[data-qid="' + qId + '"]').forEach(function(btn) {
+        const isSel = btn.dataset.val === val;
+        btn.style.borderColor = isSel ? '#4f46e5' : '#e2e8f0';
+        btn.style.background = isSel ? '#eef2ff' : '#ffffff';
+        const circle = btn.querySelector('.exam-circle-num');
+        if (circle) {
+            circle.style.background = isSel ? '#4f46e5' : '#ffffff';
+            circle.style.color = isSel ? '#ffffff' : '#4f46e5';
+            circle.style.borderColor = isSel ? '#4f46e5' : '#c7d2fe';
+        }
+        const txt = btn.querySelector('span:last-child');
+        if (txt) txt.style.color = isSel ? '#3730a3' : '#374151';
+    });
 }
 
 function updateAnswer(qId, value) {
