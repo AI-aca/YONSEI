@@ -8995,7 +8995,7 @@ async function renderStudentLogin() {
                         <!-- [4] 버튼 -->
                         <div>
                             <button onclick="renderExamInstructions()" class="btn-ys w-full !py-4 fs-16 font-bold transition-all active:scale-95 shadow-lg mt-1">
-                                🚀 START ASSESSMENT NOW
+                                시험 안내보기 →
                             </button>
                             <button onclick="goHome()" class="w-full mt-3 text-slate-400 fs-14 underline hover:text-red-500 transition-all font-medium text-center">
                                 CANCEL &amp; RETURN
@@ -9142,7 +9142,7 @@ function renderExamInstructions() {
                     <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-7 h-7 rounded-full bg-[#013976] text-white text-[13px] font-bold flex items-center justify-center">1</span><span class="text-[14px] text-slate-700 pt-0.5"><b>START EXAM</b> 버튼을 누르면 시험이 시작됩니다.</span></li>
                     <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-7 h-7 rounded-full bg-[#013976] text-white text-[13px] font-bold flex items-center justify-center">2</span><span class="text-[14px] text-slate-700 pt-0.5">시작과 동시에 <b>${timeTxt}</b>의 카운트다운이 진행되며, 시간이 종료되면 자동으로 제출됩니다.</span></li>
                     <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-7 h-7 rounded-full bg-[#013976] text-white text-[13px] font-bold flex items-center justify-center">3</span><span class="text-[14px] text-slate-700 pt-0.5">듣기 평가는 재생 가능 횟수가 각 문제에 표시되어 있으며, 해당 횟수 내에서만 재생이 가능합니다.</span></li>
-                    <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-7 h-7 rounded-full bg-[#013976] text-white text-[13px] font-bold flex items-center justify-center">4</span><span class="text-[14px] text-slate-700 pt-0.5">듣기 평가 재생 시 일시정지, 빨리감기, 되돌리기 기능은 사용할 수 없습니다.</span></li>
+                    <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-7 h-7 rounded-full bg-[#013976] text-white text-[13px] font-bold flex items-center justify-center">4</span><span class="text-[14px] text-slate-700 pt-0.5">듣기 평가 재생 시 일시정지, 빨리감기, 뒤로감기 등의 기능은 없습니다.</span></li>
                     <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-7 h-7 rounded-full bg-[#013976] text-white text-[13px] font-bold flex items-center justify-center">5</span><span class="text-[14px] text-slate-700 pt-0.5">아래 <b>🔊 오디오 테스트</b> 버튼으로 소리가 정상 출력되는지 확인한 후 START EXAM을 눈러 주세요.</span></li>
                     <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-7 h-7 rounded-full bg-red-500 text-white text-[13px] font-bold flex items-center justify-center">6</span><span class="text-[14px] text-slate-700 pt-0.5">소리가 들리지 않는다면, 즉시 <b>선생님께 도움을 요청</b>하세요.</span></li>
                 </ol>
