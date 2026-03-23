@@ -3254,6 +3254,24 @@ function updatePage(delta) {
     if (newPage < 0) newPage = 0;
     if (newPage >= totalPages) newPage = totalPages - 1;
 
+    // [경고 1] 오디오 재생 중 이동 확인
+    const _playingAudios = Array.from(document.querySelectorAll('audio')).filter(function(a){ return !a.paused && !a.ended; });
+    if (_playingAudios.length > 0) {
+        if (!confirm('듣기가 재생 중입니다. 페이지를 이동하면 재생이 중단됩니다. 계속하시겠습니까?')) return;
+        _playingAudios.forEach(function(a){ a.pause(); });
+    }
+
+    // [경고 2] 미답변 문항 확인
+    const _curUnit = units[examSession.currentPage];
+    if (_curUnit) {
+        const _qs = (_curUnit.type === 'bundle') ? (Array.isArray(_curUnit.data) ? _curUnit.data : [_curUnit.data]) : [_curUnit.data];
+        const _unanswered = [];
+        _qs.forEach(function(q){ if (!q) return; const _ans = examSession.answers ? examSession.answers[q.id] : null; if (_ans === undefined || _ans === null || _ans === '') _unanswered.push(q.no); });
+        if (_unanswered.length > 0) {
+            if (!confirm('이 페이지에 아직 답하지 않은 문항이 있습니다 (No. ' + _unanswered.join(', ') + '). 계속 이동하시겠습니까?')) return;
+        }
+    }
+
     if (newPage !== examSession.currentPage) {
         examSession.currentPage = newPage;
         renderExamContent();
@@ -7425,6 +7443,15 @@ function playBundleAudio(btn, bundleId) {
     }
     audio.currentTime = 0;
     audio.play().catch(function(e){ showToast('재생 오류: '+e.message); });
+    // 창 닫기/이동 시 경고 (재생 중일 때만)
+    window.onbeforeunload = function(e) {
+        const _p = Array.from(document.querySelectorAll('audio')).some(function(a){ return !a.paused && !a.ended; });
+        if (_p) { e.preventDefault(); return '듣기가 재생 중입니다.'; }
+    };
+    audio.addEventListener('ended', function() {
+        const _stillP = Array.from(document.querySelectorAll('audio')).some(function(a){ return !a.paused && !a.ended; });
+        if (!_stillP) window.onbeforeunload = null;
+    }, { once: true });
 }
 
 function renderImageUploader(id, d, size = 'normal') {
