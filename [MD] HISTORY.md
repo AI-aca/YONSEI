@@ -1,6 +1,27 @@
 
 
+
+
+## 2026-03-23 (저녁 세션)
+### 객관식/학생DB/시험안내 개선 일괄 수정
+- **지시**: 객관식 색깔 미변경 / 학생DB 레이아웃 / 시험안내 화면 / 오디오 프리로드
+- **수행**:
+  - `renderChoices` `<label>`에 `exam-choice-btn`, `data-qid`, `data-val`, `exam-circle-num` 추가 (선택지 색깔 버그 수정)
+  - 학생DB: tr hover 제거, 내부 스크롤, thead sticky, 열 균등(table-fixed), 중앙정렬, 외부 스크롤바 제거
+  - `renderExamInstructions`: `setCanvasId('02-3')` 추가, 박스 정 중앙 정렬(`height:100%`)
+  - `preloadBundleAudios()` 함수 추가 — 안내화면 진입 시 오디오 백그라운드 fetch+blob URL 캐싱
+  - `playBundleAudio()`: 캐시 히트 시 즉시 재생 (GAS 호출 생략)
+  - Canvas 10 없음 확인
+  - `[MD] CANVAS ID STANDARD.md`: 02-2(결과), 02-3(안내) 추가
+
+
+- **지시**: 객관식 문항 선택지 클릭 시 답 저장은 되지만 색깔이 변하지 않는 문제 수정
+- **원인**: 오후 세션(65eb18e)에서 `renderChoices`의 `<button>` → `<label>`로 변경하면서 `data-qid`, `data-val`, `exam-choice-btn`, `exam-circle-num` 속성/클래스를 누락함 → `selectObjAnswer`가 DOM에서 요소를 전혀 못 찾아 0건 반환
+- **수행**: `renderChoices` (9599줄)의 `<label>` 태그에 `class="exam-choice-btn ..."`, `data-qid`, `data-val` 추가 / `<span>`에 `exam-circle-num` 클래스 추가 (`script.js`)
+
+
 ## 2026-03-23 (오후 세션)
+
 ### 객관형 선택지 UI 수정 및 번들 레이아웃 복원
 - **지시**: 객관형 선택지 2열 레이아웃 미적용 및 선택 시 박스 전체 강조 → 원문자만 체크로 변경. 번들 시험화면을 원본 레이아웃으로 복원 (오디오 재생만 추가)
 - **수행**:

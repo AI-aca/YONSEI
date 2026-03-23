@@ -7461,7 +7461,18 @@ function playBundleAudio(btn, bundleId) {
             window.onbeforeunload = null;
         });
     }
-    // GAS 프록시로 base64 가져와 blob URL 생성
+    // 프리로드 캐시 확인 → 히트 시 즉시 재생
+    const _cached = window._preloadedAudioCache && window._preloadedAudioCache[bundleId];
+    if (_cached) {
+        if (statusEl) statusEl.textContent = '▶ 재생중';
+        audio.src = _cached;
+        audio.currentTime = 0;
+        const pp = audio.play();
+        if (pp !== undefined) pp.catch(function(e) { showToast('재생 실패: ' + e.message); });
+        window.onbeforeunload = function(e) { e.preventDefault(); return '듣기가 재생 중입니다.'; };
+        return;
+    }
+    // 캐시 미스 → GAS 프록시로 base64 가져와 blob URL 생성
     sendReliableRequest({ type: 'GET_AUDIO_B64', fileId: fileId })
         .then(function(res) {
             if (!res || res.status !== 'Success' || !res.data) {
@@ -9141,13 +9152,15 @@ function renderExamInstructions() {
     if (!grade) return showToast('⚠️ 학년을 선택해주세요.');
     window._examPending = { name, grade, catId, date, timeLimit };
     window._audioTestDone = false;
+    setCanvasId('02-3');
+    setTimeout(function() { preloadBundleAudios(catId); }, 200);
     const timeTxt = timeLimit > 0 ? timeLimit + '분' : '시간 제한 없음';
     const dynContent = document.getElementById('dynamic-content');
     if (!dynContent) return;
     const ac = document.getElementById('app-canvas');
     if (ac) { ac.style.padding = '0'; ac.classList.add('!overflow-hidden'); }
     dynContent.innerHTML = `
-        <div style="min-height:calc(100vh - 110px);display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#013976,#0a5294);padding:2rem 1rem;">
+        <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#013976,#0a5294);overflow:hidden;">
             <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-10">
                 <div class="text-center mb-6">
                     <div class="text-[12px] text-[#013976] font-black tracking-[0.25em] uppercase mb-2">YONSEI INTERNATIONAL ENGLISH</div>
@@ -9175,6 +9188,34 @@ function renderExamInstructions() {
             </div>
         </div>
     `;
+}
+
+
+// [New] 오디오 백그라운드 프리로드
+function preloadBundleAudios(catId) {
+    if (!globalConfig.bundles || !Array.isArray(globalConfig.bundles)) return;
+    window._preloadedAudioCache = window._preloadedAudioCache || {};
+    const bundles = globalConfig.bundles.filter(function(b) {
+        return b.audioFileId && b.audioFileId.trim() !== '';
+    });
+    if (bundles.length === 0) return;
+    console.log('[Preload] 오디오 ' + bundles.length + '개 백그라운드 로드 시작');
+    bundles.forEach(function(bundle) {
+        const bid = bundle.id;
+        if (window._preloadedAudioCache[bid]) { console.log('[Preload] 캐시 히트:', bid); return; }
+        sendReliableRequest({ type: 'GET_AUDIO_B64', fileId: bundle.audioFileId })
+            .then(function(res) {
+                if (!res || res.status !== 'Success' || !res.data) return;
+                const byteStr = atob(res.data);
+                const ab = new ArrayBuffer(byteStr.length);
+                const ia = new Uint8Array(ab);
+                for (let i = 0; i < byteStr.length; i++) ia[i] = byteStr.charCodeAt(i);
+                const blob = new Blob([ab], { type: res.mimeType || 'audio/mpeg' });
+                window._preloadedAudioCache[bid] = URL.createObjectURL(blob);
+                console.log('[Preload] 완료:', bid);
+            })
+            .catch(function(e) { console.warn('[Preload] 실패:', bid, e.message); });
+    });
 }
 
 // [Added] 안내화면에서 START EXAM 클릭
