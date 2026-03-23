@@ -9045,7 +9045,7 @@ async function renderStudentLogin() {
     }, 100);
     // 등록된 학년만 학생 로그인 학년 드롭박스에 채우기
     const gradeLabels = { '초1':'초등 1학년','초2':'초등 2학년','초3':'초등 3학년','초4':'초등 4학년','초5':'초등 5학년','초6':'초등 6학년','중1':'중등 1학년','중2':'중등 2학년','중3':'중등 3학년','고1':'고등 1학년','고2':'고등 2학년','고3':'고등 3학년' };
-    populateGradeSelect(document.getElementById('sgr'), { placeholder: '학년을 선택하세요', labelFn: g => gradeLabels[g] || g });
+    populateGradeSelect(document.getElementById('sgr'), { placeholder: '학년을 선택하세요', labelFn: g => g });
 }
 
 // [Added] 카테고리 선택 시 권장 학년 및 평가 시간 자동완성
