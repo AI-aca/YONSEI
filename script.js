@@ -1634,7 +1634,7 @@ function handleRowDragEnd(e) {
 
 // --- 마스터 설정창 (영구 보존 주소) ---
 function renderMainConfig(c) {
-    setCanvasId('11');
+    setCanvasId('10');
     c.innerHTML = `
         <div class="animate-fade-in-safe space-y-12 pb-20 text-left mt-5">
 
