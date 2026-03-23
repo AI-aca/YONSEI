@@ -9485,6 +9485,7 @@ function renderBundleLeft(data) {
           <audio id="audio-elem-${_sid}" preload="none"></audio>
         </div>`
 }
+}
 
 // [Refactored] 번들 우측 (문항들) 렌더링
 function renderBundleRight(data) {
