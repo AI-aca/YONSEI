@@ -7436,14 +7436,37 @@ function playBundleAudio(btn, bundleId) {
     const newLeft = left - 1;
     const sp = btn.querySelector('.plays-left'); if (sp) sp.textContent = newLeft;
     if (newLeft <= 0) { btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); }
-    const frame = document.getElementById('audio-frame-' + bundleId);
+    const audio = document.getElementById('audio-elem-' + bundleId);
     const playerDiv = document.getElementById('audio-player-' + bundleId);
-    if (!frame) return;
+    const progressBar = document.getElementById('audio-progress-' + bundleId);
+    const timeEl = document.getElementById('audio-time-' + bundleId);
+    const statusEl = document.getElementById('audio-status-' + bundleId);
+    if (!audio) return;
     if (playerDiv) playerDiv.classList.remove('hidden');
-    const fileId = btn.dataset.fileId || (((window._examBundleFileIds||{})[bundleId])||'');
+    const fileId = btn.dataset.fileId || '';
     if (!fileId) { showToast('오디오 파일 ID를 찾을 수 없습니다.'); return; }
-    frame.src = 'https://drive.google.com/file/d/' + fileId + '/preview';
-    // 창 닫기 경고
+    audio.src = 'https://drive.google.com/uc?export=download&id=' + fileId + '&confirm=t';
+    if (!audio._audInit) {
+        audio._audInit = true;
+        audio.addEventListener('timeupdate', function() {
+            if (audio.duration && progressBar) {
+                progressBar.style.width = (audio.currentTime / audio.duration * 100) + '%';
+                if (timeEl) { const m=Math.floor(audio.currentTime/60),s=Math.floor(audio.currentTime%60); timeEl.textContent=m+':'+(s<10?'0':'')+s; }
+            }
+        });
+        audio.addEventListener('ended', function() {
+            if (statusEl) { statusEl.textContent = '✅ 완료'; statusEl.style.color = '#94a3b8'; }
+            if (progressBar) progressBar.style.width = '100%';
+            window.onbeforeunload = null;
+        });
+        audio.addEventListener('error', function(e) {
+            showToast('오디오 로드 오류 - 선생님께 문의하세요.');
+            if (statusEl) statusEl.textContent = '⚠️ 오류';
+        });
+    }
+    audio.currentTime = 0;
+    const playPromise = audio.play();
+    if (playPromise !== undefined) playPromise.catch(function(e) { showToast('재생 시작 실패: ' + e.message); });
     window.onbeforeunload = function(e) { e.preventDefault(); return '듣기가 재생 중입니다.'; };
 }
 
@@ -9106,12 +9129,11 @@ function renderExamInstructions() {
     const ac = document.getElementById('app-canvas');
     if (ac) { ac.style.padding = '0'; ac.classList.add('!overflow-hidden'); }
     dynContent.innerHTML = `
-        <div class="min-h-screen w-full bg-gradient-to-br from-[#013976] to-[#0a5294] flex flex-col items-center justify-center px-4 py-10">
-            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl p-10">
+        <div style="min-height:calc(100vh - 110px);display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#013976,#0a5294);padding:2rem 1rem;">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-10">
                 <div class="text-center mb-6">
                     <div class="text-[12px] text-[#013976] font-black tracking-[0.25em] uppercase mb-2">YONSEI INTERNATIONAL ENGLISH</div>
                     <h1 class="text-3xl font-black text-[#013976] mb-1">시험 안내</h1>
-                    <div class="text-[15px] text-slate-500 font-medium">Exam Instructions</div>
                 </div>
                 <div class="bg-amber-50 border border-amber-200 rounded-xl px-6 py-4 mb-6 text-center">
                     <p class="text-amber-800 font-bold text-[17px]">화면의 내용을 잘 읽고 시험에 응하세요.</p>
@@ -9450,25 +9472,18 @@ function renderBundleLeft(data) {
         const _displayLeft = Math.max(0, _maxP - _used);
         bundleAudioHtml = `<div class="mt-3 mb-2 flex items-center gap-3 flex-wrap">
           <button id="audio-btn-${_sid}" data-max-play="${_maxP}" data-file-id="${_bndA.audioFileId}" onclick="playBundleAudio(this,'${_sid}')"
-            class="exam-audio-btn flex items-center gap-2 bg-[#013976] text-white px-5 py-2 rounded-xl font-bold text-[15px] hover:bg-blue-800 active:scale-95 transition-all shadow-sm flex-shrink-0 ${_displayLeft<=0?'opacity-50 cursor-not-allowed':''}"
-            ${_displayLeft<=0?'disabled':''}>
+            class="exam-audio-btn flex items-center gap-2 bg-[#013976] text-white px-5 py-2 rounded-xl font-bold text-[15px] hover:bg-blue-800 active:scale-95 transition-all shadow-sm flex-shrink-0${_displayLeft<=0?' opacity-50 cursor-not-allowed':''}" ${_displayLeft<=0?'disabled':''}>
             🔊 듣기 &nbsp;<span class="plays-left">${_displayLeft}</span>회 남음
           </button>
-          <div id="audio-player-${_sid}" class="${_displayLeft<=0?'hidden':''} flex items-center gap-2 flex-1" style="min-width:0;max-width:400px;position:relative">
-            <div style="position:relative;width:100%;height:50px;overflow:hidden;border-radius:10px">
-              <iframe id="audio-frame-${_sid}" src="" allow="autoplay" style="width:100%;height:60px;border:0;margin-top:-5px;border-radius:10px" scrolling="no" frameborder="0"></iframe>
-              <div id="audio-overlay-${_sid}" style="position:absolute;top:0;left:0;width:100%;height:100%;cursor:default;z-index:10;background:transparent;" onclick="return false;"></div>
+          <div id="audio-player-${_sid}" class="hidden flex items-center gap-2 bg-slate-800 rounded-xl px-4 py-2 flex-1" style="min-width:0;max-width:380px">
+            <span id="audio-status-${_sid}" class="text-green-400 text-[13px] font-bold whitespace-nowrap">▶ 재생중</span>
+            <div class="flex-1 bg-slate-600 rounded-full overflow-hidden" style="height:6px">
+              <div id="audio-progress-${_sid}" class="bg-green-400 h-full rounded-full" style="width:0%;transition:width 0.5s linear"></div>
             </div>
+            <span id="audio-time-${_sid}" class="text-slate-300 text-[12px] whitespace-nowrap">0:00</span>
           </div>
+          <audio id="audio-elem-${_sid}" preload="none"></audio>
         </div>`
-      }
-    }
-    return `
-        ${title ? `<div class="px-0 pb-3 bg-white border-b border-slate-200 flex items-center"><h3 class="font-bold text-slate-700 text-[15px] flex items-center gap-2 m-0 leading-tight"><span class="text-indigo-600 text-[17px] font-bold shrink-0">${range}</span><span>${title}</span></h3></div>` : ''}
-        ${passage ? `<div class="mt-3 mb-0 p-4 border border-black rounded shadow-sm bg-white"><div class="prose prose-sm max-w-none text-slate-700 leading-relaxed font-serif text-[15px]">${passage}</div></div>` : ''}
-        ${bundleAudioHtml}
-        ${bundleImgHtml}
-    `;
 }
 
 // [Refactored] 번들 우측 (문항들) 렌더링
@@ -9540,30 +9555,24 @@ function getInputHtml(q) {
     }
 }
 
-// [Refactor] Render Choices (2-Col Grid)
+// [Refactor] Render Choices (원문자 버튼)
 function renderChoices(q, choices) {
     const savedAns = examSession.answers[q.id];
-
-    // Check length for layout
-    const isLong = choices.some(c => c.length > 25);
-    const gridClass = isLong ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2";
-
+    const cnums = ['①','②','③','④','⑤','⑥'];
     return `
-        <div class="grid ${gridClass} gap-x-6 gap-y-2">
+        <div class="flex flex-col gap-3">
             ${choices.map((choice, idx) => {
-        const num = idx + 1;
-        const isChecked = String(savedAns) === String(num) ? 'checked' : '';
-        const activeClass = isChecked ? 'text-indigo-700 font-bold' : 'text-slate-700';
-
-        return `
-                    <label class="flex items-start gap-2 cursor-pointer p-1 -ml-1 transition-colors">
-                        <div class="flex items-center h-5 mt-0.5">
-                            <input type="radio" name="q-${q.id}" value="${num}" ${isChecked} onchange="saveAnswer('${q.id}', '${num}')" 
-                                   class="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 cursor-pointer">
-                        </div>
-                        <span class="${activeClass} text-[14px] leading-snug hover:text-indigo-600 transition-colors">${choice}</span>
-                    </label>
-                `;
+        const num = (idx + 1).toString();
+        const isSel = String(savedAns) === num;
+        return `<button type="button" data-qid="${q.id}" data-val="${num}"
+                onclick="selectObjAnswer('${q.id}','${num}')"
+                class="exam-choice-btn flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 text-left w-full"
+                style="border-color:${isSel?'#4f46e5':'#e2e8f0'};background:${isSel?'#eef2ff':'#ffffff'}">
+            <span class="exam-circle-num flex-shrink-0 w-10 h-10 rounded-full border-2 flex items-center justify-center text-[20px] font-bold"
+                style="background:${isSel?'#4f46e5':'#ffffff'};color:${isSel?'#ffffff':'#4f46e5'};border-color:${isSel?'#4f46e5':'#c7d2fe'}"
+            >${cnums[idx]||num}</span>
+            <span class="text-[16px] font-medium" style="color:${isSel?'#3730a3':'#374151'}">${choice}</span>
+        </button>`;
     }).join('')}
         </div>
     `;
