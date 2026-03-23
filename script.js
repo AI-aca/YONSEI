@@ -7349,6 +7349,50 @@ function updateSubTypes(id, section) {
     }
 }
 
+function renderAudioUploader(id, d) {
+    return `
+        <div class="flex flex-col gap-2">
+            <label class="flex items-center gap-2 cursor-pointer bg-white border border-dashed border-green-300 rounded p-2 hover:bg-green-50 transition-all justify-center">
+                <span class="text-sm">📂 Upload Audio</span>
+                <input type="file" id="${id}-audio-file" data-field="audio-file" class="hidden" accept="audio/*" onchange="previewBuilderAudio(this, '${id}')">
+            </label>
+            <div id="${id}-audio-preview" data-field="audio-preview" class="${d.audioUrl ? '' : 'hidden'} flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded">
+                <span class="text-green-600 text-sm">🎵</span>
+                <span id="${id}-audio-name" class="text-sm font-bold text-green-700 truncate">${d.audioFileName || (d.audioUrl ? '업로드됨' : '')}</span>
+                <button type="button" onclick="clearBuilderAudio('${id}')" class="ml-auto text-slate-400 hover:text-red-500 text-sm font-bold">✕</button>
+            </div>
+        </div>
+    `;
+}
+
+function previewBuilderAudio(input, id) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    if (file.size > 60 * 1024 * 1024) { showToast('⚠️ 60MB 초과 파일은 업로드 불가'); input.value=''; return; }
+    const nameEl = document.getElementById(id+'-audio-name');
+    const prev = document.getElementById(id+'-audio-preview');
+    if (nameEl) nameEl.textContent = file.name;
+    if (prev) prev.classList.remove('hidden');
+}
+
+function clearBuilderAudio(id) {
+    const inp = document.getElementById(id+'-audio-file'); if(inp) inp.value='';
+    const prev = document.getElementById(id+'-audio-preview'); if(prev) prev.classList.add('hidden');
+    const n = document.getElementById(id+'-audio-name'); if(n) n.textContent='';
+}
+
+function playBundleAudio(btn, bundleId) {
+    const left = parseInt(btn.dataset.playsLeft)||0;
+    if (left <= 0) { showToast('⚠️ 재생 횟수를 모두 사용했습니다.'); return; }
+    const newLeft = left - 1;
+    btn.dataset.playsLeft = newLeft;
+    const sp = btn.querySelector('.plays-left'); if(sp) sp.textContent = newLeft;
+    if (newLeft <= 0) { btn.disabled=true; btn.classList.add('opacity-50','cursor-not-allowed'); }
+    const fileId = btn.dataset.fileId;
+    const fd = document.getElementById('audio-frame-'+bundleId);
+    if (fd) { fd.classList.remove('hidden'); fd.innerHTML = '<iframe src="https://drive.google.com/file/d/'+fileId+'/preview" width="100%" height="80" frameborder="0" allow="autoplay" style="border-radius:8px;"></iframe>'; }
+}
+
 function renderImageUploader(id, d, size = 'normal') {
     const height = size === 'small' ? 'h-24' : 'h-40';
     return `
@@ -8214,6 +8258,17 @@ async function collectBuilderData() {
             const previewEl = block.querySelector('[data-field="preview"]');
             const imgData = await extractImg(fileInput, previewEl);
 
+            // Audio 추출
+            const audioFileInput = block.querySelector('[data-field="audio-file"]');
+            let audioData = null;
+            if (audioFileInput && audioFileInput.files && audioFileInput.files[0]) {
+                const aFile = audioFileInput.files[0];
+                const aBase64 = await new Promise(r => { const reader = new FileReader(); reader.onload = e => r(e.target.result); reader.readAsDataURL(aFile); });
+                audioData = { base64: aBase64.split(',')[1], mimeType: aFile.type, fileName: aFile.name };
+            }
+            const audioMaxPlayEl = block.querySelector('[data-field="audioMaxPlay"]');
+            const audioMaxPlay = parseInt(audioMaxPlayEl?.value) || 1;
+
             // Nested Questions
             const nestedContainer = block.querySelector('.group-questions-container');
             const nestedQuestions = [];
@@ -8231,7 +8286,9 @@ async function collectBuilderData() {
                     title: title,
                     text: html,
                     img: imgData?.url || '',
-                    imgData: imgData
+                    imgData: imgData,
+                    audioData: audioData,
+                    audioMaxPlay: audioMaxPlay
                 },
                 questions: nestedQuestions,
                 domId: block.id // [Fix] Store DOM ID for linking
@@ -9236,9 +9293,13 @@ function renderBundleLeft(data) {
         }
     }
 
+    let bundleAudioHtml = '';
+    { const _bndA = first.setId && globalConfig.bundles ? globalConfig.bundles.find(b => b.id === first.setId) : null;
+      if (_bndA && _bndA.audioFileId) { const _maxP = parseInt(_bndA.audioMaxPlay)||1; bundleAudioHtml = `<div class="mt-3 mb-2 flex items-center gap-3"><button id="audio-btn-${first.setId}" data-file-id="${_bndA.audioFileId}" data-plays-left="${_maxP}" onclick="playBundleAudio(this,'${first.setId}')" class="flex items-center gap-2 bg-[#013976] text-white px-5 py-2 rounded-xl font-bold text-[15px] hover:bg-blue-800 active:scale-95 transition-all shadow-sm">🔊 듣기 &nbsp;<span class="plays-left">${_maxP}</span>회 남음</button></div><div id="audio-frame-${first.setId}" class="hidden mt-1"></div>`; } }
     return `
         ${title ? `<div class="px-0 pb-3 bg-white border-b border-slate-200 flex items-center"><h3 class="font-bold text-slate-700 text-[15px] flex items-center gap-2 m-0 leading-tight"><span class="text-indigo-600 text-[17px] font-bold shrink-0">${range}</span><span>${title}</span></h3></div>` : ''}
         ${passage ? `<div class="mt-3 mb-0 p-4 border border-black rounded shadow-sm bg-white"><div class="prose prose-sm max-w-none text-slate-700 leading-relaxed font-serif text-[15px]">${passage}</div></div>` : ''}
+        ${bundleAudioHtml}
         ${bundleImgHtml}
     `;
 }
