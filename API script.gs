@@ -627,9 +627,9 @@ function doPost(e) {
         // 4. 헤더 설정 (B탭: 묶음)
         if (sheetB.getLastRow() === 0) {
             sheetB.appendRow([
-                "세트번호", "질문 내용", "지문 내용", "이미지URL", "연결문항번호"
+                "세트번호", "질문 내용", "지문 내용", "이미지URL", "연결문항번호", "오디오URL", "오디오파일ID", "최대재생횟수"
             ]);
-            sheetB.getRange("A1:E1").setFontWeight("bold").setBackground("#EA580C").setFontColor("#FFFFFF");
+            sheetB.getRange("A1:H1").setFontWeight("bold").setBackground("#EA580C").setFontColor("#FFFFFF");
         }
 
         // [Moved] 불필요한 '시트1' 삭제 (시트 생성 후 수행해야 삭제 가능)
@@ -651,16 +651,24 @@ function doPost(e) {
                 } else if (b.imgUrl) {
                     bImgUrl = b.imgUrl;
                 }
-                
+                var bAudioUrl = b.audioUrl || "";
+                var bAudioFileId = b.audioFileId || "";
+                if (b.audioData && b.audioData.base64) {
+                    var aResult = saveAudio(imgFolder, b.audioData.base64, b.audioData.mimeType, b.audioData.fileName);
+                    bAudioUrl = aResult.url; bAudioFileId = aResult.fileId;
+                }
                 return [
-                    b.id,               
-                    b.title || "",      
-                    b.text || "",       
-                    bImgUrl,            
-                    b.questionIds || "" 
+                    b.id,
+                    b.title || "",
+                    b.text || "",
+                    bImgUrl,
+                    b.questionIds || "",
+                    bAudioUrl,
+                    bAudioFileId,
+                    b.audioMaxPlay || 1
                 ];
             });
-            sheetB.getRange(2, 1, bRows.length, 5).setValues(bRows);
+            sheetB.getRange(2, 1, bRows.length, 8).setValues(bRows);
         }
         
         // 7. 데이터 저장: 문항 (Questions)
@@ -777,7 +785,10 @@ function doPost(e) {
                     title: r[1],
                     text: r[2],
                     imgUrl: r[3],
-                    questionIds: r[4]
+                    questionIds: r[4],
+                    audioUrl: r[5] || "",
+                    audioFileId: r[6] || "",
+                    audioMaxPlay: r[7] || 1
                 };
             });
         }
@@ -956,15 +967,23 @@ function doPost(e) {
                 } else {
                     bImgUrl = sheetB.getRange(bTargetRow, 4).getValue() || "";
                 }
-                
+                var bAudioUrl = b.audioUrl || sheetB.getRange(bTargetRow, 6).getValue() || "";
+                var bAudioFileId = b.audioFileId || sheetB.getRange(bTargetRow, 7).getValue() || "";
+                var bAudioMaxPlay = b.audioMaxPlay || sheetB.getRange(bTargetRow, 8).getValue() || 1;
+                if (b.audioData && b.audioData.base64) {
+                    var aUpd = saveAudio(imgFolder, b.audioData.base64, b.audioData.mimeType, b.audioData.fileName);
+                    bAudioUrl = aUpd.url; bAudioFileId = aUpd.fileId;
+                }
                 var bRow = [
                     b.id,
                     b.title || "",
                     b.text || "",
                     bImgUrl,
-                    sheetB.getRange(bTargetRow, 5).getValue() || "" // 연결문항번호 유지
+                    sheetB.getRange(bTargetRow, 5).getValue() || "",
+                    bAudioUrl,
+                    bAudioFileId,
+                    bAudioMaxPlay
                 ];
-                
                 sheetB.getRange(bTargetRow, 1, 1, bRow.length).setValues([bRow]);
             }
         }
@@ -997,6 +1016,19 @@ function saveImg(folder, base64, mime, name) {
   // 외부 링크 권한 허용
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   return "https://drive.google.com/uc?id=" + file.getId();
+}
+
+/**
+ * 헬퍼 함수: 오디오 파일 저장 및 권한 설정
+ */
+function saveAudio(folder, base64, mime, name) {
+  var blob = Utilities.newBlob(Utilities.base64Decode(base64), mime, name || "audio.mp3");
+  var file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return {
+    url: "https://drive.google.com/file/d/" + file.getId() + "/view",
+    fileId: file.getId()
+  };
 }
 
 /**
