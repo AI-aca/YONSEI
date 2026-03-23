@@ -9484,7 +9484,16 @@ function renderBundleLeft(data) {
           </div>
           <audio id="audio-elem-${_sid}" preload="none"></audio>
         </div>`
-}
+
+    return `
+        <div class="bundle-left-content px-4 py-4 h-full overflow-y-auto">
+            ${range ? `<div class="text-xs font-bold text-indigo-400 mb-2">${range}</div>` : ''}
+            ${title ? `<div class="text-sm font-bold text-slate-700 mb-2">${title}</div>` : ''}
+            ${passage ? `<div class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">${passage}</div>` : ''}
+            ${bundleImgHtml}
+            ${bundleAudioHtml}
+        </div>
+    `;
 }
 
 // [Refactored] 번들 우측 (문항들) 렌더링
