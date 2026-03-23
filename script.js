@@ -2642,15 +2642,15 @@ function renderScoreInput(c) {
                                 <p class="text-sm text-slate-400 mt-3 mb-4">&#xBB38;&#xD56D;&#xBCC4; &#xC785;&#xB825;&#xC774; &#xC5C6;&#xC744; &#xACBD;&#xC6B0;&#xC5D0;&#xB9CC; &#xCD1D;&#xC810; &#xACC4;&#xC0B0;&#xC5D0; &#xBC18;&#xC601;&#xB429;&#xB2C8;&#xB2E4;.</p>
                                 <div class="grid grid-cols-5 gap-4">
                                     <div><label class="text-sm font-bold text-slate-500 font-bold mb-0 block">Grammar</label><span id="max-grammar" class="font-normal text-slate-400 text-sm block mb-1"></span>
-                                        <input type="number" id="input-grammar" data-max-id="max-grammar" class="ys-field text-center font-bold" placeholder="0" min="0" max="9999" oninput="clampAccordionScore(this); calculateTotalScore()"></div>
+                                        <input type="number" id="input-grammar" oninput="calculateTotalScore()" data-max-id="max-grammar" class="ys-field text-center font-bold" placeholder="0" min="0" max="9999" oninput="clampAccordionScore(this); calculateTotalScore()"></div>
                                     <div><label class="text-sm font-bold text-slate-500 font-bold mb-0 block">Writing</label><span id="max-writing" class="font-normal text-slate-400 text-sm block mb-1"></span>
-                                        <input type="number" id="input-writing" data-max-id="max-writing" class="ys-field text-center font-bold" placeholder="0" min="0" max="9999" oninput="clampAccordionScore(this); calculateTotalScore()"></div>
+                                        <input type="number" id="input-writing" oninput="calculateTotalScore()" data-max-id="max-writing" class="ys-field text-center font-bold" placeholder="0" min="0" max="9999" oninput="clampAccordionScore(this); calculateTotalScore()"></div>
                                     <div><label class="text-sm font-bold text-slate-500 font-bold mb-0 block">Reading</label><span id="max-reading" class="font-normal text-slate-400 text-sm block mb-1"></span>
-                                        <input type="number" id="input-reading" data-max-id="max-reading" class="ys-field text-center font-bold" placeholder="0" min="0" max="9999" oninput="clampAccordionScore(this); calculateTotalScore()"></div>
+                                        <input type="number" id="input-reading" oninput="calculateTotalScore()" data-max-id="max-reading" class="ys-field text-center font-bold" placeholder="0" min="0" max="9999" oninput="clampAccordionScore(this); calculateTotalScore()"></div>
                                     <div><label class="text-sm font-bold text-slate-500 font-bold mb-0 block">Listening</label><span id="max-listening" class="font-normal text-slate-400 text-sm block mb-1"></span>
-                                        <input type="number" id="input-listening" data-max-id="max-listening" class="ys-field text-center font-bold" placeholder="0" min="0" max="9999" oninput="clampAccordionScore(this); calculateTotalScore()"></div>
+                                        <input type="number" id="input-listening" oninput="calculateTotalScore()" data-max-id="max-listening" class="ys-field text-center font-bold" placeholder="0" min="0" max="9999" oninput="clampAccordionScore(this); calculateTotalScore()"></div>
                                     <div><label class="text-sm font-bold text-slate-500 font-bold mb-0 block">Vocabulary</label><span id="max-vocab" class="font-normal text-slate-400 text-sm block mb-1"></span>
-                                        <input type="number" id="input-vocab" data-max-id="max-vocab" class="ys-field text-center font-bold" placeholder="0" min="0" max="9999" oninput="clampAccordionScore(this); calculateTotalScore()"></div>
+                                        <input type="number" id="input-vocab" oninput="calculateTotalScore()" data-max-id="max-vocab" class="ys-field text-center font-bold" placeholder="0" min="0" max="9999" oninput="clampAccordionScore(this); calculateTotalScore()"></div>
                                 </div>
                             </div>
                         </div>
@@ -2989,17 +2989,19 @@ function toggleQScoreMode(checked) {
     const qList   = document.getElementById('question-score-list');
     if (wrapper) wrapper.classList.toggle('hidden', !checked);
     if (qList)   qList.classList.toggle('hidden', checked);
+    calculateTotalScore();
 }
 
 function calculateTotalScore() {
-    const qInputs = document.querySelectorAll('[id^="q-score-"]');
-    let qSum = 0, qHasInput = false;
-    qInputs.forEach(inp => {
-        const v = parseInt(inp.value);
-        if (!isNaN(v) && v > 0) { qSum += v; qHasInput = true; }
-    });
-
-    if (qHasInput) {
+    const noQScore = document.getElementById('chk-no-qscore')?.checked;
+    if (!noQScore) {
+        // 문항별 모드: q-score 합산
+        const qInputs = document.querySelectorAll('[id^="q-score-"]');
+        let qSum = 0;
+        qInputs.forEach(inp => {
+            const v = parseInt(inp.value);
+            if (!isNaN(v) && v > 0) qSum += v;
+        });
         const d = document.getElementById('score-total-display');
         if (d) d.textContent = qSum;
         calcAndRecommendClass06();
