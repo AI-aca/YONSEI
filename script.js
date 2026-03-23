@@ -564,7 +564,7 @@ function renderInitialScreen() {
                         </div>
                         
                         <h1 class="fs-32 text-[#013976] mb-4 tracking-tighter uppercase leading-none font-black text-center">
-                            ONSEI INTERNATIONAL ENGLISH
+                            YONSEI INTERNATIONAL ENGLISH
                         </h1>
                         <p class="fs-14 text-slate-400 mb-12 tracking-[0.2em] font-medium text-center">AI POWERED ASSESSMENT ENGINE</p>
 
