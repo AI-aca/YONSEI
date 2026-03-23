@@ -1979,7 +1979,7 @@ async function showStudentDBViewer(catId, catName) {
 
         <!-- 테이블 영역 -->
         <div class="card !p-0 overflow-hidden shadow-sm">
-            <div id="sdb-table-wrap"><p class="text-slate-400 text-center py-10">불러오는 중...</p></div>
+            <div id="sdb-table-wrap" style="max-height:calc(100vh - 260px);overflow-y:auto;"><p class="text-slate-400 text-center py-10">불러오는 중...</p></div>
         </div>
     </div>`;
 
@@ -2060,7 +2060,7 @@ function _renderStudentDBTable() {
     const th = (c, lbl) => `<th class="cursor-pointer select-none hover:bg-[#012a5e] transition-colors text-left px-4 py-3 font-black text-white fs-15" onclick="sortStudentDB('${c}')">${lbl}${arw(c)}</th>`;
     wrap.innerHTML = `
     <table class="w-full border-collapse">
-        <thead>
+        <thead style="position:sticky;top:0;z-index:10;">
             <tr class="bg-[#013976]">
                 ${th('name','이름')}${th('grade','학년')}${th('year','응시년도')}${th('md','응시월일')}${th('score','점수')}
                 <th class="px-4 py-3 text-white fs-15 font-black text-center">삭제</th>
@@ -2089,7 +2089,7 @@ function _renderStudentDBTable() {
                 const score = s['총점'] ?? s.totalScore ?? '-';
                 const max   = s['만점'] ?? s.maxScore ?? '';
                 const row   = i % 2 === 0 ? 'bg-white' : 'bg-slate-50';
-                return `<tr class="${row} hover:bg-blue-50 transition-colors border-b border-slate-100">
+                return `<tr class="${row} border-b border-slate-100">
                     <td class="px-4 py-3 font-bold text-[#013976] fs-15">${name}</td>
                     <td class="px-4 py-3 text-slate-700 fs-15">${grade}</td>
                     <td class="px-4 py-3 text-slate-600 fs-15">${yr}</td>
