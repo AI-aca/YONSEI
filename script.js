@@ -9596,8 +9596,8 @@ function renderChoices(q, choices) {
         const num = (idx + 1).toString();
         const isSel = String(savedAns) === num;
         const textClass = isSel ? 'text-indigo-700 font-bold' : 'text-slate-700';
-        return `<label class="flex items-start gap-2 cursor-pointer p-1 -ml-1 transition-colors" onclick="selectObjAnswer('${q.id}','${num}')">
-                    <span class="flex-shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center text-[15px] font-bold mt-0.5"
+        return `<label class="exam-choice-btn flex items-start gap-2 cursor-pointer p-1 -ml-1 transition-colors" data-qid="${q.id}" data-val="${num}" onclick="selectObjAnswer('${q.id}','${num}')">
+                    <span class="exam-circle-num flex-shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center text-[15px] font-bold mt-0.5"
                         style="background:${isSel?'#4f46e5':'#ffffff'};color:${isSel?'#ffffff':'#4f46e5'};border-color:${isSel?'#4f46e5':'#c7d2fe'}"
                     >${cnums[idx]||num}</span>
                     <span class="${textClass} text-[14px] leading-snug hover:text-indigo-600 transition-colors mt-1">${choice}</span>
