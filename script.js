@@ -3519,7 +3519,7 @@ function getInputHtml(q) {
             </button>`;
         }).join('')}
             </div>
-        `        `;
+        `;
     } else {
         // Subjective
         return `
@@ -8994,7 +8994,7 @@ async function renderStudentLogin() {
 
                         <!-- [4] 버튼 -->
                         <div>
-                            <button onclick="startExamSequence()" class="btn-ys w-full !py-4 fs-16 font-bold transition-all active:scale-95 shadow-lg mt-1">
+                            <button onclick="renderExamInstructions()" class="btn-ys w-full !py-4 fs-16 font-bold transition-all active:scale-95 shadow-lg mt-1">
                                 🚀 START ASSESSMENT NOW
                             </button>
                             <button onclick="goHome()" class="w-full mt-3 text-slate-400 fs-14 underline hover:text-red-500 transition-all font-medium text-center">
@@ -9086,13 +9086,99 @@ function handleCategorySelect() {
     }
 }
 
+// [Added] 오디오 테스트 함수
+function playAudioTest() {
+    window._audioTestDone = true;
+    const btn = document.getElementById('audio-test-btn');
+    if (btn) { btn.disabled = true; btn.textContent = '🔊 재생중...'; }
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const gain = ctx.createGain(); gain.gain.setValueAtTime(0.4, ctx.currentTime); gain.connect(ctx.destination);
+        const freqs = [261,293,329,349,392,440,494,523,494,440,392,349,329,293,261,293,329,392,440,523,492,440,392,349,261,293,329,349,392,440,494,523,440,392,349,293,261,329,392,523];
+        let t = ctx.currentTime;
+        freqs.forEach(function(f) {
+            const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(f, t);
+            osc.connect(gain); osc.start(t); osc.stop(t + 0.4); t += 0.5;
+        });
+        setTimeout(function() {
+            ctx.close();
+            if (btn) { btn.disabled = false; btn.textContent = '✅ 오디오 정상 확인됨'; btn.style.background='#16a34a'; btn.style.color='#fff'; }
+        }, 20500);
+    } catch(e) {
+        if (btn) { btn.disabled = false; btn.textContent = '⚠️ 오디오 오류'; }
+        showToast('오디오 API 오류: ' + e.message);
+    }
+}
+
+// [Added] 시험 안내 화면
+function renderExamInstructions() {
+    const name = document.getElementById('snm')?.value?.trim();
+    const grade = document.getElementById('sgr')?.value;
+    const catId = document.getElementById('sci')?.value;
+    const date = document.getElementById('sdt')?.value || new Date().toISOString().split('T')[0];
+    const timeLimit = parseInt(document.getElementById('stm')?.value) || 0;
+    if (!name) return showToast('⚠️ 학생 이름을 입력해주세요.');
+    if (!catId) return showToast('⚠️ 시험지를 선택해주세요.');
+    if (!grade) return showToast('⚠️ 학년을 선택해주세요.');
+    window._examPending = { name, grade, catId, date, timeLimit };
+    window._audioTestDone = false;
+    const timeTxt = timeLimit > 0 ? timeLimit + '분' : '시간 제한 없음';
+    const dynContent = document.getElementById('dynamic-content');
+    if (!dynContent) return;
+    const ac = document.getElementById('app-canvas');
+    if (ac) { ac.style.padding = '0'; ac.classList.add('!overflow-hidden'); }
+    dynContent.innerHTML = `
+        <div class="min-h-screen bg-gradient-to-br from-[#013976] to-[#0a5294] flex flex-col items-center justify-center px-4 py-8">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-8">
+                <div class="text-center mb-6">
+                    <div class="text-[13px] text-[#013976] font-black tracking-[0.3em] uppercase mb-1">PassporT ENGLISH ACADEMY</div>
+                    <h1 class="text-2xl font-black text-slate-800 mb-1">시험 안내</h1>
+                    <div class="text-[13px] text-slate-500">Exam Instructions</div>
+                </div>
+                <div class="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 mb-5 text-center">
+                    <p class="text-amber-800 font-bold text-[15px]">교 내용을 잘 읽고 시험에 응하세요.</p>
+                </div>
+                <ol class="space-y-3 mb-7">
+                    <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-7 h-7 rounded-full bg-[#013976] text-white text-[13px] font-bold flex items-center justify-center">1</span><span class="text-[14px] text-slate-700 pt-0.5"><b>START EXAM</b> 버튼을 누르면 시험이 시작됩니다.</span></li>
+                    <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-7 h-7 rounded-full bg-[#013976] text-white text-[13px] font-bold flex items-center justify-center">2</span><span class="text-[14px] text-slate-700 pt-0.5">시작과 동시에 <b>${timeTxt}</b>의 카운트다운이 진행되며, 시간이 종료되면 자동으로 제출됩니다.</span></li>
+                    <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-7 h-7 rounded-full bg-[#013976] text-white text-[13px] font-bold flex items-center justify-center">3</span><span class="text-[14px] text-slate-700 pt-0.5">듣기 평가는 재생 가능 횟수가 각 문제에 표시되어 있으며, 해당 횟수 내에서만 재생이 가능합니다.</span></li>
+                    <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-7 h-7 rounded-full bg-[#013976] text-white text-[13px] font-bold flex items-center justify-center">4</span><span class="text-[14px] text-slate-700 pt-0.5">듣기 평가 재생 시 일시정지, 빨리감기, 되돌리기 기능은 사용할 수 없습니다.</span></li>
+                    <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-7 h-7 rounded-full bg-[#013976] text-white text-[13px] font-bold flex items-center justify-center">5</span><span class="text-[14px] text-slate-700 pt-0.5">아래 <b>🔊 오디오 테스트</b> 버튼으로 소리가 정상 출력되는지 확인한 후 START EXAM을 눈러 주세요.</span></li>
+                    <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-7 h-7 rounded-full bg-red-500 text-white text-[13px] font-bold flex items-center justify-center">6</span><span class="text-[14px] text-slate-700 pt-0.5">소리가 들리지 않는다면, 즉시 <b>선생님께 도움을 요청</b>하세요.</span></li>
+                </ol>
+                <div class="flex gap-3 justify-center">
+                    <button id="audio-test-btn" onclick="playAudioTest()" class="flex items-center gap-2 px-5 py-3 rounded-xl border-2 border-slate-300 bg-white text-slate-700 font-bold text-[14px] hover:border-blue-400 hover:bg-blue-50 transition-all">
+                        🔊 오디오 테스트
+                    </button>
+                    <button onclick="startExamFromInstructions()" class="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#013976] text-white font-bold text-[14px] hover:bg-blue-800 active:scale-95 transition-all shadow-md">
+                        ▶ START EXAM
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// [Added] 안내화면에서 START EXAM 클릭
+function startExamFromInstructions() {
+    if (!window._audioTestDone) {
+        showToast('⚠️ 먼저 오디오 테스트를 시행하세요!');
+        const btn = document.getElementById('audio-test-btn');
+        if (btn) { btn.style.animation = 'pulse 0.4s 3'; setTimeout(() => { if(btn) btn.style.animation=''; }, 1200); }
+        return;
+    }
+    startExamSequence();
+}
+
 // [Restored Feature] startExamSequence
 async function startExamSequence() {
-    const name = document.getElementById('snm').value;
-    const grade = document.getElementById('sgr').value;
-    const catId = document.getElementById('sci').value;
-    const date = document.getElementById('sdt').value || new Date().toISOString().split('T')[0];
-    const timeLimit = parseInt(document.getElementById('stm').value) || 0;
+    const _p = window._examPending || {};
+    const name = _p.name || document.getElementById('snm')?.value || '';
+    const grade = _p.grade || document.getElementById('sgr')?.value || '';
+    const catId = _p.catId || document.getElementById('sci')?.value || '';
+    const date = _p.date || document.getElementById('sdt')?.value || new Date().toISOString().split('T')[0];
+    const timeLimit = _p.timeLimit != null ? _p.timeLimit : parseInt(document.getElementById('stm')?.value) || 0;
+    window._examPending = null;
 
     if (!name) return showToast("⚠️ 학생 이름을 입력해주세요.");
     if (!catId) return showToast("⚠️ 시험지를 선택해주세요.");
