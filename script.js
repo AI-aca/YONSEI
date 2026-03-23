@@ -7393,15 +7393,38 @@ function clearBuilderAudio(id) {
 }
 
 function playBundleAudio(btn, bundleId) {
-    const left = parseInt(btn.dataset.playsLeft)||0;
+    window._audioPlaysUsed = window._audioPlaysUsed || {};
+    const maxPlay = parseInt(btn.dataset.maxPlay) || 1;
+    const used = window._audioPlaysUsed[bundleId] || 0;
+    const left = maxPlay - used;
     if (left <= 0) { showToast('⚠️ 재생 횟수를 모두 사용했습니다.'); return; }
+    if (!confirm('지정된 횟수만큼만 재생할 수 있으며, 일시정지, 빨리감기, 되돌리기 등의 기능은 할 수가 없습니다.')) return;
+    window._audioPlaysUsed[bundleId] = used + 1;
     const newLeft = left - 1;
-    btn.dataset.playsLeft = newLeft;
     const sp = btn.querySelector('.plays-left'); if(sp) sp.textContent = newLeft;
     if (newLeft <= 0) { btn.disabled=true; btn.classList.add('opacity-50','cursor-not-allowed'); }
-    const fileId = btn.dataset.fileId;
-    const fd = document.getElementById('audio-frame-'+bundleId);
-    if (fd) { fd.classList.remove('hidden'); fd.innerHTML = '<iframe src="https://drive.google.com/file/d/'+fileId+'/preview" width="100%" height="80" frameborder="0" allow="autoplay" style="border-radius:8px;"></iframe>'; }
+    const audio = document.getElementById('audio-elem-'+bundleId);
+    const playerDiv = document.getElementById('audio-player-'+bundleId);
+    const progressBar = document.getElementById('audio-progress-'+bundleId);
+    const timeEl = document.getElementById('audio-time-'+bundleId);
+    const statusEl = document.getElementById('audio-status-'+bundleId);
+    if (!audio) return;
+    if (playerDiv) playerDiv.classList.remove('hidden');
+    if (!audio._audioInitialized) {
+        audio._audioInitialized = true;
+        audio.addEventListener('timeupdate', function() {
+            if (audio.duration) {
+                if (progressBar) progressBar.style.width = (audio.currentTime/audio.duration*100)+'%';
+                if (timeEl) { const m=Math.floor(audio.currentTime/60),s=Math.floor(audio.currentTime%60); timeEl.textContent=m+':'+(s<10?'0':'')+s; }
+            }
+        });
+        audio.addEventListener('ended', function() {
+            if(statusEl) statusEl.textContent='재생완료 ✅';
+            if(progressBar) progressBar.style.width='100%';
+        });
+    }
+    audio.currentTime = 0;
+    audio.play().catch(function(e){ showToast('재생 오류: '+e.message); });
 }
 
 function renderImageUploader(id, d, size = 'normal') {
@@ -9314,7 +9337,23 @@ function renderBundleLeft(data) {
 
     let bundleAudioHtml = '';
     { const _bndA = first.setId && globalConfig.bundles ? globalConfig.bundles.find(b => b.id === first.setId) : null;
-      if (_bndA && _bndA.audioFileId) { const _maxP = parseInt(_bndA.audioMaxPlay)||1; bundleAudioHtml = `<div class="mt-3 mb-2 flex items-center gap-3"><button id="audio-btn-${first.setId}" data-file-id="${_bndA.audioFileId}" data-plays-left="${_maxP}" onclick="playBundleAudio(this,'${first.setId}')" class="flex items-center gap-2 bg-[#013976] text-white px-5 py-2 rounded-xl font-bold text-[15px] hover:bg-blue-800 active:scale-95 transition-all shadow-sm">🔊 듣기 &nbsp;<span class="plays-left">${_maxP}</span>회 남음</button></div><div id="audio-frame-${first.setId}" class="hidden mt-1"></div>`; } }
+      if (_bndA && _bndA.audioFileId) {
+        const _maxP = parseInt(_bndA.audioMaxPlay)||1;
+        const _audioSrc = 'https://drive.google.com/uc?id=' + _bndA.audioFileId;
+        const _sid = first.setId;
+        bundleAudioHtml = `<div class="mt-3 mb-2 flex items-center gap-3 flex-wrap">
+          <button id="audio-btn-${_sid}" data-file-id="${_bndA.audioFileId}" data-max-play="${_maxP}" onclick="playBundleAudio(this,'${_sid}')" class="flex items-center gap-2 bg-[#013976] text-white px-5 py-2 rounded-xl font-bold text-[15px] hover:bg-blue-800 active:scale-95 transition-all shadow-sm flex-shrink-0">🔊 듣기 &nbsp;<span class="plays-left">${_maxP}</span>회 남음</button>
+          <div id="audio-player-${_sid}" class="hidden flex items-center gap-2 bg-slate-800 rounded-xl px-4 py-2 flex-1 min-w-[180px]" style="max-width:400px">
+            <span id="audio-status-${_sid}" class="text-white text-[13px] font-bold whitespace-nowrap">재생중 🔊</span>
+            <div class="flex-1 bg-slate-600 rounded-full overflow-hidden" style="height:6px">
+              <div id="audio-progress-${_sid}" class="bg-green-400 h-full rounded-full" style="width:0%;transition:width 0.3s"></div>
+            </div>
+            <span id="audio-time-${_sid}" class="text-slate-300 text-[12px] whitespace-nowrap">0:00</span>
+          </div>
+          <audio id="audio-elem-${_sid}" src="${_audioSrc}" preload="none"></audio>
+        </div>`;
+      }
+    }
     return `
         ${title ? `<div class="px-0 pb-3 bg-white border-b border-slate-200 flex items-center"><h3 class="font-bold text-slate-700 text-[15px] flex items-center gap-2 m-0 leading-tight"><span class="text-indigo-600 text-[17px] font-bold shrink-0">${range}</span><span>${title}</span></h3></div>` : ''}
         ${passage ? `<div class="mt-3 mb-0 p-4 border border-black rounded shadow-sm bg-white"><div class="prose prose-sm max-w-none text-slate-700 leading-relaxed font-serif text-[15px]">${passage}</div></div>` : ''}
