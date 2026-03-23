@@ -1954,7 +1954,7 @@ async function showStudentDBViewer(catId, catName) {
     const tBar = `<div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#60a5fa,#6366f1,#a855f7);"></div>`;
 
     c.innerHTML = `
-    <div class="animate-fade-in-safe space-y-5 pb-10">
+    <div class="animate-fade-in-safe" style="height:calc(100vh - 120px);display:flex;flex-direction:column;overflow:hidden;gap:16px;">
         <!-- 헤더: 제목만 -->
         <div class="flex justify-between items-center">
             <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">${catName} — 학생 DB</h2>
@@ -1978,8 +1978,8 @@ async function showStudentDBViewer(catId, catName) {
         </div>
 
         <!-- 테이블 영역 -->
-        <div class="card !p-0 overflow-hidden shadow-sm">
-            <div id="sdb-table-wrap" style="max-height:calc(100vh - 260px);overflow-y:auto;"><p class="text-slate-400 text-center py-10">불러오는 중...</p></div>
+        <div class="card !p-0 overflow-hidden shadow-sm" style="flex:1;min-height:0;display:flex;flex-direction:column;">
+            <div id="sdb-table-wrap" style="flex:1;min-height:0;overflow-y:auto;"><p class="text-slate-400 text-center py-10">불러오는 중...</p></div>
         </div>
     </div>`;
 
@@ -2057,13 +2057,13 @@ function _renderStudentDBTable() {
     }
 
     const arw = c => col === c ? (dir === 1 ? ' ▲' : ' ▼') : ' <span class="opacity-30">⇅</span>';
-    const th = (c, lbl) => `<th class="cursor-pointer select-none hover:bg-[#012a5e] transition-colors text-left px-4 py-3 font-black text-white fs-15" onclick="sortStudentDB('${c}')">${lbl}${arw(c)}</th>`;
+    const th = (c, lbl) => `<th class="cursor-pointer select-none hover:bg-[#012a5e] transition-colors text-center px-2 py-3 font-black text-white fs-15" onclick="sortStudentDB('${c}')">${lbl}${arw(c)}</th>`;
     wrap.innerHTML = `
-    <table class="w-full border-collapse">
+    <table class="w-full border-collapse" style="table-layout:fixed;">
         <thead style="position:sticky;top:0;z-index:10;">
             <tr class="bg-[#013976]">
                 ${th('name','이름')}${th('grade','학년')}${th('year','응시년도')}${th('md','응시월일')}${th('score','점수')}
-                <th class="px-4 py-3 text-white fs-15 font-black text-center">삭제</th>
+                <th class="px-2 py-3 text-white fs-15 font-black text-center">삭제</th>
             </tr>
         </thead>
         <tbody>
@@ -2090,12 +2090,12 @@ function _renderStudentDBTable() {
                 const max   = s['만점'] ?? s.maxScore ?? '';
                 const row   = i % 2 === 0 ? 'bg-white' : 'bg-slate-50';
                 return `<tr class="${row} border-b border-slate-100">
-                    <td class="px-4 py-3 font-bold text-[#013976] fs-15">${name}</td>
-                    <td class="px-4 py-3 text-slate-700 fs-15">${grade}</td>
-                    <td class="px-4 py-3 text-slate-600 fs-15">${yr}</td>
-                    <td class="px-4 py-3 text-slate-600 fs-15">${md}</td>
-                    <td class="px-4 py-3 font-bold text-slate-800 fs-15">${score}${max?'/'+max:''}</td>
-                    <td class="px-4 py-3 text-center">
+                    <td class="px-2 py-3 font-bold text-[#013976] fs-15 text-center">${name}</td>
+                    <td class="px-2 py-3 text-slate-700 fs-15 text-center">${grade}</td>
+                    <td class="px-2 py-3 text-slate-600 fs-15 text-center">${yr}</td>
+                    <td class="px-2 py-3 text-slate-600 fs-15 text-center">${md}</td>
+                    <td class="px-2 py-3 font-bold text-slate-800 fs-15 text-center">${score}${max?'/'+max:''}</td>
+                    <td class="px-2 py-3 text-center">
                         <button onclick="deleteStudentRecord('${catId}','${sid}','${name}')" class="text-red-500 hover:text-red-700 fs-13 font-bold px-3 py-1 rounded-lg border border-red-200 hover:bg-red-50">🗑️ 삭제</button>
                     </td>
                 </tr>`;
