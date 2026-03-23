@@ -3532,7 +3532,8 @@ function getInputHtml(q) {
 
 function selectObjAnswer(qId, val) {
     updateAnswer(qId, val);
-    document.querySelectorAll('[data-qid="' + qId + '"]').forEach(function(btn) {
+    document.querySelectorAll('.exam-choice-btn').forEach(function(btn) {
+        if (btn.dataset.qid !== qId) return;
         const isSel = btn.dataset.val === val;
         btn.style.borderColor = isSel ? '#4f46e5' : '#e2e8f0';
         btn.style.background = isSel ? '#eef2ff' : '#ffffff';
