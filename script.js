@@ -9505,9 +9505,9 @@ function renderBundleLeft(data) {
     }
 
     return '<div class="bundle-left-content px-4 py-4 h-full overflow-y-auto">'
-        + (range ? '<div class="text-xs font-bold text-indigo-400 mb-2">' + range + '</div>' : '')
-        + (title ? '<div class="text-sm font-bold text-slate-700 mb-2">' + title + '</div>' : '')
-        + (passage ? '<div class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">' + passage + '</div>' : '')
+        + (range ? '<div class="fs-13 font-bold text-indigo-400 mb-2 tracking-wide">' + range + '</div>' : '')
+        + (title ? '<div class="fs-16 font-bold text-slate-800 mb-3">' + title + '</div>' : '')
+        + (passage ? '<div class="border border-slate-300 rounded-lg p-4 fs-15 text-slate-700 leading-relaxed whitespace-pre-line bg-slate-50 mb-3">' + passage + '</div>' : '')
         + bundleImgHtml
         + bundleAudioHtml
         + '</div>';
