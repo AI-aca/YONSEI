@@ -2,6 +2,15 @@
 
 
 
+## 2026-03-26
+### 객관식 보기 라벨 타입 선택 기능 추가
+- **지시**: 문항 카드(빌더)의 "보기 및 정답" 섹션에 1~5 / A~E 라벨 타입 선택 옵션 추가. 시험화면에도 선택된 타입에 맞게 원문자(①②③ / ⒶⒷⒸ) 표시 요청.
+- **수행**:
+  - `script.js` `getComponentHtml` (obj 케이스): 보기수 드롭다운 좌측에 `1~5 / A~E` 셀렉트(`data-field="labelType"`) 추가. 보기 번호 및 정답 입력 placeholder 동적 적용.
+  - `renderBuilderChoices`: `labelType` 셀렉트 값을 읽어 보기 번호 라벨(1./A. 등) 실시간 반영. 정답 placeholder도 동기화.
+  - `serializeBuilderState`: `val.labelType` 수집 추가 (저장 시 DB에 포함).
+  - `getInputHtml` (시험화면): `q.labelType` 기반으로 `_v` 값 및 원문자(`①~⑤` / `Ⓐ~Ⓔ`) 분기 처리.
+
 ## 2026-03-23 (저녁 세션)
 ### 객관식/학생DB/시험안내 개선 일괄 수정
 - **지시**: 객관식 색깔 미변경 / 학생DB 레이아웃 / 시험안내 화면 / 오디오 프리로드
