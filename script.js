@@ -6246,16 +6246,7 @@ function renderRegForm() {
                 
                 <!-- Right: Actions -->
                 <div class="flex items-center gap-2">
-                     <!-- Split View Toggle -->
-                     <button onclick="toggleSplitView()" id="btn-split-toggle" class="hidden text-sm font-bold text-slate-500 hover:bg-slate-100 px-3 py-1.5 rounded border border-slate-200 bg-white transition-colors flex items-center gap-1.5">
-                        <span>📖</span> 원문
-                     </button>
 
-                     <!-- PDF Upload -->
-                     <label class="btn-ys !bg-white !text-slate-600 !border-slate-300 hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer shadow-sm !px-3 !py-1.5 !text-sm !h-auto !rounded shrink-0">
-                        <span>📂</span> PDF
-                        <input type="file" class="hidden" accept=".pdf" onchange="handlePdfImport(this)">
-                     </label>
 
                     <button onclick="saveRegGroup()" class="btn-ys shadow-md hover:brightness-110 !px-4 !py-1.5 !text-sm !h-auto !rounded shrink-0">
                         🚀 등록
@@ -6270,14 +6261,7 @@ function renderRegForm() {
             <!-- Builder Body (Calc Height based on 60px header) -->
             <div style="display: flex; width: 100%; height: calc(100% - 60px); overflow: hidden; background-color: #f8fafc; position: relative;">
                 
-                <!-- [Left] Source Panel -->
-                <div id="source-panel" class="hidden w-[35%] border-r border-slate-200 bg-white flex flex-col transition-all duration-300 ease-in-out relative z-10 h-full">
-                    <div class="flex-none p-3 bg-slate-100 border-b border-slate-200 text-xs font-bold text-slate-600 flex justify-between items-center">
-                        <span>📄 PDF Analyzed Text</span>
-                        <button onclick="copySourceText()" class="text-blue-500 hover:text-blue-700">Copy All</button>
-                    </div>
-                    <textarea id="source-text-area" class="flex-1 w-full p-4 text-sm font-mono leading-relaxed outline-none resize-none bg-[#fdfdfd] text-slate-700" spellcheck="false" placeholder="PDF 분석 결과가 여기에 표시됩니다."></textarea>
-                </div>
+
 
                 <!-- [Right] Form Builder 3:6:1 Layout -->
                 <div id="builder-main-area" class="flex-1 w-full relative px-6 pb-6 pt-3 h-full overflow-hidden">
@@ -8316,7 +8300,7 @@ async function collectBuilderData() {
     if (!container) throw new Error("빌더 영역을 찾을 수 없습니다.");
 
     const blocks = container.querySelectorAll('.builder-item');
-    if (blocks.length === 0) throw new Error("문항이 없습니다. PDF를 가져오거나 추가하세요.");
+    if (blocks.length === 0) throw new Error("저장할 문항이 없습니다. 문항을 추가해 주세요.");
 
     let catId = '';
     let commonTitle = '';
@@ -8635,64 +8619,7 @@ function exitLinkingMode(e) {
 
 
 
-// --- PDF Import Logic ---
-
-async function handlePdfImport(input) {
-    if (!input.files || !input.files[0]) return;
-    const file = input.files[0];
-
-    if (!confirm(`"${file.name}" 파일을 분석하여 시험지를 생성하시겠습니까 ?\n(시간이 다소 소요될 수 있습니다)`)) { // Reset input
-        input.value = '';
-        return;
-    }
-
-    toggleLoading(true);
-    try {
-        // 1. Convert to Base64
-        const base64 = await new Promise(r => {
-            const reader = new FileReader();
-            reader.onload = e => r(e.target.result.split(',')[1]);
-            reader.readAsDataURL(file);
-        });
-
-        // 2. Send to GAS (PDF_TO_TEXT)
-        const payload = {
-            type: 'PDF_TO_TEXT',
-            fileName: file.name,
-            mimeType: file.type,
-            fileData: base64,
-            timeout: 300000 // [Modified] 5분(300초)으로 대폭 증가 (서버 타임아웃 방지)
-        };
-
-        // Use standard fetch here since reliable request might be optimized for DB ops
-        // But sendReliableRequest handles retry/auth well.
-        const response = await sendReliableRequest(payload);
-
-        if (response.status === 'Success' && response.text) {
-            // 3. Fill Split View & Toggle
-            const sourceArea = document.getElementById('source-text-area');
-            if (sourceArea) {
-                sourceArea.value = response.text;
-                document.getElementById('source-panel').classList.remove('hidden');
-                document.getElementById('btn-split-toggle').classList.remove('hidden');
-                // Also enable the actual split view automatically
-                toggleSplitView(true);
-            }
-
-            parseAndPopulateBuilder(response.text);
-            showToast("✅ PDF 분석 완료!");
-        } else {
-            throw new Error(response.message || "Unknown Error");
-        }
-
-    } catch (e) {
-        console.error(e);
-        showToast("❌ PDF 변환 실패: " + e.message);
-    } finally {
-        toggleLoading(false);
-        input.value = ''; // Reset
-    }
-}
+// PDF 가져오기 기능 제거됨 (2026-03-26)
 
 function parseAndPopulateBuilder(text) {
     // Advanced State Machine Parser (Rev. 3 - Robust)
