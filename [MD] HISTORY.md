@@ -6,10 +6,20 @@
 ### 객관식 보기 라벨 타입 선택 기능 추가
 - **지시**: 문항 카드(빌더)의 "보기 및 정답" 섹션에 1~5 / A~E 라벨 타입 선택 옵션 추가. 시험화면에도 선택된 타입에 맞게 원문자(①②③ / ⒶⒷⒸ) 표시 요청.
 - **수행**:
-  - `script.js` `getComponentHtml` (obj 케이스): 보기수 드롭다운 좌측에 `1~5 / A~E` 셀렉트(`data-field="labelType"`) 추가. 보기 번호 및 정답 입력 placeholder 동적 적용.
-  - `renderBuilderChoices`: `labelType` 셀렉트 값을 읽어 보기 번호 라벨(1./A. 등) 실시간 반영. 정답 placeholder도 동기화.
+  - `script.js` `getComponentHtml` (obj 케이스): 보기수 드롭다운 좌측에 `1~5 / A~E` 셀렉트(`data-field="labelType"`) 추가.
+  - `renderBuilderChoices`: `labelType` 셀렉트 값을 읽어 보기 번호 라벨(1./A. 등) 실시간 반영.
   - `serializeBuilderState`: `val.labelType` 수집 추가 (저장 시 DB에 포함).
-  - `getInputHtml` (시험화면): `q.labelType` 기반으로 `_v` 값 및 원문자(`①~⑤` / `Ⓐ~Ⓔ`) 분기 처리.
+  - `getInputHtml` (시험화면): `q.labelType` 기반으로 원문자(`①~⑤` / `Ⓐ~Ⓔ`) 분기 처리.
+
+### Canvas 8-1 PDF 버튼 및 기능 제거
+- **지시**: 문항등록 화면(08-1)의 PDF 버튼 및 관련 기능 전체 제거 (미구현 상태로 숨김)
+- **수행**:
+  - PDF 업로드 `<label>` 버튼 제거
+  - Split View 토글 버튼(`btn-split-toggle`) 제거
+  - 좌측 Source Panel(`source-panel`, `source-text-area`) 제거
+  - `handlePdfImport` 함수 전체 제거
+  - 저장 오류 메시지에서 "PDF를 가져오거나" 문구 제거
+
 
 ## 2026-03-23 (저녁 세션)
 ### 객관식/학생DB/시험안내 개선 일괄 수정
