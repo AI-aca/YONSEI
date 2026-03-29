@@ -261,12 +261,13 @@ function doPost(e) {
     else if (data.type === "GET_STUDENT_LIST") {
       if (!rootFolderId) throw new Error("카테고리 폴더가 설정되지 않았습니다.");
       var rootFolder = DriveApp.getFolderById(rootFolderId);
-      var categoryName = data.categoryName || "미분류";
-      var files = rootFolder.getFilesByName(categoryName + "_학생DB");
-      if (!files.hasNext()) {
+      var allFiles6 = rootFolder.getFiles();
+      var targetFile6 = null;
+      while (allFiles6.hasNext()) { var f6 = allFiles6.next(); if (f6.getName().includes("학생DB")) { targetFile6 = f6; break; } }
+      if (!targetFile6) {
         return ContentService.createTextOutput(JSON.stringify({ status: "Success", data: [] })).setMimeType(ContentService.MimeType.JSON);
       }
-      var sheet = SpreadsheetApp.open(files.next()).getSheets()[0];
+      var sheet = SpreadsheetApp.open(targetFile6).getSheets()[0];
       var lastRow = sheet.getLastRow();
       var lastCol = sheet.getLastColumn();
       if (lastRow <= 1) return ContentService.createTextOutput(JSON.stringify({ status: "Success", data: [] })).setMimeType(ContentService.MimeType.JSON);
@@ -538,13 +539,12 @@ else if (data.type === "GET_AUDIO_B64") {
     else if (data.type === "RESET_DB") {
         if (!rootFolderId) throw new Error("폴더 ID가 필요합니다.");
         
-        var categoryName = data.categoryName || "미분류";
-        var dbType = data.dbType; // 'student' or 'question'
-        var suffix = (dbType === 'student') ? "_학생DB" : "_문항DB";
-        var fileName = categoryName + suffix;
-
+        var dbType = data.dbType;
+        var resetSuffix = (dbType === 'student') ? "학생DB" : "통합DB";
         var rootFolder = DriveApp.getFolderById(rootFolderId);
-        var files = rootFolder.getFilesByName(fileName);
+        var allResetFiles = rootFolder.getFiles();
+        var files = { _f: null, hasNext: function(){ return !!this._f; }, next: function(){ return this._f; } };
+        while (allResetFiles.hasNext()) { var rf = allResetFiles.next(); if (rf.getName().includes(resetSuffix)) { files._f = rf; break; } }
         
         if (files.hasNext()) {
             var spreadsheet = SpreadsheetApp.open(files.next());
@@ -563,7 +563,7 @@ else if (data.type === "GET_AUDIO_B64") {
         } else {
             return ContentService.createTextOutput(JSON.stringify({
                 status: "Error",
-                message: "해당 DB 파일을 찾을 수 없습니다: " + fileName
+                message: "해당 DB 파일을 찾을 수 없습니다: " + resetSuffix
             })).setMimeType(ContentService.MimeType.JSON);
         }
     }
@@ -742,10 +742,10 @@ else if (data.type === "GET_AUDIO_B64") {
         if (!rootFolderId) throw new Error("대분류 폴더가 연결되지 않았습니다.");
         
         var rootFolder = DriveApp.getFolderById(rootFolderId);
-        var categoryName = data.categoryName || "미분류";
-        
-        var files = rootFolder.getFilesByName(categoryName + "_통합DB");
-        if (!files.hasNext()) {
+        var allFiles15 = rootFolder.getFiles();
+        var targetFile15 = null;
+        while (allFiles15.hasNext()) { var f15 = allFiles15.next(); if (f15.getName().includes("통합DB")) { targetFile15 = f15; break; } }
+        if (!targetFile15) {
              return ContentService.createTextOutput(JSON.stringify({
                 status: "Success",
                 questions: [],
@@ -753,7 +753,7 @@ else if (data.type === "GET_AUDIO_B64") {
             })).setMimeType(ContentService.MimeType.JSON);
         }
         
-        var spreadsheet = SpreadsheetApp.open(files.next());
+        var spreadsheet = SpreadsheetApp.open(targetFile15);
         var sheetQ = spreadsheet.getSheetByName("Questions");
         var sheetB = spreadsheet.getSheetByName("Bundles");
         
@@ -943,10 +943,12 @@ else if (data.type === "GET_AUDIO_B64") {
         var audioFolder = getOrCreateFolder(rootFolder, "오디오창고");
         
         // 1. 통합DB 파일 찾기
-        var files = rootFolder.getFilesByName(categoryName + "_통합DB");
-        if (!files.hasNext()) throw new Error("통합DB 파일을 찾을 수 없습니다. 먼저 문항을 등록해주세요.");
+        var allFiles16 = rootFolder.getFiles();
+        var targetFile16 = null;
+        while (allFiles16.hasNext()) { var f16 = allFiles16.next(); if (f16.getName().includes("통합DB")) { targetFile16 = f16; break; } }
+        if (!targetFile16) throw new Error("통합DB 파일을 찾을 수 없습니다. 먼저 문항을 등록해주세요.");
         
-        var spreadsheet = SpreadsheetApp.open(files.next());
+        var spreadsheet = SpreadsheetApp.open(targetFile16);
         var sheetQ = spreadsheet.getSheetByName("Questions");
         var sheetB = spreadsheet.getSheetByName("Bundles");
         
@@ -1095,10 +1097,16 @@ function saveAudio(folder, base64, mime, name) {
  * 헬퍼 함수: 폴더 내 스프레드시트 찾기 또는 생성
  */
 function getOrCreateSpreadsheet(parentFolder, name) {
-  var files = parentFolder.getFilesByName(name);
-  if (files.hasNext()) return SpreadsheetApp.open(files.next());
-  
-  var newSS = SpreadsheetApp.create(name);
+  // suffix 추출: "카테고리_학생DB" → "학생DB" (앞 prefix 무시)
+  var suffix = name.includes('_') ? name.substring(name.lastIndexOf('_') + 1) : name;
+  // 폴더 내에서 suffix 포함 파일 먼저 검색
+  var allFiles = parentFolder.getFiles();
+  while (allFiles.hasNext()) {
+    var f = allFiles.next();
+    if (f.getName().includes(suffix)) return SpreadsheetApp.open(f);
+  }
+  // 없으면 suffix 이름만으로 생성
+  var newSS = SpreadsheetApp.create(suffix);
   var file = DriveApp.getFileById(newSS.getId());
   parentFolder.addFile(file);
   DriveApp.getRootFolder().removeFile(file);
