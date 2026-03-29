@@ -2,6 +2,32 @@
 
 
 
+## 2026-03-29 (추가 작업 2차 - 오후)
+
+### Canvas 07-1 / 07-2 정식 Canvas ID 부여
+- **변경**: 기존 Canvas 07 단일 ID → 3단계 분리
+  - Canvas 07: 통계 초기화면 (시험지 선택 드롭박스)
+  - Canvas 07-1: 문항 통계 (`switchStatsMode('question')` → `setCanvasId('07-1')`)
+  - Canvas 07-2: 학생 통계 (`switchStatsMode('student')` → `setCanvasId('07-2')`)
+- **수행**: `script.js` switchStatsMode 함수에 setCanvasId 추가, CANVAS ID STANDARD.md 업데이트
+- **결과**: Git 커밋 `5398411`
+
+### 전체 Canvas 코드 전수 검증
+- **수행**: 전 Canvas (01~10, 서브번호 포함) 렌더 함수 존재 여부 + onclick/onchange 핸들러 68개 전수 확인
+- **결과**: MISSING 0개, 모든 핸들러 정상 매칭 확인. GAS↔JS API 타입 17개 전부 정상. 레거시 미사용 함수 3개(saveQ, obsolete_updateQ, delQ) 확인 — 실제 미호출로 안전.
+
+### 08-1 / 08-2 저장 안정성 개선
+- **기존 문제**: `saveRegGroup`(08-1), `updateBuilderQuestion`(08-2)이 `fetch()` 직접 1회 호출 → 재시도 없음
+- **수정**: 두 함수 모두 `sendReliableRequest(payload)`로 교체 → 5회 자동 재시도, 60초 타임아웃 보장
+- **영향 없음**: payload 구조 동일, 응답 처리 로직(`resData.status === "Success"`) 동일, 다른 Canvas 영향 없음
+- **결과**: Git 커밋 `dd86e8e`
+
+### GAS 재배포 완료
+- 이미지 멀티모달 처리 로직이 포함된 `API script.gs` 재배포 완료 (2026-03-29 오후)
+- 이미지 첨부 문항 AI 채점 기능 정식 활성화
+
+---
+
 ## 2026-03-29 (추가 작업)
 
 ### 오디오 저장 구조 이미지 방식으로 전면 개선
