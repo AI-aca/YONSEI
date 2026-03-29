@@ -2706,6 +2706,8 @@ function renderAdminCode(c) {
 }
 
 window.onload = () => {
+    // [전역] 창 닫기/새로고침 시 항상 브라우저 기본 경고창 표시
+    window.addEventListener('beforeunload', handleBeforeUnload);
     // Initialize adminCode if not present (e.g., first run)
     if (globalConfig.adminCode === undefined) {
         globalConfig.adminCode = "1111";
@@ -3664,8 +3666,6 @@ function updateProgressUI() {
 
 
 function renderExamResult(results, earned, total) {
-    // 시험 제출 완료 → 탭 닫기 경고 해제
-    window.removeEventListener('beforeunload', handleBeforeUnload);
     const percentage = Math.round((earned / total) * 100) || 0;
     const c = document.getElementById('dynamic-content');
     setCanvasId('02-2');
@@ -8236,13 +8236,33 @@ function renderEditForm(qId) {
         if (qEl) qEl.setAttribute('data-bundle-id', bundleIdToLoad);
     }
 
+        // 08-2 변경 감지: DOM 안정화 후 스냅샷 저장
+        window._editSnapshot = _editGetSnapshot();
     }, 100); // DOM 안정화 대기
 }
 
 // [New] Exit Edit Mode → Return to previous bank view with category selected
+// ── 08-2 변경 감지 헬퍼 ──
+function _editGetSnapshot() {
+    const area = document.getElementById('builder-main-area');
+    if (!area) return '';
+    const fields = Array.from(area.querySelectorAll('input:not([type="hidden"]), textarea, select'));
+    return JSON.stringify(fields.map(f => ({ id: f.id, val: f.value })));
+}
+function _editHasChanged() {
+    if (!window._editSnapshot) return false;
+    return _editGetSnapshot() !== window._editSnapshot;
+}
+
 function exitEditMode(skipConfirm = false) {
     // [Fix] 저장 완료 후 호출 시(skipConfirm=true)에는 확인 팝업 생략
-    if (!skipConfirm && !confirm("작성 중인 내용은 저장되지 않습니다. 나가시겠습니까?")) return;
+    if (!skipConfirm) {
+        if (_editHasChanged()) {
+            if (!confirm('⚠️ 이 문항이 변경되었습니다!\n변경된 사항이 저장되지 않습니다!\n정말 나가시겠습니까?')) return;
+        } else {
+            if (!confirm('작성 중인 내용은 저장되지 않습니다. 나가시겠습니까?')) return;
+        }
+    }
 
     // Restore app-canvas padding
     const ac = document.getElementById('app-canvas');
@@ -8269,6 +8289,12 @@ function exitEditMode(skipConfirm = false) {
 
 // [SAFE] Partial Update Logic — Only modifies the specific row in the sheet
 async function updateBuilderQuestion(originalId) {
+    // 변경사항 없으면 저장 불필요
+    if (!_editHasChanged()) {
+        showToast('변경된 사항이 없어 저장이 필요없습니다.');
+        return;
+    }
+    if (!confirm('이 문항의 변경사항이 저장됩니다.')) return;
     try {
         if (!originalId) throw new Error("수정할 문항 ID가 없습니다.");
 
@@ -8398,6 +8424,7 @@ async function updateBuilderQuestion(originalId) {
             save();
 
             showToast("✅ 해당 문항만 안전하게 수정 완료! (다른 데이터 영향 없음)");
+            window._editSnapshot = null; // 저장 완료 후 스냅샷 초기화
             exitEditMode(true); // [Fix] 저장 완료 후이므로 확인 팝업 생략
         } else {
             throw new Error(resData.message || "서버 부분 업데이트 실패");
@@ -9820,8 +9847,6 @@ function renderExamPaper(list) {
 
     const c = document.getElementById('dynamic-content');
     setCanvasId('02-1', 'full');
-    // 시험 중 탭 닫기/새로고침 방지 경고
-    window.addEventListener('beforeunload', handleBeforeUnload);
     c.className = "w-full h-full bg-slate-50 relative overflow-hidden flex flex-row";
 
     examSession.currentPage = 0;
