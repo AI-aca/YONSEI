@@ -2774,7 +2774,7 @@ function renderScoreInput(c) {
                         </div>
                         <div>
                             <label class="ys-label font-bold">&#x1F393; &#xD559;&#xB144;</label>
-                            <select id="input-grade" class="ys-field" onchange="updateClassDropdown06(this.value)">
+                            <select id="input-grade" class="ys-field" onchange="handleGradeChange06(this.value, this)">
                                 <option value="" disabled selected hidden>&#xD559;&#xB144; &#xC120;&#xD0DD;</option>
                             </select>
                         </div>
@@ -2871,6 +2871,16 @@ async function handleScoreCategoryChange(catId) {
 
     const category = globalConfig.categories.find(cat => cat.id === catId);
     if (!category) return;
+
+    // 권장 학년 자동 선택
+    const recGrade = category.targetGrade || '';
+    window._recommendedGrade06 = recGrade;
+    const gradeEl = document.getElementById('input-grade');
+    if (gradeEl && recGrade) {
+        populateGradeSelect(gradeEl, { placeholder: '학년 선택' });
+        gradeEl.value = recGrade;
+        updateClassDropdown06(recGrade);
+    }
 
     const folderId = extractFolderId(category.targetFolderUrl);
     if (!folderId) { showToast('⚠️ 폴더 ID 오류: 카테고리 설정을 확인하세요.'); return; }
@@ -3169,6 +3179,19 @@ function updateClassDropdown06(grade) {
 
 // q-score 변경 시 추천 계산 (이벤트 위임 - 한 번만 등록)
 // AI 추천: calculateTotalScore()에서 직접 호출하므로 별도 이벤트 불필요
+
+// Canvas 06: 학년 변경 시 권장 학년 다른지 체크
+function handleGradeChange06(val, sel) {
+    const rec = window._recommendedGrade06 || '';
+    if (rec && val !== rec) {
+        const ok = confirm(`권장 학년은 "${rec}" 입니다.\n"${val}"으로 변경하시겠습니까?`);
+        if (!ok) {
+            sel.value = rec;
+            return;
+        }
+    }
+    updateClassDropdown06(val);
+}
 
 function clampQScore(input) {
     const max = parseInt(input.dataset.max) || 0;
