@@ -5253,6 +5253,7 @@ async function regenerateSectionComment(section) {
         // 카드 코멘트 영역만 직접 업데이트 (전체 리렌더 없이)
         const secItems = activeSections.map(s => [s, updated[s]]);
         renderReportCard(record, averages, updated, overallComment, activeSections);
+        window._dirtyComment = true;
         showToast(`✅ ${section} 코멘트 재생성 완료!`);
     } catch(e) {
         showToast('❌ 재생성 실패: ' + e.message);
@@ -5381,6 +5382,7 @@ async function regenerateOverallComment() {
         window.currentReportData.overallComment = newComment;
         const wrap = document.getElementById('overall-comment-wrap');
         if (wrap) wrap.innerHTML = `<p class="text-slate-700 leading-relaxed fs-15" id="overall-comment-text" style="cursor:pointer;" onclick="editComment('overall')" title="클릭하여 수정">${(newComment||'').split(/\n+/).map(l=>l.trim()).filter(l=>l).join('<br>')}</p>`;
+        window._dirtyComment = true;
         showToast('✅ 종합 코멘트가 재생성되었습니다.');
     } catch(e) { showToast('❌ 재생성 실패: ' + e.message); }
     finally { if (btn) { btn.disabled = false; btn.textContent = '🔄'; } }
@@ -5420,6 +5422,7 @@ async function triggerAIAnalysis() {
         window.currentReportData.sectionComments = sectionComments;
         window.currentReportData.overallComment   = overallComment;
         renderReportCard(record, averages, sectionComments, overallComment, activeSections);
+        window._dirtyComment = true;
         showToast('✅ AI 분석 완료!');
 
         // GAS 자동 저장 (비동기 실행으로 UI 블로킹 없음)
