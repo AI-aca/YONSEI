@@ -2092,7 +2092,7 @@ function _renderStudentDBTable() {
                 <th class="px-2 py-3 bg-[#013976] text-center" style="width:44px;">
                     <input type="checkbox" id="sdb-chk-all" onchange="toggleAllSdbCheck(this)" class="w-4 h-4 accent-blue-400 cursor-pointer">
                 </th>
-                ${th('name','이름')}${th('class','학급')}${th('grade','학년')}${th('date','응시년월일')}${th('score','점수')}
+                ${th('name','이름')}${th('class','등록학급')}${th('grade','학년')}${th('date','응시년월일')}${th('score','점수')}
                 <th class="px-2 py-3 text-white fs-15 font-black text-center bg-[#013976]">삭제</th>
             </tr>
         </thead>
@@ -2119,7 +2119,7 @@ function _renderStudentDBTable() {
                 const score = s['총점'] ?? s.totalScore ?? '-';
                 const max   = s['만점'] ?? s.maxScore ?? '';
                 const row   = i % 2 === 0 ? 'bg-white' : 'bg-slate-50';
-                const cls = s['학급'] || s.class || '';
+                const cls = s['등록학급'] || s['학급'] || s.class || '';
                 return `<tr class="${row} border-b border-slate-100">
                     <td class="px-2 py-3 text-center" style="width:44px;">
                         <input type="checkbox" class="sdb-chk w-4 h-4 accent-blue-600 cursor-pointer" data-sid="${sid}" data-name="${name}" onchange="_onSdbChkChange()">
