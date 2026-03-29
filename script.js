@@ -9635,6 +9635,9 @@ function renderExamInstructions() {
     if (!name) return showToast('⚠️ 학생 이름을 입력해주세요.');
     if (!catId) return showToast('⚠️ 시험지를 선택해주세요.');
     if (!grade) return showToast('⚠️ 학년을 선택해주세요.');
+    const catName = (globalConfig.categories || []).find(c => c.id === catId)?.name || catId;
+    const timeTxtConfirm = timeLimit > 0 ? `${timeLimit}분` : '시간 제한 없음';
+    if (!confirm(`📋 시험 정보를 확인해주세요.\n\n📄 시험지: ${catName}\n👤 이름: ${name}\n🎓 학년: ${grade}\n⏱️ 시험 시간: ${timeTxtConfirm}\n\n위 정보로 시험이 진행됩니다.`)) return;
     window._examPending = { name, grade, catId, date, timeLimit };
     window._audioTestDone = false;
     setCanvasId('02-3');
