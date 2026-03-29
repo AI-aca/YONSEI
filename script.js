@@ -2726,9 +2726,18 @@ async function handleScoreCategoryChange(catId) {
             globalConfig.questions = [...others, ...newQuestions];
         }
         catQuestions = newQuestions.sort((a, b) => (parseInt(a.no) || 0) - (parseInt(b.no) || 0));
+
+        // [Fix] 학생 DB도 함께 로드 → 등록학급 자동 추천에 필요
+        try {
+            const studentRes = await sendReliableRequest({ type: 'GET_STUDENT_LIST', parentFolderId: folderId, categoryName: category.name });
+            window.cachedStudentRecords = studentRes.data || [];
+        } catch(e2) {
+            console.warn('[Canvas 06] \ud559\uc0dd DB \ub85c\ub4dc \uc2e4\ud328 (\ud559\uae09 \ucd94\ucc9c \ube44\ud65c\uc131\ud654):', e2.message);
+        }
+
     } catch(e) {
         console.error(e);
-        showToast('⚠️ 문항 불러오기 실패: ' + e.message);
+        showToast('\u26a0\ufe0f \ubb38\ud56d \ubd88\ub7ec\uc624\uae30 \uc2e4\ud328: ' + e.message);
         catQuestions = (globalConfig.questions || [])
             .filter(q => String(q.catId) === String(catId))
             .sort((a, b) => (parseInt(a.no) || 0) - (parseInt(b.no) || 0));
