@@ -9657,23 +9657,29 @@ function getInputHtml(q) {
     }
 }
 
-// [Refactor] Render Choices (원문자 버튼, 2-Col Grid)
+// [Refactor] Render Choices (원문자 버튼, 2-Col Grid) — [Fix] labelType(alpha/number) 분기 지원
 function renderChoices(q, choices) {
     const savedAns = examSession.answers[q.id];
-    const cnums = ['①','②','③','④','⑤','⑥'];
+    // [Fix] labelType에 따라 원문자 및 선택값 분기
+    const _lType = q.labelType || 'number';
+    const _alphaCircled = ['Ⓐ','Ⓑ','Ⓒ','Ⓓ','Ⓔ'];
+    const _numCircled   = ['①','②','③','④','⑤','⑥'];
+    const cnums = _lType === 'alpha' ? _alphaCircled : _numCircled;
+    // alpha 모드: 선택값 = A/B/C/D/E, number 모드: 선택값 = 1/2/3/4/5
+    const getVal = (idx) => _lType === 'alpha' ? ['A','B','C','D','E'][idx] : (idx + 1).toString();
     // 선택지 길이 기반 레이아웃: 25자 초과 시 1열, 이하 2열
     const isLong = choices.some(c => c.length > 25);
     const gridClass = isLong ? "grid-cols-1" : "grid-cols-2";
     return `
         <div class="grid ${gridClass} gap-x-6 gap-y-2">
             ${choices.map((choice, idx) => {
-        const num = (idx + 1).toString();
-        const isSel = String(savedAns) === num;
+        const val = getVal(idx);
+        const isSel = String(savedAns) === val;
         const textClass = isSel ? 'text-indigo-700 font-bold' : 'text-slate-700';
-        return `<label class="exam-choice-btn flex items-start gap-2 cursor-pointer p-1 -ml-1 transition-colors" data-qid="${q.id}" data-val="${num}" onclick="selectObjAnswer('${q.id}','${num}')">
+        return `<label class="exam-choice-btn flex items-start gap-2 cursor-pointer p-1 -ml-1 transition-colors" data-qid="${q.id}" data-val="${val}" onclick="selectObjAnswer('${q.id}','${val}')">
                     <span class="exam-circle-num flex-shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center text-[15px] font-bold mt-0.5"
                         style="background:${isSel?'#4f46e5':'#ffffff'};color:${isSel?'#ffffff':'#4f46e5'};border-color:${isSel?'#4f46e5':'#c7d2fe'}"
-                    >${cnums[idx]||num}</span>
+                    >${cnums[idx]||val}</span>
                     <span class="${textClass} text-[14px] leading-snug hover:text-indigo-600 transition-colors mt-1">${choice}</span>
                 </label>`;
     }).join('')}
