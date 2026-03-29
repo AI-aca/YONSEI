@@ -2257,7 +2257,7 @@ function editCat(id) { showCat(id); }
 
 function showCopyCat(srcCatId) {
     const c = document.getElementById('dynamic-content');
-    setCanvasId('09-3');
+    setCanvasId('09-4');
     const srcCat = globalConfig.categories.find(c => c.id === srcCatId);
     if (!srcCat) return showToast('원본 시험지를 찾을 수 없습니다.');
 
