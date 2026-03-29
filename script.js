@@ -4677,108 +4677,116 @@ function renderSectionsBarChart(record, averages, activeSections, secMap, maxMap
 }
 
 // 인쇄 함수 — canvas를 이미지로 변환 후 새 창 출력
-async function printReport() {
+function printReport() {
     const catVal = document.getElementById('report-category')?.value;
     const stuVal = document.getElementById('report-student')?.value;
-    if (!catVal || !stuVal) { showToast('⚠️ 시험지와 학생을 먼저 선택해주세요.'); return; }
+    if (!catVal || !stuVal) {
+        showToast('⚠️ 시험지와 학생을 먼저 선택해주세요.');
+        return;
+    }
 
     // 등록학급 필수 체크
     const clsEl  = document.getElementById('report-student-class');
     let   clsVal = clsEl?.value?.trim() || '';
     if (clsVal === '__RECOMMEND__') { clsVal = clsEl?.dataset?.rec || ''; if (clsEl) clsEl.value = clsVal; }
-    if (!clsVal) { showToast('⚠️ 등록학급을 선택해야 출력할 수 있습니다.'); clsEl?.focus(); return; }
+    if (!clsVal) {
+        showToast('⚠️ 등록학급을 선택해야 출력할 수 있습니다.');
+        clsEl?.focus();
+        return;
+    }
 
-    // AI 종합 코멘트 체크
+    // [Fix] AI 종합 코멘트가 없으면 경고 팝업
     const overallCommentEl = document.getElementById('overall-comment-text');
     const overallTxt = overallCommentEl?.textContent?.trim() || '';
     const aiNotReady = !overallTxt || overallTxt === '분석 대기 중...' || overallTxt === '로딩 중...' || overallTxt === '분석 중...';
     if (aiNotReady) {
-        if (!confirm('⚠️ AI 분석 코멘트가 아직 생성되지 않았습니다.\n\n코멘트 없이 인쇄하시겠습니까?')) return;
+        if (!confirm('⚠️ AI 분석 코멘트가 아직 생성되지 않았습니다.\n\n코멘트 없이 인쇄하시겠습니까?\n("취소"를 눌러 코멘트를 먼저 생성하세요)')) {
+            return;
+        }
     }
 
     const display = document.getElementById('report-display');
     if (!display) return;
 
-    // 1. html2canvas lazy-load
-    if (!window.html2canvas) {
-        await new Promise((res, rej) => {
-            const s = document.createElement('script');
-            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-            s.onload = res; s.onerror = rej;
-            document.head.appendChild(s);
-        });
-    }
+    // 1. 현재 페이지의 CSS 수집
+    const styles = Array.from(document.styleSheets).map(ss => {
+        try { return Array.from(ss.cssRules).map(r => r.cssText).join('\n'); }
+        catch(e) { return ''; }
+    }).join('\n');
 
-    // 2. 문항 상세 표시 여부 확인 후 숨김 요소 일시 보이기
+    // 2. 모든 chart canvas를 PNG 이미지 데이터로 변환
+    const canvasIds = ['chart-total', 'chart-sections-bar', 'chart-radar'];
+    const imgDataMap = {};
+    canvasIds.forEach(id => {
+        const cvs = document.getElementById(id);
+        if (cvs) {
+            imgDataMap[id] = {
+                dataUrl: cvs.toDataURL('image/png'),
+                width: cvs.offsetWidth,
+                height: cvs.offsetHeight
+            };
+        }
+    });
+
+    // 3. display 내부 HTML 클론 후 canvas → img 교체
+    const clone = display.cloneNode(true);
+    canvasIds.forEach(id => {
+        const canvasEl = clone.querySelector('#' + id);
+        if (canvasEl && imgDataMap[id]) {
+            const img = document.createElement('img');
+            img.src = imgDataMap[id].dataUrl;
+            img.style.width = '100%';
+            img.style.height = 'auto';
+            img.style.display = 'block';
+            img.style.maxHeight = (canvasEl.style.maxHeight || '400px');
+            img.style.objectFit = 'contain';
+            canvasEl.parentNode.replaceChild(img, canvasEl);
+        }
+    });
+
+    // 3b. 인쇄 불필요 요소 제거
     const isDetailChecked = document.getElementById('chk-qdetail')?.checked || false;
-    const hiddenEls = [];
-    if (isDetailChecked) {
-        display.querySelectorAll('[id^="qdetail-"]').forEach(el => {
-            if (el.classList.contains('hidden')) { el.classList.remove('hidden'); hiddenEls.push(el); }
-        });
-    }
+    const chkRow = clone.querySelector('#qdetail-checkbox-row');
+    if (chkRow) chkRow.remove();
+    clone.querySelectorAll('[id^="qdetail-"]').forEach(el => {
+        if (isDetailChecked) { el.classList.remove('hidden'); el.style.display = ''; }
+        else { el.remove(); }
+    });
+    clone.querySelectorAll('p').forEach(p => {
+        const txt = p.textContent.trim();
+        if (txt === '분석 대기 중...' || txt === '로딩 중...' || txt === '분석 중...') {
+            const parent = p.closest('div');
+            if (parent) parent.remove(); else p.remove();
+        }
+    });
 
-    // 3. no-print 요소 일시 숨김
-    const noPrintEls = Array.from(display.querySelectorAll('.no-print'));
-    noPrintEls.forEach(el => { el.dataset._wasVisible = el.style.display || ''; el.style.display = 'none'; });
-    // 체크박스 행 숨김
-    const chkRow = display.querySelector('#qdetail-checkbox-row');
-    if (chkRow) chkRow.style.display = 'none';
-
-    // 4. 등록학급 select → span 임시 교체
-    const _clsSel = display.querySelector('#report-student-class');
-    let _clsSelParent = null, _clsSelNext = null;
+    // 3b-2. 등록권장 학급 <select> → span으로 교체
+    const _clsSel = clone.querySelector('#report-student-class');
     if (_clsSel) {
-        _clsSelParent = _clsSel.parentNode; _clsSelNext = _clsSel.nextSibling;
         const _clsSpan = document.createElement('span');
-        _clsSpan.id = '__cls_print_span__';
-        _clsSpan.style.cssText = 'font-size:20px;font-weight:900;color:#013976;background:white;display:inline-flex;align-items:center;justify-content:center;min-width:80px;padding:0 12px;height:100%;';
+        _clsSpan.style.cssText = 'font-size:20px;font-weight:900;color:#013976;background:white;display:inline-flex;align-items:center;justify-content:center;min-width:80px;padding:0 12px;height:100%;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
         _clsSpan.textContent = clsVal || '미선택';
-        _clsSelParent.insertBefore(_clsSpan, _clsSel);
-        _clsSel.style.display = 'none';
+        _clsSel.parentNode.replaceChild(_clsSpan, _clsSel);
     }
 
-    // 5. html2canvas 옵션
-    const h2cOpts = { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false };
+    // 3c. 영역별 코멘트 앞 페이지 강제 분리
+    const sectionsWrapper = clone.querySelector('#sections-container')?.parentElement;
+    if (sectionsWrapper) sectionsWrapper.style.cssText = (sectionsWrapper.style.cssText||'') + ';page-break-before:always;break-before:page;';
 
-    // 6. 섹션 파악
-    const sectionsParentEl = display.querySelector('#sections-container')?.parentElement; // space-y-4 w-full
-    const aiH4 = Array.from(display.querySelectorAll('h4')).find(h => h.textContent.includes('종합분석'));
-    const aiSectionEl = aiH4?.closest('div[class]');
-
-    // 7. 1페이지 섹션 캡처 (card 직접 자식 중 sections-container 부모 이전까지)
-    const cardEl = display.firstElementChild; // div.card
-    const p1Imgs = [];
-    for (const child of Array.from(cardEl ? cardEl.children : display.children)) {
-        if (child.id === 'qdetail-checkbox-row') continue;
-        if (child === sectionsParentEl) break;
-        if (sectionsParentEl && child.contains(sectionsParentEl)) break;
-        const cv = await html2canvas(child, h2cOpts);
-        p1Imgs.push(cv.toDataURL('image/png'));
+    // 3d. AI 종합 분석 섹션 앞 페이지 강제 분리
+    const aiHeader = Array.from(clone.querySelectorAll('h4')).find(h => h.textContent.includes('종합분석'));
+    if (aiHeader) {
+        const aiSection = aiHeader.closest('div[class]');
+        if (aiSection) aiSection.style.cssText += ';page-break-before:always;break-before:page;';
     }
 
-    // 8. 영역별 카드 캡처 (sections-container의 직접 자식 각각)
-    const sectionCards = Array.from(display.querySelectorAll('#sections-container > div'));
-    const sCardImgs = [];
-    for (const card of sectionCards) {
-        const cv = await html2canvas(card, h2cOpts);
-        sCardImgs.push(cv.toDataURL('image/png'));
-    }
+    // 3e. 차트 컨테이너 페이지 분리 방지
+    clone.querySelectorAll('canvas, img').forEach(el => {
+        el.style.pageBreakInside = 'avoid';
+        if (el.parentElement) el.parentElement.style.pageBreakInside = 'avoid';
+    });
 
-    // 9. AI 종합분석 캡처
-    let aiImg = null;
-    if (aiSectionEl) {
-        const cv = await html2canvas(aiSectionEl, h2cOpts);
-        aiImg = cv.toDataURL('image/png');
-    }
-
-    // 10. DOM 복원
-    hiddenEls.forEach(el => el.classList.add('hidden'));
-    noPrintEls.forEach(el => { el.style.display = el.dataset._wasVisible || ''; delete el.dataset._wasVisible; });
-    if (chkRow) chkRow.style.display = '';
-    if (_clsSel) { _clsSel.style.display = ''; const _sp = display.querySelector('#__cls_print_span__'); if (_sp) _sp.remove(); }
-
-    // 11. 배너 HTML
+    // 4. 배너 HTML
     const bannerHtml = globalConfig.banner
         ? `<div style="position:fixed;bottom:0;right:0;width:50%;z-index:9999;">
                <img src="${getSafeImageUrl(globalConfig.banner)}" alt="Report Banner"
@@ -4786,45 +4794,59 @@ async function printReport() {
            </div>`
         : '';
 
-    // 12. 팝업 열기
+    // 5. 팝업 열기
     const _dispW = display.offsetWidth || 900;
     const _popW  = Math.max(900, Math.min(_dispW + 80, 1400));
     const win = window.open('', '_blank', `width=${_popW},height=1200`);
     if (!win) { showToast('⚠️ 팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도해주세요.'); return; }
-
-    const iS = 'width:100%;height:auto;display:block;page-break-inside:avoid;margin-bottom:8px;';
-    const pB = '<div style="page-break-before:always;"></div>';
-
-    let bodyHtml = p1Imgs.map(src => `<img src="${src}" style="${iS}">`).join('');
-    if (sCardImgs.length) bodyHtml += pB + sCardImgs.map(src => `<img src="${src}" style="${iS}">`).join('');
-    if (aiImg) bodyHtml += pB + `<img src="${aiImg}" style="${iS}">`;
-
     win.document.write(`<!DOCTYPE html>
 <html><head>
 <meta charset="UTF-8">
 <title>성적표 인쇄</title>
+<script>
+(function(){
+  const _f=a=>a[0]&&typeof a[0]==='string'&&a[0].includes('cdn.tailwindcss.com');
+  const _w=console.warn;console.warn=function(...a){if(_f(a))return;_w.apply(console,a);};
+  const _l=console.log;console.log=function(...a){if(_f(a))return;_l.apply(console,a);};
+})();
+<\/script>
+<script src="https://cdn.tailwindcss.com"><\/script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap">
 <style>
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  body { margin:0; padding:16px 24px 160px; background:#fff; }
+  body { font-family: 'Noto Sans KR', sans-serif; background:#fff; margin:0; padding:24px 32px 160px; color:#1e293b; }
   img { max-width:100%; }
-  @media print { @page { margin:12mm; } body { padding-bottom:140px; } }
+  .no-print { display:none !important; }
+  @media print {
+    @page { margin:12mm; margin-bottom:38mm; }
+    body { padding-bottom:140px; }
+    .card, section, [class*='rounded'] { page-break-inside: avoid; }
+    h4 { page-break-after: avoid; }
+  }
+  ${styles}
 </style>
 </head><body>
-${bodyHtml}
+${clone.innerHTML}
 ${bannerHtml}
-<script>window.onload=function(){setTimeout(function(){window.print();},800);};<\/script>
+<script>
+window.onload = function() { setTimeout(function(){ window.print(); }, 800); };
+<\/script>
 </body></html>`);
     win.document.close();
 
-    // 13. 등록학급 DB 저장
+    // 6. 등록학급 DB 저장
     if (clsVal) {
-        const stuId = document.getElementById('report-student')?.value;
-        const catId = document.getElementById('report-category')?.value;
-        const cat   = globalConfig.categories?.find(c => c.id === catId);
+        const stuId  = document.getElementById('report-student')?.value;
+        const catId  = document.getElementById('report-category')?.value;
+        const cat    = globalConfig.categories?.find(c => c.id === catId);
         if (stuId && cat) {
-            sendReliableRequest({ type: 'SAVE_STUDENT_CLASS', parentFolderId: extractFolderId(cat.targetFolderUrl), studentId: stuId, studentClass: clsVal })
-                .then(() => showToast(`💾 등록학급 '${clsVal}' 저장 완료`))
-                .catch(e  => console.warn('등록학급 저장 실패:', e));
+            sendReliableRequest({
+                type: 'SAVE_STUDENT_CLASS',
+                parentFolderId: extractFolderId(cat.targetFolderUrl),
+                studentId:      stuId,
+                studentClass:   clsVal
+            }).then(() => showToast(`💾 등록학급 '${clsVal}' 저장 완료`))
+              .catch(e  => console.warn('등록학급 저장 실패:', e));
         }
     }
 }
