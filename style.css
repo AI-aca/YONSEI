@@ -1,4 +1,4 @@
-﻿        /*
+        /*
 ========================================================================================
 🚨 [CRITICAL WARNING] - DO NOT EDIT WITHOUT READING 'PRE_WORK_CHECKLIST.md' 🚨
 모든 수정/보완/지시 수행 전, 반드시 프로젝트 루트의 `PRE_WORK_CHECKLIST.md`를 읽고
@@ -279,6 +279,12 @@
             margin-left: 0;
             /* 사이드바 없을 때 */
             transition: margin-left 0.3s ease;
+            scrollbar-width: none;        /* Firefox */
+            -ms-overflow-style: none;     /* IE/Edge */
+        }
+
+        #app-canvas::-webkit-scrollbar {
+            display: none;                /* Chrome/Safari */
         }
 
         /* 사이드바가 보일 때 캔버스 밀기 -> Flex 구조이므로 자동 처리됨 */
