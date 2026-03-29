@@ -2321,16 +2321,16 @@ function showCopyCat(srcCatId) {
                     <div class="flex flex-col items-center gap-4 flex-shrink-0 w-44 border-r border-slate-200 pr-6">
                         <div class="w-20 h-20 bg-slate-50 rounded-2xl flex items-center justify-center text-4xl shadow-inner">📋</div>
                         <h2 class="fs-18 text-[#013976] uppercase text-center font-black tracking-tight leading-tight">COPY EXAM</h2>
-                        <p style="font-size:14px;" class="text-slate-500 text-center">원본: <b>${srcCat.name}</b></p>
+                        <p style="font-size:14px;" class="text-slate-500 text-center">원본<br><b>${srcCat.name}</b></p>
                         <div class="w-full space-y-2 bg-slate-50 rounded-xl p-3 border border-slate-200">
-                            <label class="ys-label font-bold !mb-1">📦 복사할 데이터</label>
+                            <label class="ys-label font-bold !mb-1 text-center">📦 복사<br>데이터 선택</label>
                             <label class="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" id="copy-copyQ" checked class="w-5 h-5 accent-blue-600">
-                                <span class="fs-14 font-medium text-slate-700">통합DB (문항 데이터)</span>
+                                <span class="fs-14 font-medium text-slate-700">통합DB<br><span class="text-slate-500">(문항 데이터)</span></span>
                             </label>
                             <label class="flex items-center gap-3 cursor-pointer mt-1">
                                 <input type="checkbox" id="copy-copyS" class="w-5 h-5 accent-purple-600">
-                                <span class="fs-14 font-medium text-slate-700">학생DB (응시 기록)</span>
+                                <span class="fs-14 font-medium text-slate-700">학생DB<br><span class="text-slate-500">(응시 데이터)</span></span>
                             </label>
                         </div>
                     </div>
