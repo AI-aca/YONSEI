@@ -4,7 +4,25 @@
 
 
 
+## 2026-03-29 (추가 작업 5차 - 저녁 3)
+
+### Canvas 05-1: 저장 버튼 + 코멘트 편집창 개선
+- **저장 버튼 추가** (인쇄 버튼 왼쪽)
+  - `saveReportData()` 함수 신규: 등록학급(`SAVE_STUDENT_CLASS`) + 코멘트(`SAVE_AI_COMMENT`) DB 저장
+  - `_dirtyClass` / `_dirtyComment` 세분화 플래그로 **변경된 항목만** 저장
+  - printReport 자동 저장 로직 제거 → 저장은 저장 버튼으로만
+- **변경 감지** `_dirtyClass` / `_dirtyComment`
+  - `warnClassChange05` → `_dirtyClass = true`
+  - `editComment` → `_dirtyComment = true`
+  - `cancelCommentEdit` → `_dirtyComment = false`
+  - `saveCommentEdit` 서버 성공 → `_dirtyComment = false`
+  - `renderReportCard` 로드 시 → 양쪽 모두 false
+- **인쇄 버튼**: `_dirtyClass || _dirtyComment` 이면 확인창 → 확인 시 인쇄
+- **코멘트 편집창 rows 동적 설정**: `Math.max(최소값, 줄수+1)` → 편집창 크기 레이아웃 점프 해결
+- **결과**: Git `58b5d1a` → `4329da4` → `5380d4d` → `8888cb0`
+
 ## 2026-03-29 (추가 작업 4차 - 저녁 2)
+
 
 ### printReport 롤백 + 인쇄 UI 전면 개선
 - **지시**: 성적표 인쇄 화면이 작동 불안정 → html2canvas 신버전 제거, 구버전(DOM 클론 방식)으로 롤백
