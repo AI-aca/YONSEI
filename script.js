@@ -8156,7 +8156,7 @@ function renderEditForm(qId) {
                  <!-- Center: Hidden Toolbar -->
                  <div class="flex items-center gap-2 flex-1 justify-center opacity-50 pointer-events-none select-none">
                      <span class="text-sm font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
-                         ℹ️ 수정 모드에서는 해당 문항 및 소속 지문만 수정 가능합니다.
+                         ✏️ 연결된 번들(지문)과 선택 문항만 수정 가능 (연결 번호는 불가)
                      </span>
                  </div>
                 
