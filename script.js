@@ -4817,6 +4817,7 @@ function printReport() {
   body { font-family: 'Noto Sans KR', sans-serif; background:#fff; margin:0; padding:24px 32px 160px; color:#1e293b; }
   img { max-width:100%; }
   .no-print { display:none !important; }
+  .fs-15 { font-size: 13px !important; line-height: 1.6; }
   @media print {
     @page { margin:12mm; }
     body { padding-bottom:140px; }
