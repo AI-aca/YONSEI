@@ -8468,7 +8468,7 @@ async function collectBuilderData() {
         const id = block.id;
 
         if (type === 'bundle' || type === 'passage') {
-            const groupId = block.getAttribute('data-group-id') || generateUUID();
+            const groupId = block.getAttribute('data-group-id') || block.id || generateUUID(); // [Fix] block.id = 원본 UUID 우선
             // Use data-field selectors
             const title = block.querySelector('[data-field="title"]')?.value || '';
             const html = stripTwStyles(block.querySelector('[data-field="html"]')?.innerHTML || '');
