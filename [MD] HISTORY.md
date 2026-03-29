@@ -65,7 +65,14 @@
 - 1번 문구: 시험지명/학생명/학년 동적 표시
 - 오디오 테스트: 8.5초 → 6.5초
 - **`preloadBundleAudios` catId 필터 수정**: 기존 전체 번들 로드 → 해당 시험지 번들만 로드 (`b.catId === catId` 필터 추가)
-- **Git**: `1e152b5` → `95f067e`
+- **Canvas 02 흐름 preload 버그 수정**: Canvas 02에서 GET_FULL_DB 미호출로 catId 없던 문제 → renderExamInstructions에서 직접 GET_FULL_DB 호출 후 catId 주입 → preload
+- **Git**: `1e152b5` → `fdf22bf`
+
+### Canvas 05: AI 코멘트 생성/재생성 시 _dirtyComment 누락 수정
+- 기존: `editComment`(수동 편집)에만 `_dirtyComment = true` 설정됨
+- **추가**: `triggerAIAnalysis`, `regenerateSectionComment`, `regenerateOverallComment` 완료 시 `_dirtyComment = true` 추가
+- 효과: AI 코멘트 생성 후 인쇄 시 "저장 후 인쇄 권장" confirm 창 정상 표시
+- **Git**: `b3f049b`
 
 ---
 
