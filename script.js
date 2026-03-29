@@ -3997,7 +3997,7 @@ function renderRecords(c) {
                     <div class="space-y-3">
                         <label class="ys-label !mb-0 !text-[#013976] font-bold">🎓 학년 선택</label>
                         <select id="report-grade" onchange="onReportGradeChange();" class="ys-field w-full !font-normal !text-[#013976] !bg-white !text-[16px]" disabled>
-                            <option value="" disabled selected hidden>년도 먼저 선택</option>
+                            <option value="" disabled selected hidden>시험지를 먼저 선택</option>
                         </select>
                     </div>
                 </div>
@@ -4078,7 +4078,7 @@ async function onReportCategoryChange() {
     const gradeSel = document.getElementById('report-grade');
     const stuSel   = document.getElementById('report-student');
     if (yearSel)  { yearSel.innerHTML  = '<option value="" disabled selected hidden>불러오는 중...</option>'; yearSel.disabled  = true; }
-    if (gradeSel) { gradeSel.innerHTML = '<option value="" disabled selected hidden>년도 먼저 선택</option>';  gradeSel.disabled = true; }
+    if (gradeSel) { gradeSel.innerHTML = '<option value="" disabled selected hidden>시험지를 먼저 선택</option>';  gradeSel.disabled = true; }
     if (stuSel)   { stuSel.innerHTML   = '<option value="" disabled selected hidden>학생을 선택하세요</option>'; stuSel.disabled   = true; }
     const rpt = document.getElementById('report-display');
     if (rpt) rpt.innerHTML = '';
