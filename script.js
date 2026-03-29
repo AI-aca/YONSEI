@@ -8505,9 +8505,8 @@ async function loadQuestionsFromCategory(catId) {
             if (q.setId && q.setId !== "") {
                 if (!bundleMap.has(q.setId)) {
                     // Find Bundle Info
-                    const bundleInfo = fetchedBundles.find(b => b.id === q.setId);
+                    let bundleInfo = fetchedBundles.find(b => b.id === q.setId);
 
-                    // [Fix] Sanitize Passage (Empty HTML Check)
                     // [Fix] imgUrl이 HTML이면 text로 교정 (컬럼 오염 복구)
                     if (bundleInfo?.imgUrl && bundleInfo.imgUrl.trim().startsWith('<')) {
                         if (!bundleInfo.text) bundleInfo = { ...bundleInfo, text: bundleInfo.imgUrl };
