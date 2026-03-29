@@ -637,15 +637,9 @@ else if (data.type === "GET_AUDIO_B64") {
         var sheetQ = getOrCreateSheet(dbSpreadsheet, "Questions");
         var sheetB = getOrCreateSheet(dbSpreadsheet, "Bundles");
         
-        // 3. 헤더 설정 (A탭: 문항) - [REFACTORED SCHEMA v2]
-        if (sheetQ.getLastRow() === 0) {
-            sheetQ.appendRow([
-                "문항번호", "영역", "세부영역", "문항유형", "난이도", 
-                "배점", "질문 내용", "지문 내용", "이미지URL", "보기(JSON)", "정답", "모범답안",
-                "세트번호", "라벨타입"
-            ]);
-            sheetQ.getRange("A1:N1").setFontWeight("bold").setBackground("#4A90E2").setFontColor("#FFFFFF");
-        }
+        // 3. 헤더 설정 (A탭: 문항) — [Fix] 항상 덮어쓰기 (컬럼 추가 시 자동 반영)
+        sheetQ.getRange("A1:N1").setValues([["문항번호","영역","세부영역","문항유형","난이도","배점","질문 내용","지문 내용","이미지URL","보기(JSON)","정답","모범답안","세트번호","라벨타입"]]);
+        sheetQ.getRange("A1:N1").setFontWeight("bold").setBackground("#4A90E2").setFontColor("#FFFFFF");
         
         // 4. 헤더 설정 (B탭: 묶음)
         if (sheetB.getLastRow() === 0) {
