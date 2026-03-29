@@ -2907,6 +2907,7 @@ function warnClassChange05(sel) {
         if (!ok) { sel.value = rec; }
     }
     rerenderReportCharts();
+    window._reportDirty = true;
 }
 
 // 성적표 평균 표시 모드 변경
@@ -3796,7 +3797,10 @@ function renderRecords(c) {
         <div class="animate-fade-in-safe space-y-6">
             <div class="relative no-print">
                 <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">Individual Reports</h2>
-                <button onclick="printReport()" class="absolute right-0 flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-700 text-white font-bold fs-15 hover:bg-slate-900 transition-all active:scale-95 shadow" style="top:50%; transform:translateY(-50%);">🖨️ 인쇄</button>
+                <div class="absolute right-0 flex items-center gap-2" style="top:50%; transform:translateY(-50%);">
+                    <button onclick="saveReportData()" id="btn-save-report" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-[#013976] text-white font-bold fs-15 hover:bg-[#012456] transition-all active:scale-95 shadow">💾 저장</button>
+                    <button onclick="printReport()" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-700 text-white font-bold fs-15 hover:bg-slate-900 transition-all active:scale-95 shadow">🖨️ 인쇄</button>
+                </div>
             </div>
 
             <!-- 시험지 · 년도 · 학년 · 학생 선택 (4단계 계단식) -->
@@ -4351,6 +4355,7 @@ async function callGeminiAPI(prompt, silent = false, imageUrls = []) {
 function renderReportCard(record, averages, sectionComments, overallComment, activeSections, notes) {
     const display = document.getElementById('report-display');
     if (!display) return;
+    window._reportDirty = false;
 
     setCanvasId('05-1'); // 개인 성적표 캔버스
 
@@ -4677,12 +4682,52 @@ function renderSectionsBarChart(record, averages, activeSections, secMap, maxMap
 }
 
 // 인쇄 함수 — canvas를 이미지로 변환 후 새 창 출력
+// 저장 버튼: 등록학급 + 코멘트 DB 저장
+function saveReportData() {
+    const catVal = document.getElementById('report-category')?.value;
+    const stuVal = document.getElementById('report-student')?.value;
+    if (!catVal || !stuVal) { showToast('\u26a0\ufe0f \uc2dc\ud5d8\uc9c0\uc640 \ud559\uc0dd\uc744 \uba3c\uc800 \uc120\ud0dd\ud574\uc8fc\uc138\uc694.'); return; }
+    const cat = globalConfig.categories?.find(c => c.id === catVal);
+    const folderId = cat ? extractFolderId(cat.targetFolderUrl) : null;
+    if (!folderId) { showToast('\u26a0\ufe0f \ud3f4\ub354 \uc815\ubcf4\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.'); return; }
+    const clsVal = document.getElementById('report-student-class')?.value;
+    const btn = document.getElementById('btn-save-report');
+    if (btn) { btn.disabled = true; btn.textContent = '\uc800\uc7a5 \uc911...'; }
+    const promises = [];
+    if (clsVal && clsVal !== '__RECOMMEND__') {
+        promises.push(sendReliableRequest({
+            type: 'SAVE_STUDENT_CLASS',
+            parentFolderId: folderId,
+            studentId: stuVal,
+            studentClass: clsVal
+        }));
+    }
+    if (window.currentReportData) {
+        promises.push(sendReliableRequest({
+            type: 'SAVE_AI_COMMENT',
+            parentFolderId: folderId,
+            studentId: stuVal,
+            overallComment: window.currentReportData.overallComment,
+            sectionComments: window.currentReportData.sectionComments,
+            notes: window.currentReportData.notes
+        }));
+    }
+    Promise.all(promises)
+        .then(() => { window._reportDirty = false; showToast('\ud83d\udcbe \uc800\uc7a5 \uc644\ub8cc!'); })
+        .catch(e  => { console.warn('\uc800\uc7a5 \uc2e4\ud328:', e); showToast('\u274c \uc800\uc7a5 \uc2e4\ud328. \ub2e4\uc2dc \uc2dc\ub3c4\ud574\uc8fc\uc138\uc694.'); })
+        .finally(() => { if (btn) { btn.disabled = false; btn.textContent = '\ud83d\udcbe \uc800\uc7a5'; } });
+}
+
 function printReport() {
     const catVal = document.getElementById('report-category')?.value;
     const stuVal = document.getElementById('report-student')?.value;
     if (!catVal || !stuVal) {
         showToast('⚠️ 시험지와 학생을 먼저 선택해주세요.');
         return;
+    }
+    if (window._reportDirty) {
+        const ok = confirm('변경사항이 감지되었습니다.\n저장 후 인쇄를 권장합니다.\n\n그래도 인쇄하시겠습니까?');
+        if (!ok) return;
     }
 
     // 등록학급 필수 체크
@@ -4841,22 +4886,8 @@ window.onload = function() { setTimeout(function(){ window.print(); }, 800); };
 </body></html>`);
     win.document.close();
 
-    // 6. 등록학급 DB 저장
-    if (clsVal) {
-        const stuId  = document.getElementById('report-student')?.value;
-        const catId  = document.getElementById('report-category')?.value;
-        const cat    = globalConfig.categories?.find(c => c.id === catId);
-        if (stuId && cat) {
-            sendReliableRequest({
-                type: 'SAVE_STUDENT_CLASS',
-                parentFolderId: extractFolderId(cat.targetFolderUrl),
-                studentId:      stuId,
-                studentClass:   clsVal
-            }).then(() => showToast(`💾 등록학급 '${clsVal}' 저장 완료`))
-              .catch(e  => console.warn('등록학급 저장 실패:', e));
-        }
-    }
 }
+
 
 // 레이더 차트 — 정답률(%) 기준으로 정규화 (만점 다른 영역 공정 비교)
 function renderRadarChart(record, averages, activeSections, secMap, maxMap, classAvg, mode) {
@@ -5014,6 +5045,7 @@ async function regenerateSectionComment(section) {
 
 // AI 코멘트 인라인 편집
 function editComment(type, section) {
+    window._reportDirty = true;
     if (type === 'overall') {
         const el = document.getElementById('overall-comment-text');
         if (!el) return;
@@ -5094,7 +5126,7 @@ function saveCommentEdit(type, section) {
                 overallComment: window.currentReportData.overallComment,
                 sectionComments: window.currentReportData.sectionComments,
                 notes: window.currentReportData.notes // 비고란 추가
-            }).then(() => showToast('💾 서버에 저장되었습니다.'))
+            }).then(() => { window._reportDirty = false; showToast('💾 서버에 저장되었습니다.'); })
               .catch(e => console.warn('개별 저장 중 GAS 통신 실패:', e));
         }
     }
