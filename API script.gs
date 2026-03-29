@@ -834,10 +834,38 @@ else if (data.type === "GET_AUDIO_B64") {
     else if (data.type === "CALL_GEMINI") {
         var apiKey = data.key;
         var prompt = data.prompt;
+        var imageUrls = data.imageUrls || [];
         
         if (!apiKey) throw new Error("API Key is missing.");
-        
-        // List of models to try in order (Updated based on Diagnostic: User has access to 2.0/Latest)
+
+        // [Fix] 이미지 파트 구성 (Drive 파일 직접 읽기 → base64 inlineData)
+        var parts = [{ text: prompt }];
+        if (imageUrls.length > 0) {
+            imageUrls.forEach(function(imgUrl) {
+                try {
+                    var blob;
+                    // Drive 파일 ID 추출 시도
+                    var fileId = null;
+                    var idMatch = imgUrl.match(/[?&]id=([^&]+)/);
+                    if (!idMatch) idMatch = imgUrl.match(/\/file\/d\/([^\/\?]+)/);
+                    if (!idMatch) idMatch = imgUrl.match(/\/open\?id=([^&]+)/);
+                    if (idMatch) fileId = idMatch[1];
+
+                    if (fileId) {
+                        blob = DriveApp.getFileById(fileId).getBlob();
+                    } else {
+                        blob = UrlFetchApp.fetch(imgUrl, { muteHttpExceptions: true }).getBlob();
+                    }
+                    var base64 = Utilities.base64Encode(blob.getBytes());
+                    var mime = blob.getContentType() || "image/jpeg";
+                    parts.push({ inlineData: { mimeType: mime, data: base64 } });
+                } catch (imgErr) {
+                    Logger.log("이미지 로드 실패: " + imgUrl + " - " + imgErr.toString());
+                }
+            });
+        }
+
+        // List of models to try in order
         var models = [
             "gemini-2.0-flash",
             "gemini-2.0-flash-lite",
@@ -855,7 +883,7 @@ else if (data.type === "GET_AUDIO_B64") {
             var options = {
                 'method': 'post',
                 'contentType': 'application/json',
-                'payload': JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+                'payload': JSON.stringify({ contents: [{ parts: parts }] }),
                 'muteHttpExceptions': true
             };
             

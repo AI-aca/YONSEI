@@ -1317,12 +1317,19 @@ async function callGeminiAPI(prompt, silent = false) {
 // [New] AI 자동 채점 핵심 로직
 async function gradeWithAI(q, userAns) {
     if (!userAns) return { score: 0, feedback: "답안이 입력되지 않았습니다." };
-    if (!globalConfig.geminiKey) return null; // Fallback
+    if (!globalConfig.geminiKey) return null;
 
-    // [Fix] 묶음 지문 + 개별 지문을 AI에게 전달
+    // 묶음 지문 + 개별 지문 텍스트
     const bundleText = q.bundlePassageText || '';
     const passageText = q.passage1 || q.text || '';
     const fullContext = bundleText ? '[묶음 지문]\n' + bundleText + '\n\n[개별 문항 지문]\n' + passageText : passageText;
+
+    // [Fix] 이미지 URL 수집 (문항 이미지 + 번들 이미지) — GAS에서 Drive 파일로 읽어 AI에 전달
+    const imageUrls = [];
+    if (q.qImg && q.qImg.trim()) imageUrls.push(q.qImg.trim());
+    if (q.bundleImgUrl && q.bundleImgUrl.trim()) imageUrls.push(q.bundleImgUrl.trim());
+
+    const hasImages = imageUrls.length > 0;
 
     const prompt = `
 [AI Online Grading Request]
@@ -1334,9 +1341,10 @@ async function gradeWithAI(q, userAns) {
  학생 답안: ${userAns}
  배점: ${q.score}
 ${fullContext ? ' 지문(문맥):\n' + fullContext : ''}
+${hasImages ? ' [이미지 첨부됨: 위 이미지들을 반드시 참고하여 채점하세요]' : ''}
 
 [Instructions]
-1. 위 지문(문맥)을 반드시 읽고, 학생의 답안이 빈칸/문맥에 알맞은지 판단하세요.
+1. 위 지문(문맥)${hasImages ? '과 첨부 이미지' : ''}을 반드시 읽고, 학생의 답안이 빈칸/문맥에 알맞은지 판단하세요.
 2. 학생의 답안이 정답/모범 답안과 의미적으로 일치하는지 분석하세요.
 3. [주관형]: 스펠링이 약간 틀리거나 동의어를 사용했더라도 전체적인 의미가 맞다면 정답(만점)으로 인정합니다. 아포스트로피와 백틱은 동일한 문자로 간주하세요.
 4. [작문형]: 문맥, 문법, 핵심 단어 포함 여부를 종합 평가하여 0점에서 배점 사이의 점수를 부여하세요.
@@ -1346,7 +1354,7 @@ ${fullContext ? ' 지문(문맥):\n' + fullContext : ''}
     `;
 
     try {
-        const res = await callGeminiAPI(prompt, true); // Silent mode for batch
+        const res = await callGeminiAPI(prompt, true, imageUrls); // 이미지 URL 전달
         if (!res) return null;
         const cleanRes = res.replace(/```json|```/g, "").trim();
         return JSON.parse(cleanRes);
@@ -3616,61 +3624,83 @@ async function submitExam() {
                 if (bundle) {
                     copy.bundlePassageText = bundle.text;
                     copy.commonTitle = bundle.title;
+                    copy.bundleImgUrl = bundle.imgUrl || ''; // [Fix] 번들 이미지 URL 주입
                 }
             }
             return copy;
         });
 
-        questions.forEach(q => {
+        for (const q of questions) {
             const studentAns = examSession.answers[q.id] || "";
+            let earnedScore = 0;
             let isCorrect = false;
-            let score = parseInt(q.score) || 0;
+            const maxQ = parseInt(q.score) || 0;
             const correctAns = String(q.answer || '').trim();
 
             if (q.type === '객관형') {
+                // 객관형: 단순 문자열 비교
                 isCorrect = String(studentAns).trim() === String(q.answer).trim();
+                earnedScore = isCorrect ? maxQ : 0;
             } else {
-                // 주관형: 복수 정답(콤마 구분) 처리, 모범답안 유형은 채점 건너뜀
-                if (!correctAns || correctAns.includes('모범') || correctAns.length > 80) {
-                    // 모범답안 참고형 → 교사 채점 필요, 일단 0점
+                // 주관형 1단계: 키워드 매칭 (대소문자·띄어쓰기·구두점·en dash 무시)
+                if (!studentAns.trim()) {
                     isCorrect = false;
+                    earnedScore = 0;
                 } else if (correctAns) {
-                    // 관대한 키워드 매칭 (대소문자·띄어쓰기·구두점 무시)
-                    const normalize = s => s.toLowerCase().replace(/[\s,.\-_'"!?;:()`\u2018\u2019\u201C\u201D]/g, '').trim();
+                    const normalize = s => s.toLowerCase().replace(/[\s,.\-_'"!?;:()`\u2013\u2014\u2018\u2019\u201C\u201D]/g, '').trim();
                     const acceptableAnswers = correctAns.split(',').map(a => normalize(a));
                     const normalizedStudentAns = normalize(String(studentAns));
-                    isCorrect = acceptableAnswers.includes(normalizedStudentAns);
+                    isCorrect = acceptableAnswers.some(a => a && normalizedStudentAns.includes(a)) || acceptableAnswers.includes(normalizedStudentAns);
+                    earnedScore = isCorrect ? maxQ : 0;
+                }
+
+                // 주관형 2단계: 키워드 매칭 실패 시 AI 채점
+                if (!isCorrect && studentAns.trim() && globalConfig.geminiKey) {
+                    try {
+                        const aiResult = await gradeWithAI(q, studentAns);
+                        if (aiResult && aiResult.score !== undefined) {
+                            earnedScore = Math.min(Math.max(0, Math.round(aiResult.score)), maxQ);
+                            isCorrect = earnedScore >= maxQ;
+                            console.log(`✅ AI 채점 [문항 ${q.no}]: ${earnedScore}/${maxQ} (${aiResult.feedback})`);
+                        }
+                    } catch (aiErr) {
+                        console.warn(`⚠️ AI 채점 실패 [문항 ${q.no}]:`, aiErr.message);
+                    }
                 }
             }
 
-            if (isCorrect) totalScore += score;
-            maxScore += score;
+            totalScore += earnedScore;
+            maxScore += maxQ;
 
-            // Section Stats
+            // 영역별 집계
             const sec = q.section || 'Reading';
             if (sections[sec]) {
-                if (isCorrect) sections[sec].score += score;
-                sections[sec].max += score;
+                sections[sec].score += earnedScore;
+                sections[sec].max += maxQ;
             }
 
-            // Difficulty Stats
+            // 난이도별 집계
             const diff = q.difficulty || '중';
             if (difficulties[diff]) {
-                if (isCorrect) difficulties[diff].score += score;
-                difficulties[diff].max += score;
+                difficulties[diff].score += earnedScore;
+                difficulties[diff].max += maxQ;
             }
 
             questionScores.push({
                 no: q.no,
                 id: q.id,
                 type: q.type,
+                section: sec,
+                difficulty: diff,
                 correct: isCorrect,
                 studentAnswer: studentAns,
                 correctAnswer: q.answer,
-                score: isCorrect ? score : 0,
-                maxScore: score
+                score: earnedScore,
+                maxScore: maxQ,
+                _gradingV2: true
             });
-        });
+        }
+
 
         // Prepare Payload
         const category = globalConfig.categories.find(c => String(c.id) === String(examSession.categoryId));
@@ -4249,21 +4279,21 @@ async function generateSectionComments(record, averages, activeSections) {
 
 // Gemini API 호출
 // Gemini API 호출 (Fixed Scope & Backend Proxy)
-async function callGeminiAPI(prompt, silent = false) {
+async function callGeminiAPI(prompt, silent = false, imageUrls = []) {
     if (!globalConfig.geminiKey) {
         if (!silent) showToast("⚠️ 설정에서 Gemini API Key를 먼저 등록해주세요.");
         return "AI 설정 필요";
     }
 
-    // [Proxy] Call Backend Instead of Direct API
-    // This avoids CORS/404 issues by using Google's servers
+    // [Proxy] GAS 백엔드를 통해 호출 (CORS 방지)
     try {
         if (!silent) toggleLoading(true);
 
         const payload = {
             type: 'CALL_GEMINI',
             key: globalConfig.geminiKey,
-            prompt: prompt
+            prompt: prompt,
+            imageUrls: imageUrls.length > 0 ? imageUrls : undefined // [Fix] 이미지 URL 전달
         };
 
         const result = await sendReliableRequest(payload);
