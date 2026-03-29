@@ -2380,7 +2380,7 @@ async function copyCat(srcCatId) {
     if (!globalConfig.mainServerLink) return showToast('Main Server Folder 설정이 필요합니다.');
 
     const finalFolderName = `${cCode}_${newName}`;
-    if (!confirm(`📋 [${finalFolderName}] 으로 시험지를 복사 생성합니다.\n계속하시겠습니까?`)) return;
+    if (!confirm(`📋 [${finalFolderName}] 으로 시험지를 복사 생성합니다.\n\n⚠️ 이미지 및 오디오 파일도 함께 복사되므로\n파일 수에 따라 수십 초~수 분 소요될 수 있습니다.\n\n계속하시겠습니까?`)) return;
 
     try {
         toggleLoading(true);

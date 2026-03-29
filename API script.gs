@@ -540,22 +540,92 @@ else if (data.type === "GET_AUDIO_B64") {
         var srcFolder = DriveApp.getFolderById(srcFolderId);
         var dstFolder = DriveApp.getFolderById(dstFolderId);
 
+        // --- [1단계] 이미지창고 / 오디오창고 폴더 복사 (oldId→newId 맵핑) ---
+        var fileIdMap = {}; // { oldFileId: newFileId }
+
+        var MEDIA_FOLDERS = ["이미지창고", "오디오창고"];
+        MEDIA_FOLDERS.forEach(function(folderName) {
+            var srcSubIter = srcFolder.getFoldersByName(folderName);
+            if (!srcSubIter.hasNext()) return;
+            var srcSub = srcSubIter.next();
+            var dstSub = dstFolder.createFolder(folderName);
+            var fileIter = srcSub.getFiles();
+            while (fileIter.hasNext()) {
+                var origFile = fileIter.next();
+                var newFile  = origFile.makeCopy(origFile.getName(), dstSub);
+                newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+                fileIdMap[origFile.getId()] = newFile.getId();
+            }
+        });
+
+        // --- [2단계] 통합DB / 학생DB 스프레드시트 복사 ---
+        var copiedQss = null; // 복사된 통합DB 스프레드시트
         if (copyQ || copyS) {
             var ssFiles = srcFolder.getFilesByType(MimeType.GOOGLE_SHEETS);
             while (ssFiles.hasNext()) {
                 var sf = ssFiles.next();
                 var sfName = sf.getName();
                 if (copyQ && sfName.includes("통합DB")) {
-                    sf.makeCopy(newName + "_통합DB", dstFolder);
+                    var newSS = sf.makeCopy(newName + "_통합DB", dstFolder);
+                    copiedQss = SpreadsheetApp.open(newSS);
                 } else if (copyS && sfName.includes("학생DB")) {
                     sf.makeCopy(newName + "_학생DB", dstFolder);
                 }
             }
         }
 
+        // --- [3단계] 통합DB URL 교체 (fileIdMap 적용) ---
+        if (copiedQss && Object.keys(fileIdMap).length > 0) {
+            // Questions 시트 - I열(이미지URL, 9번째)
+            var qSheet = copiedQss.getSheetByName("Questions");
+            if (qSheet) {
+                var qLastRow = qSheet.getLastRow();
+                if (qLastRow > 1) {
+                    var imgRange = qSheet.getRange(2, 9, qLastRow - 1, 1); // I열
+                    var imgVals  = imgRange.getValues();
+                    var imgChanged = false;
+                    for (var r = 0; r < imgVals.length; r++) {
+                        var cell = String(imgVals[r][0] || "");
+                        if (!cell) continue;
+                        for (var oldId in fileIdMap) {
+                            if (cell.indexOf(oldId) !== -1) {
+                                imgVals[r][0] = cell.split(oldId).join(fileIdMap[oldId]);
+                                imgChanged = true;
+                            }
+                        }
+                    }
+                    if (imgChanged) imgRange.setValues(imgVals);
+                }
+            }
+
+            // Bundles 시트 - D열(이미지URL,4), F열(오디오URL,6), G열(오디오파일ID,7)
+            var bSheet = copiedQss.getSheetByName("Bundles");
+            if (bSheet) {
+                var bLastRow = bSheet.getLastRow();
+                if (bLastRow > 1) {
+                    var bRange = bSheet.getRange(2, 4, bLastRow - 1, 4); // D~G열
+                    var bVals  = bRange.getValues();
+                    var bChanged = false;
+                    for (var br = 0; br < bVals.length; br++) {
+                        for (var bc = 0; bc < 4; bc++) {
+                            var bCell = String(bVals[br][bc] || "");
+                            if (!bCell) continue;
+                            for (var oldId2 in fileIdMap) {
+                                if (bCell.indexOf(oldId2) !== -1) {
+                                    bVals[br][bc] = bCell.split(oldId2).join(fileIdMap[oldId2]);
+                                    bChanged = true;
+                                }
+                            }
+                        }
+                    }
+                    if (bChanged) bRange.setValues(bVals);
+                }
+            }
+        }
+
         return ContentService.createTextOutput(JSON.stringify({
             status: "Success",
-            message: "시험지 복사 완료"
+            message: "시험지 복사 완료 (이미지/오디오 포함)"
         })).setMimeType(ContentService.MimeType.JSON);
     }
 
