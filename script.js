@@ -6559,7 +6559,10 @@ function updateQuestionNumbers() {
     // 1. Assign Question Numbers (01, 02...)
     questions.forEach((q, idx) => {
         qCount++;
-        const num = String(qCount).padStart(2, '0');
+        // [Fix] 편집 모드에서 원본 번호 우선 사용 (항상 Q.01이 되는 버그 방지)
+        const header = q.querySelector('[data-original-no]');
+        const originalNo = header ? header.getAttribute('data-original-no') : '';
+        const num = originalNo ? String(originalNo).padStart(2, '0') : String(qCount).padStart(2, '0');
         q.setAttribute('data-q-num', num);
 
         // Update UI Label
@@ -7108,7 +7111,7 @@ function getComponentHtml(type, id, data) {
             const _numLabels   = ['1','2','3','4','5'];
 
             return `
-                 <div class="flex items-center justify-between mb-4 ${headerBg} p-3 rounded-xl border ${borderColor}" data-bundle-id="${d.linkedGroupId || ''}">
+                 <div class="flex items-center justify-between mb-4 ${headerBg} p-3 rounded-xl border ${borderColor}" data-bundle-id="${d.linkedGroupId || ''}" data-original-no="${d.no || ''}">
                     <!-- Left: Icon & Q.번호 -->
                     <div class="flex items-center gap-3 min-w-0">
                         <span class="text-2xl flex-shrink-0">${icon}</span>
@@ -7906,18 +7909,18 @@ function renderEditForm(qId) {
 
     addComponent(type, {
         id: q.id,
+        no: q.no,        // [Fix] 원본 문항번호 전달 (편집 모드 Q번호 표시용)
         sec: q.section,
         sub: q.subType,
         diff: q.difficulty,
         score: q.score,
-        text: q.title,  // 07-1과 동일: DB의 title이 발문
-        // [Fix] Sanitize Inner Passage — 07-1과 동일
+        text: q.title,
         innerPassage: (q.text && q.text.replace(/<[^>]*>/g, '').trim() === '' && !q.text.includes('<img')) ? "" : q.text,
         answer: q.answer,
         modelAnswer: q.modelAnswer,
-        options: q.choices,  // 07-1과 동일: DB의 choices가 보기 배열
+        options: q.choices,
         imgUrl: (q.imgUrl && q.imgUrl !== 'undefined' && q.imgUrl !== 'null') ? fixDriveUrl(q.imgUrl) : "",
-        labelType: q.labelType || 'number', // [Fix] 라벨타입 첨가
+        labelType: q.labelType || 'number',
         isLinked: bundleIdToLoad ? true : false,
         linkedGroupId: bundleIdToLoad || ''
     });
