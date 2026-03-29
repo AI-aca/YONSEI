@@ -6415,13 +6415,62 @@ const REG_SUB_AREAS = {
     'Grammar': ["가정법", "관계대명사", "관계부사", "관계사", "관계사/의문사", "관계사/접속사", "대명사", "명사", "병렬 구조", "분사", "분사구문", "비교급", "수동태", "수일치", "시제", "일치/화법", "접속사", "조동사", "준동사", "지칭 복합", "특수구문", "형식", "형용사", "형용사/부사", "화법", "to부정사", "to부정사/동명사", "기타"]
 };
 
+// ── 08-1 변경 감지 시스템 ──
+window._changedItems = new Set();
+window._builderLoading = false;
+
+function _builderGetLabel() {
+    const qItems = Array.from(document.querySelectorAll('#zone-question .builder-item'));
+    const bItems = Array.from(document.querySelectorAll('#zone-bundle .builder-item'));
+    const labels = [];
+    window._changedItems.forEach(id => {
+        const qi = qItems.findIndex(el => el.id === id);
+        if (qi >= 0) { labels.push(`${qi+1}번`); return; }
+        const bi = bItems.findIndex(el => el.id === id);
+        if (bi >= 0) { labels.push(`SET${bi+1}번`); }
+    });
+    return labels.length ? labels.join(', ') : '일부';
+}
+
+function _builderMarkChanged(id) {
+    if (!window._builderLoading && id) window._changedItems.add(id);
+}
+
+function _builderInitChangeTrack() {
+    window._changedItems = new Set();
+    const area = document.getElementById('builder-main-area');
+    if (!area) return;
+    area.addEventListener('input', function(e) {
+        const item = e.target.closest('.builder-item');
+        if (item) _builderMarkChanged(item.id);
+    }, true);
+    area.addEventListener('change', function(e) {
+        const item = e.target.closest('.builder-item');
+        if (item) _builderMarkChanged(item.id);
+    }, true);
+    // 드래그 drop 순서 변경 감지
+    area.addEventListener('drop', function(e) {
+        const item = e.target.closest('.builder-item');
+        if (item) _builderMarkChanged(item.id);
+    }, true);
+}
+
 // Canvas 08-1: 문항 등록 (Set Creation, Split View)
 // [New] Exit Builder Mode Logic (Back Button & Exit Button)
 function exitBuilderMode(force = false) {
-    if (!force && !confirm("작성 중인 내용은 저장되지 않습니다. 나가시겠습니까?")) {
-        // If triggered by back button (popstate), we need to push state back to stay
-        history.pushState({ page: 'builder' }, '', '#builder');
-        return;
+    if (!force) {
+        if (window._changedItems?.size > 0) {
+            const label = _builderGetLabel();
+            if (!confirm(`⚠️ ${label} 문항이 변경되었습니다!\n변경된 사항이 저장되지 않습니다!\n정말 나가시겠습니까?`)) {
+                history.pushState({ page: 'builder' }, '', '#builder');
+                return;
+            }
+        } else {
+            if (!confirm("작성 중인 내용은 저장되지 않습니다. 나가시겠습니까?")) {
+                history.pushState({ page: 'builder' }, '', '#builder');
+                return;
+            }
+        }
     }
 
     // Cleanup History Listener
@@ -6730,6 +6779,8 @@ function addComponent(type, data = null) {
     if (placeholder) placeholder.style.display = 'none';
 
     const id = data?.id || 'comp-' + Date.now() + Math.random().toString(36).substr(2, 5);
+    // 신규 추가(불러오기 제외)시 변경 마킹
+    if (!data?.id) _builderMarkChanged(id);
     const div = document.createElement('div');
     div.id = id;
 
@@ -8370,11 +8421,16 @@ async function loadQuestionsFromCategory(catId) {
         showToast("⚠️ 불러올 시험지(카테고리)를 선택해주세요.");
         return;
     }
-
-    if (!confirm("⚠️ 새로운 시험지를 불러오면 현재 작성 중인 내용은 초기화됩니다. 계속하시겠습니까?")) {
-        return;
+    // 변경사항 있으면 강력 경고
+    if (window._changedItems?.size > 0) {
+        const label = _builderGetLabel();
+        if (!confirm(`⚠️ ${label} 문항이 변경되었습니다!\n변경된 사항이 저장되지 않습니다!\n새 시험지를 불러오시겠습니까?`)) return;
+    } else {
+        if (!confirm("⚠️ 새로운 시험지를 불러오면 현재 작성 중인 내용은 초기화됩니다. 계속하시겠습니까?")) return;
     }
 
+    window._builderLoading = true;
+    window._changedItems = new Set();
     toggleLoading(true);
 
     try {
@@ -8548,6 +8604,8 @@ async function loadQuestionsFromCategory(catId) {
         syncBundles(allQs);
 
         showToast(`✅ ${fetchedQuestions.length}개 문항을 불러왔습니다.`);
+        window._builderLoading = false;
+        _builderInitChangeTrack(); // 불러오기 완료 후 변경 감지 초기화
 
         }, 100); // setTimeout end (DOM 안정화 대기)
 
@@ -8564,6 +8622,15 @@ async function loadQuestionsFromCategory(catId) {
 
 // [New] Save Reg Group (Integrated Full Save)
 async function saveRegGroup() {
+    // 변경사항 없으면 저장 불필요
+    if (window._changedItems?.size === 0) {
+        showToast('저장할 변경된 사항이 없습니다.');
+        return;
+    }
+    if (window._changedItems?.size > 0) {
+        const label = _builderGetLabel();
+        if (!confirm(`${label} 문항이 변경되었습니다!\n이 부분의 변경사항이 저장됩니다.`)) return;
+    }
     try {
         const result = await collectBuilderData(); // Returns { catId, groups: [{passage, questions}, ...] }
         if (!result.catId) throw new Error("카테고리가 선택되지 않았습니다.");
@@ -8660,6 +8727,7 @@ async function saveRegGroup() {
 
         if (resData.status === "Success") {
             showToast("✅ 성공적으로 저장되었습니다!");
+            window._changedItems = new Set(); // 저장 성공 후 변경 목록 초기화
 
             // [Fix] Do NOT update Global Config with strictly local data (missing URLs)
             // Just clear cache for this category so next load fetches fresh
