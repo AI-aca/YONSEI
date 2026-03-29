@@ -2001,7 +2001,7 @@ async function showStudentDBViewer(catId, catName) {
                 </select>
             </div>
             <button onclick="applyStudentDBFilters()" class="btn-ys !bg-[#013976] !text-white !border-[#013976] hover:brightness-110 !px-5 !py-2.5 !text-[15px] !font-black rounded-xl shadow-md whitespace-nowrap flex-shrink-0 flex items-center gap-2">🔍 확인</button>
-            <button id="sdb-bulk-del-btn" onclick="bulkDeleteStudents('${catId}')" class="btn-ys !bg-red-500 !text-white hover:brightness-110 !px-5 !py-2.5 !text-[15px] !font-black rounded-xl shadow-md whitespace-nowrap flex-shrink-0 flex items-center gap-2" style="display:none;">🗑️ 선택 삭제</button>
+            <button id="sdb-bulk-del-btn" onclick="bulkDeleteStudents('${catId}')" class="btn-ys !bg-red-500 !text-white hover:brightness-110 !px-5 !py-2.5 !text-[15px] !font-black rounded-xl shadow-md whitespace-nowrap flex-shrink-0 flex items-center gap-2">🗑️ 선택 삭제</button>
             <span id="sdb-count" class="whitespace-nowrap" style="font-size:16px; font-weight:700; color:#a855f7;"></span>
         </div>
 
@@ -2092,7 +2092,7 @@ function _renderStudentDBTable() {
                 <th class="px-2 py-3 bg-[#013976] text-center" style="width:44px;">
                     <input type="checkbox" id="sdb-chk-all" onchange="toggleAllSdbCheck(this)" class="w-4 h-4 accent-blue-400 cursor-pointer">
                 </th>
-                ${th('name','이름')}${th('grade','학년')}${th('date','응시년월일')}${th('score','점수')}
+                ${th('name','이름')}${th('class','학급')}${th('grade','학년')}${th('date','응시년월일')}${th('score','점수')}
                 <th class="px-2 py-3 text-white fs-15 font-black text-center bg-[#013976]">삭제</th>
             </tr>
         </thead>
@@ -2119,11 +2119,13 @@ function _renderStudentDBTable() {
                 const score = s['총점'] ?? s.totalScore ?? '-';
                 const max   = s['만점'] ?? s.maxScore ?? '';
                 const row   = i % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+                const cls = s['학급'] || s.class || '';
                 return `<tr class="${row} border-b border-slate-100">
                     <td class="px-2 py-3 text-center" style="width:44px;">
                         <input type="checkbox" class="sdb-chk w-4 h-4 accent-blue-600 cursor-pointer" data-sid="${sid}" data-name="${name}" onchange="_onSdbChkChange()">
                     </td>
                     <td class="px-2 py-3 font-bold text-[#013976] fs-15 text-center">${name}</td>
+                    <td class="px-2 py-3 text-slate-600 fs-15 text-center">${cls}</td>
                     <td class="px-2 py-3 text-slate-700 fs-15 text-center">${grade}</td>
                     <td class="px-2 py-3 text-slate-600 fs-15 text-center">${full}</td>
                     <td class="px-2 py-3 font-bold text-slate-800 fs-15 text-center">${score}${max?'/'+max:''}</td>
@@ -2142,10 +2144,8 @@ function toggleAllSdbCheck(masterChk) {
 }
 
 function _onSdbChkChange() {
-    const checked = document.querySelectorAll('.sdb-chk:checked');
-    const btn = document.getElementById('sdb-bulk-del-btn');
-    if (btn) btn.style.display = checked.length > 0 ? '' : 'none';
     const all = document.querySelectorAll('.sdb-chk');
+    const checked = document.querySelectorAll('.sdb-chk:checked');
     const allChk = document.getElementById('sdb-chk-all');
     if (allChk) allChk.checked = all.length > 0 && checked.length === all.length;
 }
