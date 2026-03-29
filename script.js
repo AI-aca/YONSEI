@@ -8083,12 +8083,7 @@ async function updateBuilderQuestion(originalId) {
             bundle: bundleData  // null if no bundle
         };
 
-        const response = await fetch(globalConfig.masterUrl, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        });
-
-        const resData = await response.json();
+        const resData = await sendReliableRequest(payload);
 
         if (resData.status === "Success") {
             // Clear local cache for this category (will re-fetch fresh data)
@@ -8408,12 +8403,7 @@ async function saveRegGroup() {
             bundles: newBundles
         };
 
-        const response = await fetch(globalConfig.masterUrl, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        });
-
-        const resData = await response.json();
+        const resData = await sendReliableRequest(payload);
 
         if (resData.status === "Success") {
             showToast("✅ 성공적으로 저장되었습니다!");
