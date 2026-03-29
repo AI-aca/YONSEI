@@ -7893,7 +7893,12 @@ function renderAudioUploader(id, d) {
 function previewBuilderAudio(input, id) {
     if (!input.files || !input.files[0]) return;
     const file = input.files[0];
-    if (file.size > 60 * 1024 * 1024) { showToast('⚠️ 60MB 초과 파일은 업로드 불가'); input.value=''; return; }
+    const MAX_AUDIO_MB = 14;
+    if (file.size > MAX_AUDIO_MB * 1024 * 1024) {
+        showToast(`⚠️ 오디오 용량 초과! ${MAX_AUDIO_MB}MB 이하 파일만 등록 가능합니다.\n(현재 파일: ${(file.size / 1024 / 1024).toFixed(1)}MB)\nMP3 128kbps로 변환 후 업로드해주세요.`);
+        input.value = '';
+        return;
+    }
     const nameEl = document.getElementById(id+'-audio-name');
     const prev = document.getElementById(id+'-audio-preview');
     if (nameEl) nameEl.textContent = file.name;
