@@ -8313,11 +8313,6 @@ function exitEditMode(skipConfirm = false) {
 
 // [SAFE] Partial Update Logic — Only modifies the specific row in the sheet
 async function updateBuilderQuestion(originalId) {
-    // 변경사항 없으면 저장 불필요
-    if (!_editHasChanged()) {
-        showToast('변경된 사항이 없어 저장이 필요없습니다.');
-        return;
-    }
     if (!confirm('이 문항의 변경사항이 저장됩니다.')) return;
     try {
         if (!originalId) throw new Error("수정할 문항 ID가 없습니다.");
