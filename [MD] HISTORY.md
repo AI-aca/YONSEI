@@ -71,8 +71,14 @@
 ### Canvas 05: AI 코멘트 생성/재생성 시 _dirtyComment 누락 수정
 - 기존: `editComment`(수동 편집)에만 `_dirtyComment = true` 설정됨
 - **추가**: `triggerAIAnalysis`, `regenerateSectionComment`, `regenerateOverallComment` 완료 시 `_dirtyComment = true` 추가
-- 효과: AI 코멘트 생성 후 인쇄 시 "저장 후 인쇄 권장" confirm 창 정상 표시
+- **효과**: AI 코멘트 생성 후 인쇄 시 "저장 후 인쇄 권장" confirm 창 정상 표시
 - **Git**: `b3f049b`
+
+### Canvas 05: 코멘트 수동편집 textarea auto-resize 적용
+- 기존 `resize-none` + 고정 rows → `resize-y` + scrollHeight 기반 auto-resize로 변경
+- 내용 길이에 관계없이 textarea가 내용 전체를 스크롤 없이 표시
+- overall/section 편집창 모두 적용
+- **Git**: `cbd920d`
 
 ---
 
