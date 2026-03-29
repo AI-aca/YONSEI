@@ -8673,15 +8673,7 @@ async function loadQuestionsFromCategory(catId) {
 
 // [New] Save Reg Group (Integrated Full Save)
 async function saveRegGroup() {
-    // 변경사항 없으면 저장 불필요
-    if (window._changedItems?.size === 0) {
-        showToast('저장할 변경된 사항이 없습니다.');
-        return;
-    }
-    if (window._changedItems?.size > 0) {
-        const label = _builderGetLabel();
-        if (!confirm(`${label} 문항이 변경되었습니다!\n이 부분의 변경사항이 저장됩니다.`)) return;
-    }
+    if (!confirm('변경사항을 저장하겠습니까?')) return;
     try {
         const result = await collectBuilderData(); // Returns { catId, groups: [{passage, questions}, ...] }
         if (!result.catId) throw new Error("카테고리가 선택되지 않았습니다.");
