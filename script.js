@@ -2959,10 +2959,9 @@ function calcAndRecommendClass06() {
     sel.dataset.recommendedClass = rec || '';
     const recOpt = sel.querySelector('option[value="__RECOMMEND__"]');
     if (recOpt) recOpt.textContent = rec ? ('⭐ 추천: ' + rec) : '⭐ 추천 (해당없음)';
-    // [Fix] autoSelected=1이면 (사용자가 직접 바꾸기 전) 점수 변경마다 드롭박스도 자동 갱신
-    if (rec && (!sel.value || sel.value === '__RECOMMEND__' || sel.dataset.autoSelected === '1')) {
+    // 점수 변경 시 무조건 AI 추천으로 덮어씌움 (저장 시점 값이 DB로 감)
+    if (rec) {
         sel.value = rec;
-        sel.dataset.autoSelected = '1';
     }
     updateClassBadge06(rec);
 }
