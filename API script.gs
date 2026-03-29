@@ -512,6 +512,21 @@ else if (data.type === "GET_AUDIO_B64") {
         })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // --- [기능 10-1] DB 파일명 일괄 변경 (RENAME_DB_FILES) ---
+    else if (data.type === "RENAME_DB_FILES") {
+        if (!rootFolderId || !data.newName) throw new Error("폴더 ID와 새 이름이 필요합니다.");
+        var renFolder = DriveApp.getFolderById(rootFolderId);
+        var renFiles = renFolder.getFiles();
+        var newDbName = data.newName;
+        while (renFiles.hasNext()) {
+            var renF = renFiles.next();
+            var renFName = renF.getName();
+            if (renFName.includes("학생DB")) { renF.setName(newDbName + "_학생DB"); }
+            else if (renFName.includes("통합DB")) { renF.setName(newDbName + "_통합DB"); }
+        }
+        return ContentService.createTextOutput(JSON.stringify({ status: "Success", message: "DB 파일명 변경 완료" })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     // --- [기능 11] 루트 하위 폴더 목록 조회 (복구용) ---
     else if (data.type === "LIST_FOLDERS") {
         if (!rootFolderId) throw new Error("루트 폴더 ID가 필요합니다.");
