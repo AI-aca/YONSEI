@@ -1255,8 +1255,8 @@ function getOrCreateSpreadsheet(parentFolder, name) {
     var f = ssFiles.next();
     if (f.getName().includes(suffix)) return SpreadsheetApp.open(f);
   }
-  // 없으면 suffix 이름만으로 생성
-  var newSS = SpreadsheetApp.create(suffix);
+  // 없으면 전체 name으로 생성 (예: "초5 레벨 테스트지_통합DB")
+  var newSS = SpreadsheetApp.create(name);
   var file = DriveApp.getFileById(newSS.getId());
   parentFolder.addFile(file);
   DriveApp.getRootFolder().removeFile(file);
