@@ -5132,6 +5132,7 @@ function saveCommentEdit(type, section) {
     }
 }
 function cancelCommentEdit(type, section) {
+    window._reportDirty = false;
     if (type === 'overall') {
         const txt = window.currentReportData && window.currentReportData.overallComment || '';
         const wrap = document.getElementById('overall-comment-wrap');
