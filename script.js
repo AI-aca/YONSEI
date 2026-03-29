@@ -8491,6 +8491,8 @@ async function loadQuestionsFromCategory(catId) {
         // 4. Render
         if (fetchedQuestions.length === 0) {
             showToast("📭 해당 카테고리에 저장된 문항이 없습니다.");
+            window._builderLoading = false; // [Fix] 신규 시험지 진입 시 loading 플래그 해제
+            _builderInitChangeTrack();      // [Fix] 이후 카드 추가 시 변경감지 정상 작동
             return;
         }
 
