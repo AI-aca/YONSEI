@@ -3664,6 +3664,8 @@ function updateProgressUI() {
 
 
 function renderExamResult(results, earned, total) {
+    // 시험 제출 완료 → 탭 닫기 경고 해제
+    window.removeEventListener('beforeunload', handleBeforeUnload);
     const percentage = Math.round((earned / total) * 100) || 0;
     const c = document.getElementById('dynamic-content');
     setCanvasId('02-2');
@@ -9818,6 +9820,8 @@ function renderExamPaper(list) {
 
     const c = document.getElementById('dynamic-content');
     setCanvasId('02-1', 'full');
+    // 시험 중 탭 닫기/새로고침 방지 경고
+    window.addEventListener('beforeunload', handleBeforeUnload);
     c.className = "w-full h-full bg-slate-50 relative overflow-hidden flex flex-row";
 
     examSession.currentPage = 0;
