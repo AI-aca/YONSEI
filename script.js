@@ -2185,27 +2185,12 @@ function showCat(editId = null) {
     const btnText = isEdit ? "💾 변경사항 저장" : "🚀 신규 생성 및 저장";
 
     const classificationOptions = [
-        { name: "등록 진단지 (A)", code: "A" },
-        { name: "초등 평가지 (B)", code: "B" },
-        { name: "중1 평가지 (C)", code: "C" },
-        { name: "중2 평가지 (D)", code: "D" },
-        { name: "중3 평가지 (E)", code: "E" },
-        { name: "고등 평가지 (F)", code: "F" }
+        { name: "레벨 테스트지 (A)", code: "A" },
+        { name: "기타 테스트지 (B)", code: "B" }
     ].map(opt => `<option value="${opt.code}" ${cat?.classification === opt.code ? 'selected' : ''}>${opt.name}</option>`).join('');
 
-    const dateReadonly = isEdit ? 'readonly' : '';
-    const dateClass = isEdit ? 'bg-slate-100 cursor-not-allowed opacity-75' : '';
     const classDisabled = isEdit ? 'disabled' : '';
     const classStyle = isEdit ? 'bg-slate-100 cursor-not-allowed opacity-75' : '';
-
-    // Auto-generate YYMM for new category
-    let defaultYm = cat?.createdDate || '';
-    if (!isEdit) {
-        const now = new Date();
-        const yy = String(now.getFullYear()).slice(-2);
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        defaultYm = yy + mm;
-    }
 
     c.innerHTML = `
         <div class="animate-fade-in-safe flex flex-col items-center pb-10 mt-5">
@@ -2231,24 +2216,17 @@ function showCat(editId = null) {
                                 </select>
                             </div>
                             <div class="space-y-2">
-                                <label class="ys-label font-bold !mb-0">📅 생성년월</label>
-                                <input type="text" id="cd" autocomplete="off" class="ys-field !bg-slate-50/50 focus:bg-white transition-all shadow-sm ${dateClass}"
-                                       placeholder="예: 2602" value="${defaultYm}" maxlength="4" ${dateReadonly}>
+                                <label class="ys-label font-bold !mb-0">🎓 권장 평가 학년 <span class="text-red-500">*</span></label>
+                                <select id="cgr" class="ys-field !bg-slate-50/50 hover:border-blue-400 focus:bg-white transition-all shadow-sm" required>
+                                    <option value="" disabled ${!cat?.targetGrade ? 'selected' : ''} hidden>학년 선택</option>
+                                    ${getRegisteredGrades().map(g => `<option value="${g}" ${cat?.targetGrade === g ? 'selected' : ''}>${g}</option>`).join('')}
+                                </select>
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-2">
-                                <label class="ys-label font-bold !mb-0">🎓 권장 평가 학년</label>
-                                <select id="cgr" class="ys-field !bg-slate-50/50 hover:border-blue-400 focus:bg-white transition-all shadow-sm">
-                                    <option value="" disabled ${!cat?.targetGrade ? 'selected' : ''} hidden>선택 (선택사항)</option>
-                                    ${['초등', '중1', '중2', '중3', '고등'].map(g => `<option value="${g}" ${cat?.targetGrade === g ? 'selected' : ''}>${g}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div class="space-y-2">
-                                <label class="ys-label font-bold !mb-0">⏱️ 권장 평가 시간 (분)</label>
-                                <input type="number" id="ctm" class="ys-field !bg-slate-50/50 focus:bg-white transition-all shadow-sm" placeholder="0 = 무제한" value="${cat?.timeLimit || 0}" min="0">
-                            </div>
+                        <div class="space-y-2">
+                            <label class="ys-label font-bold !mb-0">⏱️ 권장 평가 시간 (분)</label>
+                            <input type="number" id="ctm" class="ys-field !bg-slate-50/50 focus:bg-white transition-all shadow-sm" placeholder="0 = 무제한" value="${cat?.timeLimit || 0}" min="0">
                         </div>
 
                         <div class="space-y-2">
@@ -2277,15 +2255,13 @@ function editCat(id) { showCat(id); }
 
 async function saveCat(editId = '') {
     const n = document.getElementById('cn').value.trim();
-    const d = document.getElementById('cd').value.trim();
-    const cCode = document.getElementById('cc')?.value || '';
+    const cCode = document.getElementById('cc')?.value || 'A';
     const tGrade = document.getElementById('cgr')?.value || '';
     const tLimit = document.getElementById('ctm')?.value || 0;
     let u = '';
 
     if (!n) return showToast("시험지 이름을 입력해 주세요.");
-    if (!d) return showToast("생성년월 4자리를 입력하세요. (예: 2602)");
-    if (!/^\d{4}$/.test(d)) return showToast("생성년월은 4자리 숫자로 입력해 주세요. (예: 2602)");
+    if (!tGrade) return showToast("권장 평가 학년을 선택해 주세요.");
 
     if (editId) {
         if (!confirm('💾 수정된 시험지 정보를 저장하시겠습니까?')) return;
@@ -2301,7 +2277,7 @@ async function saveCat(editId = '') {
                         toggleLoading(true);
                         showToast(`🛰️ 폴더명 변경 중: [${newName}]...`);
                         const masterUrl = globalConfig.masterUrl || DEFAULT_MASTER_URL;
-                        const finalFolderName = `${cat.classification || 'A'}_${cat.createdDate}_${newName}`;
+                        const finalFolderName = `${cat.classification || 'A'}_${newName}`;
                         const res = await fetch(masterUrl, {
                             method: 'POST',
                             body: JSON.stringify({ type: 'RENAME_FOLDER', folderId: folderId, newName: finalFolderName })
@@ -2336,7 +2312,7 @@ async function saveCat(editId = '') {
     } else {
         if (!globalConfig.mainServerLink) return showToast("❌ 폴더 생성을 위해선 [Main Server Folder] 설정이 필요합니다.");
 
-        const finalFolderName = `${cCode}_${d}_${n}`;
+        const finalFolderName = `${cCode}_${n}`;
         if (!confirm(`💾 [${finalFolderName}] 신규 시험지를 생성 및 저장하시겠습니까?\n(드라이브에 폴더가 자동 생성됩니다)`)) return;
 
         showToast("⏳ 구글 드라이브 폴더 생성 중...");
@@ -2370,7 +2346,6 @@ async function saveCat(editId = '') {
     globalConfig.categories.push({
         id: 'cat_' + Date.now(),
         name: n,
-        createdDate: d,
         targetFolderUrl: u,
         classification: cCode,
         targetGrade: tGrade,
