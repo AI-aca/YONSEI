@@ -8275,6 +8275,9 @@ async function saveRegGroup() {
                 // 연결 문항 번호 계산 (qCounter + 1부터 시작)
                 const linkedNums = group.questions.map((_, i) => qCounter + i + 1).join(', ');
 
+                // [Fix] 기존 번들에서 audioUrl/audioFileId 보존 (새 업로드가 없으면 기존 값 유지)
+                const _existBnd = (globalConfig.bundles || []).find(b => String(b.id) === String(setId));
+
                 newBundles.push({
                     id: setId,
                     title: group.passage.title,
@@ -8282,7 +8285,9 @@ async function saveRegGroup() {
                     imgUrl: group.passage.img || "",
                     imgData: group.passage.imgData,
                     audioData: group.passage.audioData || null,
-                    audioMaxPlay: group.passage.audioMaxPlay || 1,
+                    audioUrl:    group.passage.audioData ? "" : (_existBnd ? (_existBnd.audioUrl    || "") : ""),
+                    audioFileId: group.passage.audioData ? "" : (_existBnd ? (_existBnd.audioFileId || "") : ""),
+                    audioMaxPlay: group.passage.audioMaxPlay || (_existBnd ? (_existBnd.audioMaxPlay || 1) : 1),
                     questionIds: linkedNums
                 });
             }
