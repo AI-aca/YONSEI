@@ -1247,15 +1247,25 @@ function saveAudio(folder, base64, mime, name) {
  * 헬퍼 함수: 폴더 내 스프레드시트 찾기 또는 생성
  */
 function getOrCreateSpreadsheet(parentFolder, name) {
-  // suffix 추출: "카테고리_학생DB" → "학생DB" (앞 prefix 무시)
   var suffix = name.includes('_') ? name.substring(name.lastIndexOf('_') + 1) : name;
-  // 스프레드시트 파일만 검색 (이미지/오디오 제외 → 빠름)
   var ssFiles = parentFolder.getFilesByType(MimeType.GOOGLE_SHEETS);
+  var fallbackFile = null;
   while (ssFiles.hasNext()) {
     var f = ssFiles.next();
-    if (f.getName().includes(suffix)) return SpreadsheetApp.open(f);
+    var fname = f.getName();
+    // 1순위: 정확히 일치하는 파일 바로 반환
+    if (fname === name) return SpreadsheetApp.open(f);
+    // 2순위: suffix만 있는 파일(예: "통합DB") → 이름 변경 후 반환 예약
+    if (fname === suffix || (fname.includes(suffix) && !fname.includes('_'))) {
+      fallbackFile = f;
+    }
   }
-  // 없으면 전체 name으로 생성 (예: "초5 레벨 테스트지_통합DB")
+  // suffix만 있는 기존 파일 → 올바른 이름으로 변경 후 반환
+  if (fallbackFile) {
+    fallbackFile.setName(name);
+    return SpreadsheetApp.open(fallbackFile);
+  }
+  // 없으면 전체 name으로 신규 생성
   var newSS = SpreadsheetApp.create(name);
   var file = DriveApp.getFileById(newSS.getId());
   parentFolder.addFile(file);
