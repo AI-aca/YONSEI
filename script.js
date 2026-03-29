@@ -2898,7 +2898,9 @@ function warnClassChange05(sel) {
     if (sel.value === '__RECOMMEND__') {
         const rec = sel.dataset.rec || '';
         if (rec) { sel.value = rec; }
-        else { showToast('추천 학급이 없습니다'); sel.value = ''; }
+        else { showToast('\ucd94\ucc9c \ud559\uae09\uc774 \uc5c6\uc2b5\ub2c8\ub2e4'); sel.value = ''; }
+        rerenderReportCharts();
+        window._dirtyClass = true;
         return;
     }
     const rec = sel.dataset.rec || '';
