@@ -1249,21 +1249,13 @@ function saveAudio(folder, base64, mime, name) {
 function getOrCreateSpreadsheet(parentFolder, name) {
   var suffix = name.includes('_') ? name.substring(name.lastIndexOf('_') + 1) : name;
   var ssFiles = parentFolder.getFilesByType(MimeType.GOOGLE_SHEETS);
-  var fallbackFile = null;
   while (ssFiles.hasNext()) {
     var f = ssFiles.next();
-    var fname = f.getName();
-    // 1순위: 정확히 일치하는 파일 바로 반환
-    if (fname === name) return SpreadsheetApp.open(f);
-    // 2순위: suffix만 있는 파일(예: "통합DB") → 이름 변경 후 반환 예약
-    if (fname === suffix || (fname.includes(suffix) && !fname.includes('_'))) {
-      fallbackFile = f;
+    if (f.getName().includes(suffix)) {
+      // 이름이 올바르지 않으면 변경 (예: "통합DB" → "시험지명_통합DB")
+      if (f.getName() !== name) f.setName(name);
+      return SpreadsheetApp.open(f);
     }
-  }
-  // suffix만 있는 기존 파일 → 올바른 이름으로 변경 후 반환
-  if (fallbackFile) {
-    fallbackFile.setName(name);
-    return SpreadsheetApp.open(fallbackFile);
   }
   // 없으면 전체 name으로 신규 생성
   var newSS = SpreadsheetApp.create(name);
