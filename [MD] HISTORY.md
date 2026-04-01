@@ -12,6 +12,49 @@
 ---
 
 
+## 2026-04-01 (오후 세션) - 시험화면 렌더링 버그 수정 + 빌더 서식 기능 강화
+
+### 수정 내용
+
+#### 1. 시험화면 지문 중복 출력 버그 수정 (커밋: 63679a4)
+- **문제**: 질문만 있는 문항(지문 없음)에서 시험화면에 발문이 지문 박스에도 중복 출력
+- **원인**: `mappedQuestions` 생성 시 `q.text`(지문)가 비면 `q.title`(발문)로 덮어쓰는 레거시 코드 존재
+  ```javascript
+  // 문제 코드 (제거)
+  if (!copy.text || copy.text.trim() === "") {
+      copy.text = copy.title || "No Content";
+  }
+  ```
+- **수정**: 해당 블록 완전 제거
+
+#### 2. 발문 줄바꿈 시험화면 적용 (커밋: 5c0ee37)
+- **문제**: 빌더에서 엔터 쳐서 단락 나눈 발문이 시험화면에서 한 줄로 이어짐
+- **원인**: `\n`이 HTML에서 공백으로 처리됨
+- **수정**: `renderSingleQHtml`, `renderSubQuestion`, `renderBundleLeft`에서 `(q.title||'').replace(/\n/g,'<br>')` 적용
+
+#### 3. 문항번호 뱃지 개선 (커밋: e5f4b1a)
+- **문제**: 100번 이상 3자리 번호에서 뱃지 박스가 너무 작음 + 발문과 수직 정렬 불일치
+- **수정**: `w-7 h-7` → `min-w-[28px] h-7 px-1.5` (자동 확장), `items-start` → `items-center` (정렬), `text-[15px]` → `text-[13px]`
+
+#### 4. 발문·보기 서식 기능 강화 (커밋: de21eb0)
+- **변경**: 빌더에서 묶음형·객관형·주관형 발문과 객관형 보기의 입력 방식을 `<textarea>` → `contenteditable div`로 전환
+- **추가**: 각 입력란 옆에 B(굵게)/U(밑줄) 버튼 추가
+- **시험화면**: 이미 `innerHTML`로 렌더링하므로 `<b>`, `<u>` 태그 자동 적용
+- **수정 함수**: `serializeBuilderState`, `parseQuestionBlock` → `.value` → `.innerHTML` 읽기로 변경
+
+#### 5. 붙여넣기 글자크기 통일 (커밋: de21eb0 포함)
+- **문제**: 외부 한글 파일/워드에서 복붙 시 원본의 글자 크기가 그대로 적용됨
+- **해결**: `sanitizePastedHtml()` 함수 + 전역 `paste` 이벤트 리스너 추가
+  - 외부 `font-size`, `color`, `style` 등 모두 제거
+  - `<b>`, `<u>`, `<strong>` 등 서식 태그만 유지
+
+### 검증
+- `node --check script.js` → ExitCode: 0 ✅
+- 한글 인코딩 → 정상 ✅
+- Git 커밋 4회 완료 ✅
+
+---
+
 ## 2026-04-01 - 시험 렌더링 전면 수정
 
 ### 수정 배경
