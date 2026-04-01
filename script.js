@@ -3624,9 +3624,9 @@ function renderSingleQHtml(q) {
         : '';
     return `
         <div>
-            <div class="flex items-start gap-3 mb-2">
-                <div class="flex-shrink-0 w-7 h-7 rounded bg-indigo-600 text-white flex items-center justify-center font-bold text-[15px] pt-0.5 shadow-sm">${q.displayIndex}</div>
-                <h4 class="text-[15px] font-normal text-slate-800 leading-snug pt-0.5 break-keep select-text">${questionText}</h4>
+            <div class="flex items-center gap-3 mb-2">
+                <div class="flex-shrink-0 min-w-[28px] h-7 px-1.5 rounded bg-indigo-600 text-white flex items-center justify-center font-bold text-[13px] shadow-sm">${q.displayIndex}</div>
+                <h4 class="text-[15px] font-normal text-slate-800 leading-snug break-keep select-text">${questionText}</h4>
             </div>
             ${passageHtml}
             ${getMediaHtml(q)}
@@ -10074,11 +10074,11 @@ function renderSubQuestion(q) {
 
     return `
         <div class="mb-0">
-            <div class="flex items-start gap-3 mb-2">
-                 <div class="flex-shrink-0 w-7 h-7 rounded bg-indigo-600 text-white flex items-center justify-center font-bold text-[15px] pt-0.5 shadow-sm">
+            <div class="flex items-center gap-3 mb-2">
+                 <div class="flex-shrink-0 min-w-[28px] h-7 px-1.5 rounded bg-indigo-600 text-white flex items-center justify-center font-bold text-[13px] shadow-sm">
                     ${q.displayIndex}
                  </div>
-                 <h4 class="text-[15px] font-normal text-slate-800 leading-snug pt-0.5 break-keep select-text">${questionText}</h4>
+                 <h4 class="text-[15px] font-normal text-slate-800 leading-snug break-keep select-text">${questionText}</h4>
             </div>
             <div class="space-y-3 pl-0">
                 ${subPassageHtml}
