@@ -7660,9 +7660,21 @@ function getComponentHtml(type, id, data) {
                                     </div>`;
                                 }).join('')}
                            </div>
-                           <div class="flex items-center gap-3">
-                               <label class="text-[14px] font-bold text-blue-600">정답 ${labelType === 'alpha' ? '알파벳' : '번호'}:</label>
-                               <input type="text" id="${id}-answer" data-field="answer" value="${d.answer || ''}" placeholder="${labelType === 'alpha' ? 'A/B/C/D/E' : '1~5'}" class="w-20 p-2 text-center text-[14px] font-bold border border-blue-200 rounded-lg">
+                           <div class="flex flex-col gap-2 mt-2">
+                               <div class="flex items-center gap-2">
+                                   <label class="text-[14px] font-bold text-blue-600">정답:</label>
+                                   <span class="text-[12px] text-slate-400">복수 선택 문항은 '+ 정답 추가' 버튼 사용</span>
+                               </div>
+                               <div id="${id}-answer-list" class="flex flex-wrap gap-2 items-center">
+                                   ${(d.answer ? String(d.answer).split(',') : ['']).map(function(v, i) {
+                                       const _val = v.trim();
+                                       return '<div class="flex items-center gap-1"><input type="text" data-role="answer-item" value="' + _val + '" placeholder="' + (labelType === 'alpha' ? 'A~E' : '1~5') + '" class="w-16 p-1.5 text-center text-[14px] font-bold border-2 border-blue-300 rounded-lg outline-none focus:border-blue-500 bg-white">' + (i > 0 ? '<button type="button" onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 font-bold text-[18px] leading-none px-1">×</button>' : '') + '</div>';
+                                   }).join('')}
+                                   <button type="button" data-role="add-answer" onclick="addBuilderAnswer('${id}')"
+                                       class="h-8 px-3 text-[13px] font-bold text-blue-600 border-2 border-blue-300 border-dashed rounded-lg hover:bg-blue-50 transition-colors">
+                                       + 정답 추가
+                                   </button>
+                               </div>
                            </div>
 `
                     : `<label class="text-[14px] font-bold text-slate-700 mb-2 block">정답 (채점용 핵심 키워드)</label>
@@ -7709,7 +7721,7 @@ function serializeBuilderState() {
                     score: block.querySelector('[data-field="score"]')?.value || 3,
                     title: (() => { const el = block.querySelector('[data-field="title"]'); return el ? (el.tagName === 'TEXTAREA' ? el.value : (stripTwStyles ? stripTwStyles(el.innerHTML) : el.innerHTML)) : ''; })(),
                     text: (() => { const el = block.querySelector('[data-field="text"]'); return el ? (el.tagName === 'TEXTAREA' ? el.value : (stripTwStyles ? stripTwStyles(el.innerHTML) : el.innerHTML)) : ''; })(),
-                    answer: block.querySelector('[data-field="answer"]')?.value || '',
+                    answer: Array.from(block.querySelectorAll('[data-role="answer-item"]')).map(function(el){return el.value.trim();}).filter(Boolean).join(',') || '',
                     modelAnswer: block.querySelector('[data-field="modelAnswer"]')?.value || '', // Collect Model Answer
                     options: []
                 };
@@ -7782,48 +7794,91 @@ function renderBuilderChoices(itemId, n) {
     }
     container.innerHTML = html;
 
-    // 정답 입력 validation 갱신 (보기 수 기반)
-    const ansInput = document.getElementById(itemId + '-answer');
-    if (ansInput) {
+    // 정답 입력 validation 갱신 (보기 수 기반 - 모든 answer-item input 적용)
+    const answerList = document.getElementById(itemId + '-answer-list');
+    if (answerList) {
         const alphaLabels = ['A','B','C','D','E'];
         const maxAlpha = alphaLabels[Number(n) - 1] || 'E';
-
-        if (lType === 'alpha') {
-            ansInput.type = 'text';
-            ansInput.maxLength = 1;
-            ansInput.placeholder = 'A~' + maxAlpha;
-            // 허용 알파벳 목록 저장 (oninput에서 참조)
-            ansInput.setAttribute('data-allowed', alphaLabels.slice(0, Number(n)).join(''));
-            ansInput.oninput = function() {
-                const allowed = this.getAttribute('data-allowed') || 'ABCDE';
-                const v = this.value.toUpperCase();
-                if (v && !allowed.includes(v)) {
-                    this.value = '';
-                    this.classList.add('border-red-400', 'bg-red-50');
-                    setTimeout(() => this.classList.remove('border-red-400', 'bg-red-50'), 800);
-                } else {
-                    this.value = v; // 항상 대문자 유지
-                }
-            };
-        } else {
-            ansInput.type = 'number';
-            ansInput.min = 1;
-            ansInput.max = Number(n);
-            ansInput.placeholder = '1~' + n;
-            ansInput.removeAttribute('data-allowed');
-            ansInput.oninput = null;
-        }
-
-        // 기존 값이 범위를 벗어나면 초기화
-        const cur = ansInput.value;
-        if (lType === 'alpha') {
-            const allowed = alphaLabels.slice(0, Number(n));
-            if (cur && !allowed.includes(cur.toUpperCase())) ansInput.value = '';
-        } else {
-            if (cur && (Number(cur) < 1 || Number(cur) > Number(n))) ansInput.value = '';
-        }
+        const allowed = alphaLabels.slice(0, Number(n)).join('');
+        const ansInputs = answerList.querySelectorAll('[data-role="answer-item"]');
+        ansInputs.forEach(function(ansInput) {
+            if (lType === 'alpha') {
+                ansInput.maxLength = 1;
+                ansInput.placeholder = 'A~' + maxAlpha;
+                ansInput.setAttribute('data-allowed', allowed);
+                ansInput.oninput = function() {
+                    const v = this.value.toUpperCase();
+                    if (v && !allowed.includes(v)) {
+                        this.value = '';
+                        this.classList.add('border-red-400', 'bg-red-50');
+                        setTimeout(function(el){ return function(){ el.classList.remove('border-red-400','bg-red-50'); }; }(ansInput), 800);
+                    } else { this.value = v; }
+                };
+                // 기존 값 범위 초기화
+                if (ansInput.value && !alphaLabels.slice(0, Number(n)).includes(ansInput.value.toUpperCase())) ansInput.value = '';
+            } else {
+                ansInput.removeAttribute('maxlength');
+                ansInput.placeholder = '1~' + n;
+                ansInput.setAttribute('data-max', n);
+                ansInput.oninput = null;
+                // 기존 값 범위 초기화
+                const cur = Number(ansInput.value);
+                if (ansInput.value && (isNaN(cur) || cur < 1 || cur > Number(n))) ansInput.value = '';
+            }
+        });
     }
 }
+function addBuilderAnswer(itemId) {
+    const list = document.getElementById(itemId + '-answer-list');
+    if (!list) return;
+    const addBtn = list.querySelector('[data-role="add-answer"]');
+    const labelTypeSel = document.getElementById(itemId + '-label-type');
+    const lType = labelTypeSel ? labelTypeSel.value : 'number';
+    const countSel = document.getElementById(itemId + '-choice-count');
+    const n = countSel ? Number(countSel.value) : 5;
+    const placeholder = lType === 'alpha' ? 'A~E' : '1~' + n;
+    const wrap = document.createElement('div');
+    wrap.className = 'flex items-center gap-1';
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.setAttribute('data-role', 'answer-item');
+    inp.placeholder = placeholder;
+    inp.className = 'w-16 p-1.5 text-center text-[14px] font-bold border-2 border-blue-300 rounded-lg outline-none focus:border-blue-500 bg-white';
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.textContent = '×';
+    del.className = 'text-red-400 hover:text-red-600 font-bold text-[18px] leading-none px-1';
+    del.onclick = function() { wrap.remove(); };
+    // validation 적용
+    const alphaLabels = ['A','B','C','D','E'];
+    if (lType === 'alpha') {
+        inp.maxLength = 1;
+        const allowed = alphaLabels.slice(0, n).join('');
+        inp.setAttribute('data-allowed', allowed);
+        inp.oninput = function() {
+            const v = this.value.toUpperCase();
+            if (v && !allowed.includes(v)) {
+                this.value = '';
+                this.classList.add('border-red-400','bg-red-50');
+                setTimeout(function(){ inp.classList.remove('border-red-400','bg-red-50'); }, 800);
+            } else { this.value = v; }
+        };
+    } else {
+        inp.setAttribute('data-max', n);
+        inp.oninput = function() {
+            const v = Number(this.value);
+            if (this.value && (isNaN(v) || v < 1 || v > n)) {
+                this.classList.add('border-red-400','bg-red-50');
+                setTimeout(function(){ inp.classList.remove('border-red-400','bg-red-50'); }, 800);
+            }
+        };
+    }
+    wrap.appendChild(inp);
+    wrap.appendChild(del);
+    list.insertBefore(wrap, addBtn);
+    inp.focus();
+}
+
 function renderMiniToolbar(targetId) {
     return `
                 <div class="flex gap-1 flex-wrap" onmousedown="event.preventDefault()">
@@ -9060,7 +9115,7 @@ async function collectBuilderData() {
         const scoreInput = block.querySelector('[data-field="score"]');
         const titleInput = block.querySelector('[data-field="title"]'); // Question Title (발문, data-field="title")
         const contentInput = block.querySelector('[data-field="innerPassage"]'); // Passage Content (Fixed: innerPassage)
-        const answerInput = block.querySelector('[data-field="answer"]');
+        const answerItems = block.querySelectorAll('[data-role="answer-item"]');
         const modelInput = block.querySelector('[data-field="modelAnswer"]'); // New Field
 
         // Question Image
@@ -9080,7 +9135,7 @@ async function collectBuilderData() {
             title: titleInput ? (titleInput.tagName === 'TEXTAREA' ? titleInput.value : stripTwStyles(titleInput.innerHTML)) : '',
             passageText: contentInput ? stripTwStyles(contentInput.innerHTML) : '', // Collect Passage
             score: scoreInput ? scoreInput.value : 3,
-            answer: answerInput ? answerInput.value : '',
+            answer: Array.from(answerItems).map(function(el){return el.value.trim();}).filter(Boolean).join(','),
             modelAnswer: modelInput ? modelInput.value : '', // Collect Model Answer
             useAiGrading: false,
             choices: [],

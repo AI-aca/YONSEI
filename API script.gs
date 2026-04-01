@@ -871,12 +871,13 @@ else if (data.type === "GET_AUDIO_B64") {
                     q.labelType || "number" // [Fix] 라벨타입 (number/alpha)
                 ];
             });
-            var qDataRange = sheetQ.getRange(2, 1, qRows.length, 14);
-            qDataRange.clearFormat(); // [Fix] 헤더 파란색 포맷 상속 방지
+            qDataRange.clearFormat();
             qDataRange.setValues(qRows);
             qDataRange.setBackground("#ffffff");
             qDataRange.setFontColor("#000000");
             qDataRange.setFontWeight("normal");
+            // [Fix] K열(정답) 텍스트 형식 강제 지정 - 날짜 자동변환 방지
+            sheetQ.getRange(2, 11, qRows.length, 1).setNumberFormat('@');
         }
         
         return ContentService.createTextOutput(JSON.stringify({
@@ -946,7 +947,7 @@ else if (data.type === "GET_AUDIO_B64") {
                     text: r[7],      // [New] Passage Content
                     imgUrl: r[8],    // Index 7 -> 8
                     choices: choices,
-                    answer: r[10],   // Index 9 -> 10
+                    answer: (r[10] instanceof Date ? '' : String(r[10] || '')), // [Fix] 날짜 자동변환 방지
                     modelAnswer: r[11], // Index 10 -> 11
                     setId: r[12],    // Index 11 -> 12
                     labelType: r[13] || "number", // [Fix] 라벨타입 (number/alpha)
@@ -1153,6 +1154,8 @@ else if (data.type === "GET_AUDIO_B64") {
         ];
         
         sheetQ.getRange(targetRow, 1, 1, newRow.length).setValues([newRow]);
+        // [Fix] K열(정답) 텍스트 형식 강제 지정 - 날짜 자동변환 방지
+        sheetQ.getRange(targetRow, 11, 1, 1).setNumberFormat('@');
         
         // 5. 번들 수정 (있는 경우만)
         if (data.bundle && sheetB) {
