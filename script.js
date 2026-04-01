@@ -9833,16 +9833,8 @@ async function startExamSequence() {
                 } catch (e) { }
             }
 
-            // 3. Normalize Passage (if independent)
-
-            // 3. Normalize Content
-            if (!copy.text || copy.text.trim() === "") {
-                copy.text = copy.content || copy.question || copy.title || "No Content";
-            }
-            if (!copy.passage1 && copy.text && copy.text.length > 300) {
-                // Heuristic: Long text might be a passage? 
-                // But let's stick to explicit Passage fields.
-            }
+            // 3. [Fix] 지문(text) 정규화 — 비어있어도 발문(title)로 대체하지 않음
+            // (과거 레거시: copy.text = copy.title 로 덮어쓰던 코드 제거)
 
             return copy;
         });
