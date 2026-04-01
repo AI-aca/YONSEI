@@ -34,6 +34,29 @@
 - 보기 UI에 "N개를 선택하세요" 안내문 추가
 - 채점 로직: 쉼표 기준 정렬 후 비교 (`normAns`) → 순서 무관
 
+### getInputHtml 복수정답 파라미터 누락 수정 (커밋: 1e701de)
+- **원인**: `getInputHtml`에서 `selectObjAnswer` 호출 시 `isMultiple`, `maxCount` 파라미터 미전달 → 항상 단일 모드로 동작
+- **수정**: `_isMultiple`, `_maxCount` 계산 후 onclick에 전달
+- **추가**: 복수 선택 시 활성화 색상도 `_savedArr.includes(_v)` 기반으로 수정
+
+### 발문(title) 저장 버그 치명적 수정 (오늘 세션)
+- **원인 1**: `collectBuilderData`에서 bundle title을 `block.querySelector('[data-field="title"]')?.value`로 읽음 → contenteditable div는 `.value` 없음 → 항상 빈값 저장
+- **수정 1**: `.value` → `.innerHTML` 방식으로 변경 (`el.tagName === 'TEXTAREA' ? el.value : stripTwStyles(el.innerHTML)`)
+- **원인 2**: `parseQuestionBlock`에서 문항 발문을 `[data-field="text"]`(지문 필드)에서 읽음 → 발문 아닌 지문이 발문으로 저장
+- **수정 2**: `[data-field="text"]` → `[data-field="title"]`로 수정
+- **원인 3**: `serializeBuilderState`에서 obj/subj 타입에 `title` 필드 자체 누락
+- **수정 3**: `title: [data-field="title"] innerHTML` 추가
+
+### 답변 해제 시 진행률 카운팅 제외 (커밋: c0970d2)
+- **수정 1**: `updateAnswer`에서 value가 빈값이면 `delete examSession.answers[qId]` → 키 삭제 → 진행률 카운팅 제외
+- **수정 2**: `updateProgressUI`에서 문항별 카운팅 로직 전면 교체
+  - 단일정답: 1개 선택하면 카운팅
+  - 복수정답: `maxCount`개 **모두** 선택해야 카운팅 (일부만 선택 시 카운팅 제외)
+
+### 묶음형 좌측 range 항상 표시 (오늘 세션)
+- **원인**: `bundle.title` 없으면 `[1~20]` range div 자체가 렌더링 안 됨
+- **수정**: title 여부와 무관하게 range 항상 표시, title은 있을 때만 옆에 추가
+
 ### 워드/한글 복붙 처리 (커밋: 99d5992)
 - `sanitizePastedHtml`에 HTML 주석, style, meta, link 태그 제거 추가
 
@@ -42,12 +65,10 @@
 - **수정**: `setId`가 같으면 같은 번들로 그룹핑하는 조건 추가
 - **영향**: 1/113 → 1/17로 정상화
 
-### 묶음형 좌측 발문 수정 (커밋: 07df660)
+### 묶음형 좌측 발문 fallback (커밋: 07df660)
 - `commonTitle`이 없을 때 `setId`로 `globalConfig.bundles`에서 직접 title 조회 fallback 추가
-- ⚠️ **미해결**: `bundle.title` 자체가 DB에서 비어있는 경우 여전히 발문 미표시 → 확인 필요
 
-### ⚠️ 알려진 미해결 이슈
-- 묶음형 좌측 발문이 여전히 안 나오는 경우: `globalConfig.bundles[0].title` 값 브라우저 콘솔에서 확인 필요
+
 
 ## 2026-04-01 (오후 세션) - 시험화면 렌더링 버그 수정 + 빌더 서식 기능 강화
 
