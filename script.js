@@ -9031,7 +9031,7 @@ async function collectBuilderData() {
 
         if (type === 'obj') {
             const choices = block.querySelectorAll('[data-field="choice"]');
-            choices.forEach(ch => q.choices.push(ch.value));
+            choices.forEach(ch => q.choices.push(ch.tagName === 'TEXTAREA' ? ch.value : (stripTwStyles(ch.innerHTML) || '')));
         }
 
         return q;
