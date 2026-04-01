@@ -7390,8 +7390,14 @@ function getComponentHtml(type, id, data) {
                     <button class="delete-comp-btn p-1 w-[28px] h-[28px] flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors font-bold text-[15px]" title="삭제" ${isEditMode ? 'style="display:none;"' : ''}>✕</button>
                 </div>
                 <div class="mb-4">
-                    <label class="text-[14px] font-bold text-slate-600 mb-1.5 block">질문 내용 (Question)</label>
-                    <textarea id="${id}-title" data-field="title" rows="1" oninput="autoResize(this)" class="${inputClass} resize-none overflow-hidden" placeholder="질문을 입력하세요">${d.title || d.text || ''}</textarea>
+                    <div class="flex justify-between items-center mb-1.5">
+                        <label class="text-[14px] font-bold text-slate-600">질문 내용 (Question)</label>
+                        <div class="flex gap-1" onmousedown="event.preventDefault()">
+                            <button onclick="execCmd('bold')" class="p-1 hover:bg-slate-200 rounded text-[13px] font-bold w-6 h-6 flex items-center justify-center" title="굵게">B</button>
+                            <button onclick="execCmd('underline')" class="p-1 hover:bg-slate-200 rounded text-[13px] underline w-6 h-6 flex items-center justify-center" title="밑줄">U</button>
+                        </div>
+                    </div>
+                    <div id="${id}-title" data-field="title" class="${inputClass} min-h-[40px] outline-none" contenteditable="true" style="white-space:pre-wrap">${d.title || d.text || ''}</div>
                 </div>
                 <!-- 연결 문항 관련 영역 -->
                 <div class="mb-4">
@@ -7524,8 +7530,14 @@ function getComponentHtml(type, id, data) {
                  <!-- Question Content -->
                  <div class="space-y-4">
                      <div>
-                        <label class="text-[14px] font-bold text-slate-600 mb-1.5 block">질문 내용 (Question)</label>
-                        <textarea id="${id}-text" data-field="text" rows="1" oninput="autoResize(this)" class="${inputClass} resize-none overflow-hidden" placeholder="질문을 입력하세요">${d.text || d.title || ''}</textarea>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label class="text-[14px] font-bold text-slate-600">질문 내용 (Question)</label>
+                            <div class="flex gap-1" onmousedown="event.preventDefault()">
+                                <button onclick="execCmd('bold')" class="p-1 hover:bg-slate-200 rounded text-[13px] font-bold w-6 h-6 flex items-center justify-center" title="굵게">B</button>
+                                <button onclick="execCmd('underline')" class="p-1 hover:bg-slate-200 rounded text-[13px] underline w-6 h-6 flex items-center justify-center" title="밑줄">U</button>
+                            </div>
+                        </div>
+                        <div id="${id}-text" data-field="text" class="${inputClass} min-h-[40px] outline-none" contenteditable="true" style="white-space:pre-wrap">${d.text || d.title || ''}</div>
                      </div>
 
                      <!-- Toggles -->
@@ -7575,10 +7587,15 @@ function getComponentHtml(type, id, data) {
                            <div id="${id}-choices" class="grid grid-cols-2 gap-2 mb-4">
                                 ${optArr.map(n => {
                                     const _lbl = labelType === 'alpha' ? _alphaLabels[n-1] : String(n);
-                                    return `<div class="flex items-center gap-2 group">
-                                       <span class="text-[14px] w-5 font-bold text-slate-400">${_lbl}.</span>
-                                       <textarea id="${id}-choice-${n}" data-field="choice" data-index="${n}" rows="1" oninput="autoResize(this)"
-                                              class="flex-1 p-2 text-[14px] bg-slate-50 border border-slate-200 rounded-lg overflow-hidden resize-none" style="min-height: 40px;">${(d.options && d.options[n - 1]) || ''}</textarea>
+                                    return `<div class="flex items-start gap-1 group">
+                                       <span class="text-[14px] w-5 font-bold text-slate-400 mt-2.5">${_lbl}.</span>
+                                       <div id="${id}-choice-${n}" data-field="choice" data-index="${n}"
+                                            class="flex-1 p-2 text-[14px] bg-slate-50 border border-slate-200 rounded-lg outline-none min-h-[40px]"
+                                            contenteditable="true" style="white-space:pre-wrap">${(d.options && d.options[n - 1]) || ''}</div>
+                                       <div class="flex-shrink-0 flex flex-col gap-0.5 pt-1 opacity-0 group-hover:opacity-100 transition-opacity" onmousedown="event.preventDefault()">
+                                           <button onclick="execCmd('bold')" class="p-0.5 hover:bg-slate-200 rounded text-[11px] font-bold w-5 h-5 flex items-center justify-center" title="굵게">B</button>
+                                           <button onclick="execCmd('underline')" class="p-0.5 hover:bg-slate-200 rounded text-[11px] underline w-5 h-5 flex items-center justify-center" title="밑줄">U</button>
+                                       </div>
                                     </div>`;
                                 }).join('')}
                            </div>
@@ -7620,7 +7637,7 @@ function serializeBuilderState() {
                 val = { catId: block.querySelector('[data-field="catId"]')?.value || '' };
             } else if (type === 'bundle' || type === 'passage') {
                 val = {
-                    title: block.querySelector('[data-field="title"]')?.value || '',
+                    title: (() => { const el = block.querySelector('[data-field="title"]'); return el ? (el.tagName === 'TEXTAREA' ? el.value : (stripTwStyles ? stripTwStyles(el.innerHTML) : el.innerHTML)) : ''; })(),
                     html: stripTwStyles(block.querySelector('[data-field="html"]')?.innerHTML || '')
                 };
             } else if (type === 'obj' || type === 'subj') {
@@ -7629,7 +7646,7 @@ function serializeBuilderState() {
                     sub: block.querySelector('[data-field="subtype"]')?.value || '기타', // SubType Fixed
                     diff: block.querySelector('[data-field="difficulty"]')?.value || '중',
                     score: block.querySelector('[data-field="score"]')?.value || 3,
-                    text: block.querySelector('[data-field="text"]')?.value || '', // Storing as 'text' directly
+                    text: (() => { const el = block.querySelector('[data-field="text"]'); return el ? (el.tagName === 'TEXTAREA' ? el.value : (stripTwStyles ? stripTwStyles(el.innerHTML) : el.innerHTML)) : ''; })(),
                     answer: block.querySelector('[data-field="answer"]')?.value || '',
                     modelAnswer: block.querySelector('[data-field="modelAnswer"]')?.value || '', // Collect Model Answer
                     options: []
@@ -7638,7 +7655,7 @@ function serializeBuilderState() {
                 if (type === 'obj') {
                     // Query all choices in order
                     const choices = block.querySelectorAll('[data-field="choice"]');
-                    choices.forEach(ch => val.options.push(ch.value));
+                    choices.forEach(ch => val.options.push(ch.tagName === 'TEXTAREA' ? ch.value : (stripTwStyles ? stripTwStyles(ch.innerHTML) : ch.innerHTML)));
                     // labelType 수집 ('number' | 'alpha')
                     const ltSel = block.querySelector('[data-field="labelType"]');
                     val.labelType = ltSel ? ltSel.value : 'number';
@@ -8998,7 +9015,7 @@ async function collectBuilderData() {
             sub: subInput ? subInput.value : '기타', // Use subInput value
             diff: diffInput ? diffInput.value : '중',
             type: type === 'obj' ? '객관형' : '주관형',
-            title: titleInput ? titleInput.value : '',
+            title: titleInput ? (titleInput.tagName === 'TEXTAREA' ? titleInput.value : stripTwStyles(titleInput.innerHTML)) : '',
             passageText: contentInput ? stripTwStyles(contentInput.innerHTML) : '', // Collect Passage
             score: scoreInput ? scoreInput.value : 3,
             answer: answerInput ? answerInput.value : '',
@@ -9273,6 +9290,49 @@ function mapChoices(rawLines) {
 // [Updated for Split View Forms]
 
 // --- Image Helper Refactoring (Context Aware) ---
+
+// [Fix] contenteditable 붙여넣기: 외부 글자크기/색상 제거, bold/underline만 유지
+function sanitizePastedHtml(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    // 허용 태그 (굵게, 밑줄만)
+    const allowedTags = new Set(['B', 'STRONG', 'U', 'EM', 'I', 'BR']);
+    // 역순으로 unwrap 처리 (인덱스 오류 방지)
+    const allEls = Array.from(tmp.querySelectorAll('*')).reverse();
+    allEls.forEach(el => {
+        // 인라인 스타일·클래스 모두 제거
+        el.removeAttribute('style');
+        el.removeAttribute('class');
+        el.removeAttribute('id');
+        el.removeAttribute('dir');
+        el.removeAttribute('lang');
+        // 허용 태그 아니면 태그 제거(내용 유지)
+        if (!allowedTags.has(el.tagName)) {
+            const parent = el.parentNode;
+            if (parent) {
+                while (el.firstChild) parent.insertBefore(el.firstChild, el);
+                parent.removeChild(el);
+            }
+        }
+    });
+    return tmp.innerHTML;
+}
+
+// 전역 paste 이벤트: contenteditable에서만 적용
+document.addEventListener('paste', function(e) {
+    const target = e.target;
+    if (!target.isContentEditable) return;
+    e.preventDefault();
+    const html = e.clipboardData && e.clipboardData.getData('text/html');
+    if (html && html.trim()) {
+        const clean = sanitizePastedHtml(html);
+        document.execCommand('insertHTML', false, clean);
+    } else {
+        const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+        document.execCommand('insertText', false, text);
+    }
+}, true);
+
 function execCmd(command) {
     document.execCommand(command, false, null);
     const reg = document.getElementById('reg-passage-editor');
