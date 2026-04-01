@@ -65,10 +65,35 @@
 - **수정**: `setId`가 같으면 같은 번들로 그룹핑하는 조건 추가
 - **영향**: 1/113 → 1/17로 정상화
 
-### 묶음형 좌측 발문 fallback (커밋: 07df660)
-- `commonTitle`이 없을 때 `setId`로 `globalConfig.bundles`에서 직접 title 조회 fallback 추가
+### 빌더 정답 입력 복수 input UI (커밋: abe3144)
+- **기존**: 정답 input 1개에 "1,3" 직접 입력 → 날짜 자동인식 문제, 쉼표 입력 불편
+- **변경**: 정답 input 분리 + "+ 정답 추가" 버튼으로 각각 입력
+  - 불러오기 시: `d.answer = "1,3"` → split(',') → input 각각 채워넣기
+  - 저장 시: 모든 `[data-role="answer-item"]` input 값 join(',') → "1,3" 형태로 DB 저장
+  - 보기 수/라벨 타입 기반 validation: 숫자(1~n), 알파벳(A~E) 범위 초과 시 빨간 경고
+  - `addBuilderAnswer()` 전역 함수 추가
+  - `parseQuestionBlock`, `serializeBuilderState` answer 읽기 방식 변경
 
+### GAS K열(정답) 날짜 자동변환 버그 수정 (커밋: abe3144)
+- **원인**: 구글 시트 K열 셀 형식이 "날짜"로 설정되어 있어 GAS `getValues()` 시 Date 객체로 반환 → JSON 직렬화 시 ISO 날짜 문자열 `"2026-04-04T15:00:00.000Z"` 로 변환됨
+- **수정 1 (불러오기)**: `r[10] instanceof Date ? '' : String(r[10] || '')` — 날짜이면 빈 문자열 반환
+- **수정 2 (전체 저장)**: `sheetQ.getRange(2, 11, n, 1).setNumberFormat('@')` — K열 텍스트 형식 강제 지정
+- **수정 3 (개별 저장)**: `sheetQ.getRange(targetRow, 11, 1, 1).setNumberFormat('@')` — 개별 저장 시도 동일 적용
+- ⚠️ **GAS 재배포 필요**
+- ⚠️ 기존에 날짜로 저장된 정답들은 불러오면 빈 문자열 → 빌더에서 정답 다시 입력 후 저장 필요
 
+### 저장 실패 시 빌더 초기화 방지 (커밋: 322cdc9)
+- **원인**: `sendReliableRequest` 5번 재시도 후 no-cors 폴백 시 무조건 `{ status: "Success" }` 반환 → GAS 에러나도 성공 처리 → 빌더 초기화
+- **수정**: `SAVE_FULL_TEST_DATA`는 no-cors 폴백 금지 → 실패 시 에러로 처리 → 빌더 화면 유지
+
+### GAS SAVE_FULL_TEST_DATA 안전한 저장 순서 (커밋: 322cdc9)
+- **원인**: 기존 코드가 `deleteRows` 먼저 실행 → 중간 에러 시 데이터 완전 손실 (오늘 사고 직접 원인)
+- **수정**: `setValues` 먼저 성공 후 잔여 행만 삭제 (`qExistingLastRow > qRows.length + 1` 조건)
+- ⚠️ **GAS 재배포 시 기존 배포 "수정"으로만 배포할 것 — 새 배포 만들기 금지 (URL 바뀜)**
+
+### 복붙 공백/줄바꿈 처리 개선 (커밋: 322cdc9)
+- `&nbsp;` → 일반 공백 변환 + 연속 공백 정규화
+- `<p>` 등 블록 요소 unwrap 시 실제 내용 있는 노드 앞에만 `<br>` 삽입 (공백 텍스트 무시)
 
 ## 2026-04-01 (오후 세션) - 시험화면 렌더링 버그 수정 + 빌더 서식 기능 강화
 
