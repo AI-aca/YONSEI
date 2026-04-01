@@ -10109,7 +10109,12 @@ function renderBundleLeft(data) {
     const group = Array.isArray(data) ? data : [data];
     const first = group[0];
     const passage = first.bundlePassageText || "";
-    const title = (first.commonTitle || "").replace(/\n/g, '<br>');
+    let title = (first.commonTitle || "").replace(/\n/g, '<br>');
+    // commonTitle이 없으면 setId로 번들에서 직접 제목 조회
+    if (!title && first.setId && globalConfig.bundles) {
+        const _b = globalConfig.bundles.find(function(b){ return b.id === first.setId; });
+        if (_b && _b.title) title = (_b.title || "").replace(/\n/g, '<br>');
+    }
     const min = Math.min(...group.map(q => q.displayIndex));
     const max = Math.max(...group.map(q => q.displayIndex));
     const range = (min === max) ? `[${min}]` : `[${min}~${max}]`;
