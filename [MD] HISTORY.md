@@ -11,6 +11,20 @@
 
 ---
 
+## 🖥️ 프로젝트 개발/배포 환경 (AI 필수 숙지)
+- **개발**: 오프라인 로컬 (OneDrive 폴더) — 브라우저에서 로컬 파일 직접 열어 테스트
+- **DB 연동**: 구글 드라이브 GAS — 저장/불러오기
+- **배포**: 완성 후 Git으로 온라인 배포 예정 (현재 미배포)
+- **테스트 방법**: 로컬 브라우저에서 index.html 직접 열기 → GAS DB 연동으로 실제 데이터 확인
+
+---
+
+## 🚨 2026-04-02 hotfix — 보기 null 저장 치명적 버그 (커밋: 4c58957)
+- **원인**: `parseQuestionBlock` choices 읽기 시 `ch.value` 사용 → contenteditable div는 `.value` 없음 → `undefined` → JSON 변환 시 `null` 저장
+- **피해**: 실제 DB 보기 데이터 `[null,null,null,null]`로 손상 → 구글 시트 버전기록으로 복구
+- **수정**: `ch.tagName === 'TEXTAREA' ? ch.value : stripTwStyles(ch.innerHTML)`
+- **교훈**: choices 관련 수정 시 `serializeBuilderState` + `parseQuestionBlock` **두 함수 모두** 반드시 확인
+
 
 ## 2026-04-01 (오후 세션) - 시험화면 렌더링 버그 수정 + 빌더 서식 기능 강화
 
