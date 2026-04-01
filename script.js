@@ -9295,8 +9295,15 @@ function mapChoices(rawLines) {
 
 // [Fix] contenteditable 붙여넣기: 외부 글자크기/색상 제거, bold/underline만 유지
 function sanitizePastedHtml(html) {
+    // [1] MS Word/HWP 주석·스타일 블록 먼저 제거 (raw string 단계)
+    let cleaned = html
+        .replace(/<!--[\s\S]*?-->/g, '')          // HTML 주석 전체 제거 (<!--...-->)
+        .replace(/<style[\s\S]*?<\/style>/gi, '') // <style> 블록 제거
+        .replace(/<meta[^>]*>/gi, '')              // <meta> 태그 제거
+        .replace(/<link[^>]*>/gi, '');             // <link> 태그 제거
+
     const tmp = document.createElement('div');
-    tmp.innerHTML = html;
+    tmp.innerHTML = cleaned;
     // 허용 태그 (굵게, 밑줄만)
     const allowedTags = new Set(['B', 'STRONG', 'U', 'EM', 'I', 'BR']);
     // 역순으로 unwrap 처리 (인덱스 오류 방지)
