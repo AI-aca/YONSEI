@@ -7456,7 +7456,7 @@ function getComponentHtml(type, id, data) {
                             <button onclick="execCmd('underline')" class="p-1 hover:bg-slate-200 rounded text-[13px] underline w-6 h-6 flex items-center justify-center" title="밑줄">U</button>
                         </div>
                     </div>
-                    <div id="${id}-title" data-field="title" class="${inputClass} min-h-[40px] outline-none" contenteditable="true" style="white-space:pre-wrap">${d.title || d.text || ''}</div>
+                    <div id="${id}-title" data-field="title" class="${inputClass} min-h-[40px] outline-none" contenteditable="true" style="white-space:pre-wrap">${d.title || ''}</div>
                 </div>
                 <!-- 연결 문항 관련 영역 -->
                 <div class="mb-4">
@@ -7506,7 +7506,7 @@ function getComponentHtml(type, id, data) {
                         ${renderMiniToolbar(id + '-editor')}
                      </div>
                      <div id="${id}-editor" data-field="html" class="min-h-[40px] p-2 border border-slate-200 rounded-xl outline-none text-[14px] leading-relaxed focus:border-orange-300 transition-colors bg-white shadow-inner" contenteditable="true">
-                        ${d.html || ''}
+                        ${d.html || d.text || ''}
                      </div>
                 </div>
                 <!-- Image (Hidden by default) -->
