@@ -3617,7 +3617,7 @@ function renderStudentSidebar() {
 
 // [Helper] 단독형 문항 1개 HTML 렌더링 (발문=q.title, 지문=q.text)
 function renderSingleQHtml(q) {
-    const questionText = q.title || '';
+    const questionText = (q.title || '').replace(/\n/g, '<br>');
     const passageText = q.text || '';
     const passageHtml = passageText.trim() !== ''
         ? `<div class="mb-3 p-3 bg-slate-100/50 border border-black rounded-lg text-[14px] leading-relaxed font-serif text-slate-700">${passageText}</div>`
@@ -10000,7 +10000,7 @@ function renderBundleLeft(data) {
     const group = Array.isArray(data) ? data : [data];
     const first = group[0];
     const passage = first.bundlePassageText || "";
-    const title = first.commonTitle || "";
+    const title = (first.commonTitle || "").replace(/\n/g, '<br>');
     const min = Math.min(...group.map(q => q.displayIndex));
     const max = Math.max(...group.map(q => q.displayIndex));
     const range = (min === max) ? `[${min}]` : `[${min}~${max}]`;
@@ -10063,7 +10063,7 @@ function renderSplitBundle(data) {
 // [Refactor] Render Sub Question (Seamless Style)
 // 발문=q.title, 개별지문=q.text (GAS 필드 매핑 기준)
 function renderSubQuestion(q) {
-    const questionText = q.title || '';
+    const questionText = (q.title || '').replace(/\n/g, '<br>');
     const passageText = q.text || '';
     const mediaHtml = getMediaHtml(q);
     const inputHtml = getInputHtml(q);
