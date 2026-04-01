@@ -9457,6 +9457,8 @@ function sanitizePastedHtml(html) {
     let result = tmp.innerHTML;
     result = result.replace(/\u00a0/g, ' ');      // non-breaking space → 일반 공백
     result = result.replace(/[ \t]{2,}/g, ' ');   // 연속 공백 하나로
+    result = result.replace(/^(<br\s*\/?>)+/i, ''); // 앞쪽 빈 줄 제거
+    result = result.replace(/(<br\s*\/?>)+$/i, ''); // 뒤쪽 빈 줄 제거
     return result;
 }
 
