@@ -12,6 +12,111 @@
 ---
 
 
+## 2026-04-01 - 시험 렌더링 전면 수정
+
+### 수정 배경
+온라인 시험 화면(Canvas 02-1)에서 ① 단독형 문항 레이아웃 비효율(오른쪽이 비어있음) ② 발문이 출력되지 않고 지문만 표시되는 렌더링 버그 ③ 묶음형 하위문항도 동일 문제 발견.
+
+### 핵심 변경 (script.js, 커밋: b3e98c3)
+
+#### 1. GAS 필드 매핑 확인 및 렌더링 수정
+- **Questions 시트**: r[6]=질문내용(발문)=`title`, r[7]=지문내용=`text`
+- **Bundles 시트**: r[1]=질문내용=`title`, r[2]=지문내용=`text`
+- **버그**: `renderExamContent` pair/solo에서 `q.text`를 발문 자리(`<h4>`)에, `q.passage1`(없는 필드)을 지문으로 사용 → **모두 수정**
+
+#### 2. 레이아웃: 단독형 문항 컬럼당 2개씩 배치
+- **기존**: pair(2개)/solo(1개) 타입 → 오른쪽 컬럼이 자주 비어있음
+- **변경**: `columns` 타입 도입 — `left: [q1, q2], right: [q3, q4]`
+  - 작은 문항(이미지 없음 + 발문+지문 합계 1000자 미만): 각 컬럼 최대 2개
+  - 큰 문항(이미지 있거나 1000자 이상): 컬럼 1개 단독
+- **수정 함수**: `flushSingles()` 전면 교체, `renderExamContent()` pair/solo 분기→columns, `renderSingleQHtml()` 헬퍼 신규 추가
+
+#### 3. 묶음형 하위문항(renderSubQuestion) 동일 수정
+- `q.text` → `q.title` (발문), `q.passage1` → `q.text` (개별지문)
+
+#### 4. getInputHtml choices 배열 수정
+- 기존: `q.choice1, q.choice2,...` (GAS에서 반환하지 않는 필드)
+- 수정: `q.choices`(배열) 우선, 없으면 `choice1/2/3...` 폴백
+- `saveAnswer` → `updateAnswer` 통일
+
+#### 5. isLargeQuestion 필드 수정
+- `q.passage1` → `q.text`로 수정 (GAS 매핑 기준)
+
+#### 6. updatePage 미답변 확인
+- `columns` 타입 지원 추가: `left/right` 배열 합산으로 미답변 계산
+
+### 검증
+- `node --check script.js` → ExitCode: 0 ✅
+- 한글 인코딩 (`node -e`) → 정상 ✅
+
+---
+
+## 2026-03-30 (오전 세션 - 3차) - 추가 기능
+
+### 기능 추가
+
+#### 6. 온라인 시험: 첫/마지막 페이지 경고창 → 토스트로 개선
+- **문제**: 첫 페이지 Previous / 마지막 페이지 Next 클릭 시 불필요한 미답 경고창 표시
+- **수정**: 이동 불가 시 경고 없이 토스트 메시지만 표시
+  - 첫 페이지 Previous → "⬅️ 첫 번째 페이지입니다." 토스트
+  - 마지막 페이지 Next → "➡️ 마지막 페이지입니다." 토스트
+- **파일**: `script.js` 3503줄
+- **커밋**: `fed6721`
+
+#### 7. 학생 로그인: 권장 학년과 다른 학년 선택 시 경고창 추가
+- **구현**: `sgr` select에 `onchange="handleSgrGradeChange"` 추가
+- **로직**: 시험지 선택 시 `window._sgrTargetGrade`에 권장 학년 저장 → 변경 시 confirm 경고
+- **파일**: `script.js` 3191줄(`handleSgrGradeChange`), 9447줄(`sgr` select), 9565줄(`_sgrTargetGrade` 저장)
+- **커밋**: `fed6721`
+
+---
+
+
+
+### 추가 버그 수정
+
+#### 4. 오디오 업로드 용량 제한 미설정
+- **문제**: 60MB 제한이어서 대용량 오디오(41.7MB) 업로드 시 GAS 한계(30초 타임아웃) 초과 → fetch 실패
+- **원인**: GAS POST 수신 한도 + base64 변환 후 크기 초과
+- **수정**: 60MB → **14MB** 제한 + 경고 메시지 추가 ("14MB 이하, MP3 96kbps 이하 권장")
+- **테스트**: 12.5MB 파일 업로드 ✅
+- **파일**: `script.js` 7894줄 `MAX_AUDIO_MB = 14`
+- **커밋**: `ec99db3`
+
+#### 5. GAS: 통합DB 시트 이름이 "통합DB"로만 생성되는 버그 (2차 수정)
+- **근본 원인**: `getOrCreateSpreadsheet`에서 suffix로 기존 파일 찾은 뒤 이름 변경 없이 그대로 반환
+- **수정**: 파일 찾은 후 `f.getName() !== name` 이면 `f.setName(name)` 호출
+- **결과**: 기존 "통합DB" → "시험지명_통합DB" 자동 rename ✅
+- **파일**: `API script.gs` 1249줄
+- **커밋**: `e0eb544`
+- **⚠️ GAS 재배포 완료**
+
+---
+
+## 2026-03-30 (오전 세션 - 2차)
+
+### 버그 수정 3건
+
+#### 1. GAS: 신규 통합DB/학생DB 시트 이름 오류
+- **문제**: `getOrCreateSpreadsheet`에서 `SpreadsheetApp.create(suffix)`로 `_` 뒤 문자열만 써서 "통합DB"로만 생성됨
+- **수정**: `SpreadsheetApp.create(name)`으로 변경 → "시험지명_통합DB" 전체 이름으로 생성
+- **파일**: `API script.gs` 1259줄
+- **커밋**: `e241833`
+- **⚠️ GAS 재배포 필요**
+
+#### 2. 이미지/오디오 저장 문제
+- GAS 재배포 후 정상 저장 확인됨 (시트 이름 버그와 연관 가능성)
+
+#### 3. 08-1/08-2: 변경사항 없을 때도 저장 진행되는 버그
+- **문제**: 이전 세션에서 차단 로직 제거 후 복원 안 됨
+- **수정**:
+  - `saveRegGroup()` 앞에 `_changedItems.size === 0` → "변경된 내용이 없습니다" 토스트 + return
+  - `updateBuilderQuestion()` 앞에 `_editHasChanged() === false` → "변경된 내용이 없습니다" 토스트 + return
+- **근거**: `renderRegForm()` 6699~6700줄에 `_builderInitChangeTrack()` 이미 존재 → 신규 시험지 카드 추가 시 변경감지 정상 작동 확인됨
+- **파일**: `script.js`
+- **커밋**: `b3894b4`
+
+---
 
 ## 2026-03-30 (오전 세션)
 
