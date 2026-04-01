@@ -3692,12 +3692,27 @@ function renderExamContent() {
 
 // [Restored Feature] updateProgressUI
 function updateProgressUI() {
-    // Simple calc
-    let total = 0;
-    if (globalConfig.questions) {
-        total = globalConfig.questions.filter(q => String(q.catId) === String(examSession.categoryId)).length;
-    }
-    const answered = Object.keys(examSession.answers || {}).length;
+    const allQs = globalConfig.questions
+        ? globalConfig.questions.filter(function(q){ return String(q.catId) === String(examSession.categoryId); })
+        : [];
+    const total = allQs.length;
+    const answersMap = examSession.answers || {};
+
+    let answered = 0;
+    allQs.forEach(function(q) {
+        const ans = answersMap[q.id] || '';
+        if (!ans) return; // 미선택
+        const isMultiple = q.answer && String(q.answer).includes(',');
+        if (isMultiple) {
+            // 복수정답: 정답 개수만큼 다 선택해야 카운팅
+            const maxCount = String(q.answer).split(',').filter(function(s){ return s.trim(); }).length;
+            const selectedCount = ans.split(',').filter(function(s){ return s.trim(); }).length;
+            if (selectedCount >= maxCount) answered++;
+        } else {
+            answered++; // 단일정답: 1개라도 선택하면 카운팅
+        }
+    });
+
     const pct = total === 0 ? 0 : Math.round((answered / total) * 100);
 
     const bar = document.getElementById('progress-bar');
@@ -3860,7 +3875,11 @@ function selectObjAnswer(qId, val, isMultiple, maxCount) {
 
 function updateAnswer(qId, value) {
     if (!examSession.answers) examSession.answers = {};
-    examSession.answers[qId] = value;
+    if (value === '' || value === null || value === undefined) {
+        delete examSession.answers[qId]; // 해제 시 키 삭제 → 진행률 카운팅 제외
+    } else {
+        examSession.answers[qId] = value;
+    }
     updateProgressUI();
 
     // Force UI refresh for the specific question's options if needed
