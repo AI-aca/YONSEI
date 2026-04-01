@@ -8385,7 +8385,7 @@ function renderEditForm(qId) {
             addComponent('bundle', {
                 id: bundleInfo.id,
                 groupId: bundleInfo.id, // [Fix] Preserve Original UUID as Group ID — 07-1과 동일
-                title: bundleInfo.title || '지문 묶음',
+                title: bundleInfo.title || '',
                 html: rawHtml,
                 imgUrl: (bundleInfo.imgUrl && bundleInfo.imgUrl !== 'undefined' && bundleInfo.imgUrl !== 'null') ? fixDriveUrl(bundleInfo.imgUrl) : "",
                 audioUrl: bundleInfo.audioUrl || "",       // [Fix] 오디오 표시 복원
@@ -8684,7 +8684,7 @@ async function loadQuestionsFromCategory(catId) {
 
                     bundleMap.set(q.setId, {
                         id: q.setId,
-                        title: bundleInfo?.title || "지문 묶음",
+                        title: bundleInfo?.title || '',
                         html: rawHtml,
                         imgUrl: (bundleInfo?.imgUrl && bundleInfo.imgUrl !== 'undefined' && bundleInfo.imgUrl !== 'null') ? fixDriveUrl(bundleInfo.imgUrl) : "",
                         audioUrl:    bundleInfo?.audioUrl    || "",  // [Fix] 오디오 필드 추가
