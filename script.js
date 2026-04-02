@@ -6352,9 +6352,9 @@ function renderBank(c) {
                     <div>번호</div>
                     <div>영역</div>
                     <div>유형</div>
-                    <div class="flex items-center justify-between px-4">
+                    <div class="relative flex items-center justify-center">
                         <span>발문</span>
-                        <span id="bank-hdr-stats" class="text-[12px] font-normal bg-blue-50 text-blue-400 rounded-full px-3 py-0.5 border border-blue-100"></span>
+                        <span id="bank-hdr-stats" class="absolute right-2 text-[14px] font-normal bg-blue-100 text-blue-600 rounded-full px-3 py-0.5 border border-blue-200"></span>
                     </div>
                     <div>배점</div>
                     <div>수정</div>
