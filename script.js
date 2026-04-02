@@ -8819,8 +8819,8 @@ async function saveRegGroup() {
                 setId = group.passage.id; // Use existing ID if available (passed from load)
                 if (!setId || setId.length < 5) setId = generateUUID();
 
-                // 연결 문항 번호 계산 (qCounter + 1부터 시작)
-                const linkedNums = group.questions.map((_, i) => qCounter + i + 1).join(', ');
+                // [Fix] 연결 문항 번호 계산 - qNum(실제 DOM 번호) 우선 사용
+                const linkedNums = group.questions.map((q, i) => q.qNum || (qCounter + i + 1)).join(', ');
 
                 // [Fix] 이미지 방식와 동일: DOM hidden input에서 직접 읽은 기존 URL 사용 (_existBnd 개입 불필요)
                 newBundles.push({
