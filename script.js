@@ -8445,8 +8445,12 @@ function renderEditForm(qId) {
 function _editGetSnapshot() {
     const area = document.getElementById('builder-main-area');
     if (!area) return '';
+    // [Fix] input/textarea/select + contenteditable div(발문·지문 등) 모두 포함
     const fields = Array.from(area.querySelectorAll('input:not([type="hidden"]), textarea, select'));
-    return JSON.stringify(fields.map(f => ({ id: f.id, val: f.value })));
+    const editables = Array.from(area.querySelectorAll('[contenteditable="true"]'));
+    const fieldSnap = fields.map(f => ({ id: f.id, val: f.value }));
+    const editSnap = editables.map(e => ({ df: e.getAttribute('data-field') || e.id, val: e.innerHTML }));
+    return JSON.stringify({ fields: fieldSnap, editables: editSnap });
 }
 function _editHasChanged() {
     if (!window._editSnapshot) return false;
