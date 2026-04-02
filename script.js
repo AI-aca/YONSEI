@@ -8705,48 +8705,27 @@ async function loadQuestionsFromCategory(catId) {
 
         // [Fix] DOM 안정화 후 컴포넌트 렌더링 (에디터 초기화 지연 방지)
         setTimeout(() => {
-        // Render Bundles & Linked Questions
-        bundleMap.forEach((bundleData, setId) => {
-            // Zone A: Bundle
-            addComponent('bundle', {
-                id: setId,
-                groupId: setId, // [Fix] Preserve Original UUID as Group ID
-                title: bundleData.title,
-                html: bundleData.html,
-                imgUrl: bundleData.imgUrl,
-                audioUrl: bundleData.audioUrl || "",       // [Fix] 오디오 표시 복원
-                audioFileId: bundleData.audioFileId || "", // [Fix] 오디오 표시 복원
-                audioMaxPlay: bundleData.audioMaxPlay || 1  // [Fix] 오디오 표시 복원
-            });
-
-            // Zone B: Questions
-            bundleData.questions.forEach(q => {
-                const type = q.type === '객관형' ? 'obj' : 'subj';
-                addComponent(type, {
-                    id: q.id,
-                    sec: q.section,
-                    sub: q.subType,
-                    diff: q.difficulty,
-                    score: q.score,
-                    text: q.title, // Fixed: Title
-                    // [Fix] Sanitize Inner Passage
-                    innerPassage: (q.text && q.text.replace(/<[^>]*>/g, '').trim() === '' && !q.text.includes('<img')) ? "" : q.text,
-                    answer: q.answer,
-                    modelAnswer: q.modelAnswer,
-                    options: q.choices, // Fixed: 'options' for UI, 'choices' from DB
-                    imgUrl: (q.imgUrl && q.imgUrl !== 'undefined' && q.imgUrl !== 'null') ? fixDriveUrl(q.imgUrl) : "", // [Fix] Sanitize on Load
-                    labelType: q.labelType || 'number', // [Fix] 라벨타입 첨가
-                    isLinked: true,
-                    linkedGroupId: setId
-                });
-                // Link in DOM
-                const qEl = document.getElementById(q.id);
-                if (qEl) qEl.setAttribute('data-bundle-id', setId);
-            });
-        });
-
-        // Render Orphans
-        orphans.forEach(q => {
+        // [Fix] no 순서대로 문항 렌더링 (bundle 문항이 orphan보다 앞으로 오는 버그 수정)
+        const renderedBundles = new Set();
+        fetchedQuestions.forEach(q => {
+            // bundle 문항이면, 해당 bundle 카드를 아직 안 추가했을 때 먼저 추가
+            if (q.setId && q.setId !== '' && !renderedBundles.has(q.setId)) {
+                renderedBundles.add(q.setId);
+                const bundleData = bundleMap.get(q.setId);
+                if (bundleData) {
+                    addComponent('bundle', {
+                        id: q.setId,
+                        groupId: q.setId,
+                        title: bundleData.title,
+                        html: bundleData.html,
+                        imgUrl: bundleData.imgUrl,
+                        audioUrl: bundleData.audioUrl || '',
+                        audioFileId: bundleData.audioFileId || '',
+                        audioMaxPlay: bundleData.audioMaxPlay || 1
+                    });
+                }
+            }
+            // 문항 카드 추가
             const type = q.type === '객관형' ? 'obj' : 'subj';
             addComponent(type, {
                 id: q.id,
@@ -8755,14 +8734,20 @@ async function loadQuestionsFromCategory(catId) {
                 diff: q.difficulty,
                 score: q.score,
                 text: q.title,
-                // [Fix] Sanitize Inner Passage
-                innerPassage: (q.text && q.text.replace(/<[^>]*>/g, '').trim() === '' && !q.text.includes('<img')) ? "" : q.text,
+                innerPassage: (q.text && q.text.replace(/<[^>]*>/g, '').trim() === '' && !q.text.includes('<img')) ? '' : q.text,
                 answer: q.answer,
                 modelAnswer: q.modelAnswer,
                 options: q.choices,
-                imgUrl: (q.imgUrl && q.imgUrl !== 'undefined' && q.imgUrl !== 'null') ? fixDriveUrl(q.imgUrl) : "",
-                labelType: q.labelType || 'number' // [Fix] 라벨타입 추가
+                imgUrl: (q.imgUrl && q.imgUrl !== 'undefined' && q.imgUrl !== 'null') ? fixDriveUrl(q.imgUrl) : '',
+                labelType: q.labelType || 'number',
+                isLinked: !!(q.setId && q.setId !== ''),
+                linkedGroupId: q.setId || ''
             });
+            // Link in DOM
+            if (q.setId && q.setId !== '') {
+                const qEl = document.getElementById(q.id);
+                if (qEl) qEl.setAttribute('data-bundle-id', q.setId);
+            }
         });
 
         // Finalize
@@ -8856,7 +8841,7 @@ async function saveRegGroup() {
             group.questions.forEach(q => {
                 qCounter++;
                 newQuestions.push({
-                    no: qCounter, // Assign Number based on Order
+                    no: q.qNum || qCounter, // [Fix] DOM data-q-num 값 우선 사용
                     id: q.id,
                     catId: result.catId, // Ensure CatID
                     section: q.sec,
@@ -9131,6 +9116,7 @@ async function collectBuilderData() {
 
         const q = {
             linkedBundleId: block.getAttribute('data-bundle-id'), // Capture manual link
+            qNum: parseInt(block.getAttribute('data-q-num')) || 0, // [Fix] DOM 실제 번호 (저장 시 no 우선 사용)
             id: generateUUID(),
             sec: secInput ? secInput.value : '기타',
             sub: subInput ? subInput.value : '기타', // Use subInput value
