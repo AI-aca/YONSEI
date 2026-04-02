@@ -6348,7 +6348,7 @@ function renderBank(c) {
 
             <div class="flex-grow overflow-hidden bg-white rounded-2xl border border-slate-200 flex flex-col shadow-sm">
                 <!-- 헤더 (Grid Layout) -->
-                <div class="grid grid-cols-[70px_110px_100px_1fr_100px_70px] bg-slate-100 border-b border-slate-200 p-4 font-bold text-[#013976] text-center fs-16 tracking-wider sticky top-0 z-10">
+                <div class="grid grid-cols-[70px_110px_100px_1fr_100px_70px] bg-slate-100 border-b border-slate-200 py-3 px-4 pr-[10px] font-bold text-[#013976] text-center fs-16 tracking-wider sticky top-0 z-10">
                     <div>번호</div>
                     <div>영역</div>
                     <div>유형</div>
@@ -6361,7 +6361,7 @@ function renderBank(c) {
                 </div>
                 
                 <!-- 리스트 영역 -->
-                <div id="bank-list-container" class="overflow-y-auto flex-grow p-2 space-y-2 bg-slate-50/50">
+                <div id="bank-list-container" class="overflow-y-auto custom-scrollbar flex-grow p-2 space-y-2 bg-slate-50/50">
                      <div class="p-20 text-center text-slate-400">👈 시험지를 선택 후 문항 수정 버튼을 클릭하세요.</div>
                 </div>
             </div>
