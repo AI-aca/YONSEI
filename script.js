@@ -7667,7 +7667,7 @@ function getComponentHtml(type, id, data) {
                            <div class="flex flex-col gap-2 mt-2">
                                <div class="flex items-center gap-2">
                                    <label class="text-[14px] font-bold text-blue-600">정답:</label>
-                                   <span class="text-[12px] text-slate-400">복수 선택 문항은 '+ 정답 추가' 버튼 사용</span>
+                                   <span class="text-[14px] text-slate-400">복수 선택 문항은 '+ 정답 추가' 버튼 사용</span>
                                </div>
                                <div id="${id}-answer-list" class="flex flex-wrap gap-2 items-center">
                                    ${(d.answer ? String(d.answer).split(',') : ['']).map(function(v, i) {
