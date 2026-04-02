@@ -9459,6 +9459,7 @@ function sanitizePastedHtml(html) {
     let result = tmp.innerHTML;
     result = result.replace(/\u00a0/g, ' ');      // non-breaking space → 일반 공백
     result = result.replace(/[ \t]{2,}/g, ' ');   // 연속 공백 하나로
+    result = result.replace(/(<br\s*\/?>){2,}/gi, '<br>'); // 연속 <br> 하나로 (발문/보기 공백 방지)
     result = result.replace(/^(<br\s*\/?>)+/i, ''); // 앞쪽 빈 줄 제거
     result = result.replace(/(<br\s*\/?>)+$/i, ''); // 뒤쪽 빈 줄 제거
     return result;
@@ -9471,7 +9472,11 @@ document.addEventListener('paste', function(e) {
     e.preventDefault();
     const html = e.clipboardData && e.clipboardData.getData('text/html');
     if (html && html.trim()) {
-        const clean = sanitizePastedHtml(html);
+        let clean = sanitizePastedHtml(html);
+        // [Fix] 보기(choice) div는 한 줄짜리 → <br> 공백으로 변환 (B/U 서식은 유지)
+        if (target.getAttribute('data-field') === 'choice') {
+            clean = clean.replace(/<br\s*\/?>/gi, ' ').replace(/\s{2,}/g, ' ').trim();
+        }
         document.execCommand('insertHTML', false, clean);
     } else {
         const text = (e.clipboardData || window.clipboardData).getData('text/plain');
