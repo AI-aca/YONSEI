@@ -6349,11 +6349,14 @@ function renderBank(c) {
             <div class="flex-grow overflow-hidden bg-white rounded-2xl border border-slate-200 flex flex-col shadow-sm">
                 <!-- 헤더 (Grid Layout) -->
                 <div class="grid grid-cols-[70px_110px_100px_1fr_100px_70px] bg-slate-100 border-b border-slate-200 p-4 font-bold text-[#013976] text-center fs-16 tracking-wider sticky top-0 z-10">
-                    <div>번호 <span id="bank-hdr-total" class="text-[12px] font-normal text-slate-500"></span></div>
+                    <div>번호</div>
                     <div>영역</div>
                     <div>유형</div>
-                    <div>발문</div>
-                    <div>배점 <span id="bank-hdr-pts" class="text-[12px] font-normal text-slate-500"></span></div>
+                    <div class="flex items-center justify-between px-2">
+                        <span>발문</span>
+                        <span id="bank-hdr-stats" class="text-[12px] font-normal bg-blue-50 text-blue-400 rounded-full px-3 py-0.5 border border-blue-100"></span>
+                    </div>
+                    <div>배점</div>
                     <div>수정</div>
                 </div>
                 
@@ -6460,7 +6463,7 @@ function renderBankRows() {
                 </div>
                 
                 <!-- Content -->
-                <div class="px-4 text-slate-700 font-medium truncate fs-16 leading-snug">
+                <div class="px-4 text-slate-700 font-normal truncate fs-16 leading-snug">
                     ${q.title || q.text || q.questionTitle || '-'}
                 </div>
                 
