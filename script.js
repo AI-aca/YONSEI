@@ -6347,22 +6347,23 @@ function renderBank(c) {
             </div>
 
             <div class="flex-grow overflow-hidden bg-white rounded-2xl border border-slate-200 flex flex-col shadow-sm">
-                <!-- 헤더 (Grid Layout) -->
-                <div class="grid grid-cols-[70px_110px_100px_1fr_100px_70px] bg-slate-100 border-b border-slate-200 py-3 px-4 pr-[10px] font-bold text-[#013976] text-center fs-16 tracking-wider sticky top-0 z-10">
-                    <div>번호</div>
-                    <div>영역</div>
-                    <div>유형</div>
-                    <div class="relative flex items-center justify-center">
-                        <span>발문</span>
-                        <span id="bank-hdr-stats" class="absolute right-2 text-[14px] font-normal bg-blue-100 text-blue-600 rounded-full px-3 py-0.5 border border-blue-200"></span>
+                <!-- 리스트 영역 (헤더 포함) -->
+                <div id="bank-list-container" class="overflow-y-auto flex-grow bg-slate-50/50">
+                    <!-- 헤더 (Grid Layout) - 리스트와 같은 스크롤 영역 안에 있어야 정렬 일치 -->
+                    <div class="grid grid-cols-[70px_110px_100px_1fr_100px_70px] bg-slate-100 border-b border-slate-200 py-3 px-4 font-bold text-[#013976] text-center fs-16 tracking-wider sticky top-0 z-10">
+                        <div>번호</div>
+                        <div>영역</div>
+                        <div>유형</div>
+                        <div class="relative flex items-center justify-center">
+                            <span>발문</span>
+                            <span id="bank-hdr-stats" class="absolute right-2 text-[14px] font-normal bg-blue-100 text-blue-600 rounded-full px-3 py-0.5 border border-blue-200"></span>
+                        </div>
+                        <div>배점</div>
+                        <div>수정</div>
                     </div>
-                    <div>배점</div>
-                    <div>수정</div>
-                </div>
-                
-                <!-- 리스트 영역 -->
-                <div id="bank-list-container" class="overflow-y-auto custom-scrollbar flex-grow p-2 space-y-2 bg-slate-50/50">
-                     <div class="p-20 text-center text-slate-400">👈 시험지를 선택 후 문항 수정 버튼을 클릭하세요.</div>
+                    <div class="p-2 space-y-2">
+                        <div class="p-20 text-center text-slate-400">👈 시험지를 선택 후 문항 수정 버튼을 클릭하세요.</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -6376,8 +6377,22 @@ function renderBankRows() {
 
     const list = globalConfig.questions.filter(q => q.catId === curCatId).sort((a, b) => (a.no || 0) - (b.no || 0));
 
+    // 헤더 HTML 생성 (통계 포함) - 리스트와 같은 너비 유지용
+    const buildHeader = (statsText) => `
+        <div class="grid grid-cols-[70px_110px_100px_1fr_100px_70px] bg-slate-100 border-b border-slate-200 py-3 px-4 font-bold text-[#013976] text-center fs-16 tracking-wider sticky top-0 z-10">
+            <div>번호</div>
+            <div>영역</div>
+            <div>유형</div>
+            <div class="relative flex items-center justify-center">
+                <span>발문</span>
+                <span id="bank-hdr-stats" class="absolute right-2 text-[14px] font-normal bg-blue-100 text-blue-600 rounded-full px-3 py-0.5 border border-blue-200">${statsText}</span>
+            </div>
+            <div>배점</div>
+            <div>수정</div>
+        </div>`;
+
     if (list.length === 0) {
-        container.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-slate-400 p-10">
+        container.innerHTML = buildHeader('') + `<div class="flex flex-col items-center justify-center h-full text-slate-400 p-10">
                     <span class="text-4xl mb-4">📭</span>
                     <p class="fs-18">등록된 문항이 없습니다.</p>
                 </div>`;
@@ -6408,11 +6423,10 @@ function renderBankRows() {
         }
     });
 
-    // 총 문항 수 + 총 배점 계산 → 헤더 업데이트
+    // 총 문항 수 + 총 배점 계산
     const totalQ = list.length;
     const totalPts = list.reduce((sum, q) => sum + (Number(q.score) || 0), 0);
-    const hdrStats = document.getElementById('bank-hdr-stats');
-    if (hdrStats) hdrStats.textContent = `총 ${totalQ}문항 · 총 ${totalPts}점`;
+    const statsText = `총 ${totalQ}문항 · 총 ${totalPts}점`;
 
     let html = '';
 
@@ -6480,7 +6494,7 @@ function renderBankRows() {
         `;
     });
 
-    container.innerHTML = html;
+    container.innerHTML = buildHeader(statsText) + `<div class="p-2 space-y-2">${html}</div>`;
 }
 
 // 5. [기능] 세부 유형 목록 업데이트 (Universal)
