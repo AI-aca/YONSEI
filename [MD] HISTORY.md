@@ -35,6 +35,14 @@
 - **수정 4**: Canvas 06 / 05-1 드롭박스 — 이름에 "미달" 포함된 학급 option 텍스트 앞에 `⛔` 이모지 표시 (value는 원래 학급명 그대로 유지, DB 저장값 보존)
 - **참고**: 05-1은 `getClassesForGrade()`로만 학급 렌더링하므로 처음부터 `달성미달` option 없었음 (별도 제거 불필요)
 
+### 달성미달 개념 완전 제거 + recommendClassByScore 재설계 (커밋: 588920e)
+- **배경**: 미달반(5미달 등)은 실제 수업반이 아닌 탈락자 DB 관리용 → 기준 평균 계산에서 제외해야 함
+- **수정 1**: `recommendClassByScore` — 미달반(!rClass.includes('미달')) classMap 계산에서 완전 제외
+- **수정 2**: `recommendClassByScore` — 최저 실제반 평균의 60% 미만 시 '달성미달' 문자열 반환 대신 `getClassesForGrade()`로 미달반 이름 직접 반환
+- **수정 3**: `calcAndRecommendClass06` — 달성미달 중간 처리 코드 완전 제거 (함수가 미달반 이름 직접 반환하므로 sel.value = rec 단순화)
+- **수정 4**: Canvas 05-1 — 달성미달 중간 처리 코드 완전 제거
+- **결과**: '달성미달' 문자열이 코드 어디에도 존재하지 않음 (GAS 포함)
+
 ---
 
 ## 🛠️ 2026-04-02 저녁 세션 작업 내역
