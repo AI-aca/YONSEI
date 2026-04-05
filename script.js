@@ -5740,10 +5740,10 @@ async function regenerateAllComments() {
                 if (secBtn) { secBtn.disabled = false; secBtn.textContent = '🔄'; }
             }
         }
-        // 2단계: 종합 코멘트 재생성
+        // 2단계: 종합 코멘트 재생성 (반드시 새로 생성된 코멘트만 사용)
         showToast('🤖 종합 코멘트 재생성 중...');
-        const mergedComments = { ...(window.currentReportData.sectionComments || {}), ...newSectionComments };
-        const newOverall = await generateOverallComment(record, averages, activeSections, mergedComments);
+        // ⚠️ 기존 sectionComments 참조 금지 — 새로 생성된 것만 사용
+        const newOverall = await generateOverallComment(record, averages, activeSections, newSectionComments);
         window.currentReportData.overallComment = newOverall;
         const wrap = document.getElementById('overall-comment-wrap');
         if (wrap) wrap.innerHTML = `<p class="text-slate-700 leading-relaxed fs-15" id="overall-comment-text" style="cursor:pointer;" onclick="editComment('overall')" title="클릭하여 수정">${(newOverall || '').split(/\n+/).map(l => l.trim()).filter(l => l).join('<br>')}</p>`;
