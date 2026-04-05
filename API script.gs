@@ -159,6 +159,37 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
+    // --- [기능 4-2] 특정 설정 키만 업데이트 (UPDATE_CONFIG_KEYS) ---
+    // 전체 덮어쓰기 없이 지정된 키만 찾아서 값을 변경 (adminCode, masterCode, geminiKey 등 민감값 변경용)
+    else if (data.type === "UPDATE_CONFIG_KEYS") {
+      var configSheet = getOrCreateConfigSheet(rootFolderId);
+      var updates = data.updates || {}; // {key: value} 형태
+      var lastRow = configSheet.getLastRow();
+
+      for (var uk in updates) {
+        var found = false;
+        if (lastRow > 1) {
+          var uVals = configSheet.getRange(2, 1, lastRow - 1, 2).getValues();
+          for (var ui = 0; ui < uVals.length; ui++) {
+            if (String(uVals[ui][0]) === uk) {
+              configSheet.getRange(ui + 2, 2).setValue(String(updates[uk]));
+              found = true;
+              break;
+            }
+          }
+        }
+        if (!found) {
+          // 키가 없으면 새 행으로 추가
+          configSheet.appendRow([uk, String(updates[uk])]);
+          lastRow++;
+        }
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "Success"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     // --- [기능 5] 학생 성적 저장 ---
     else if (data.type === "STUDENT_SAVE") {
       if (!rootFolderId) throw new Error("카테고리 폴더가 설정되지 않았습니다.");

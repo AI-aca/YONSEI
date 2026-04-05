@@ -86,8 +86,7 @@ async function saveConfigToCloud(silent = false) {
     // 필수 데이터만 전송 (questions는 별도 관리되므로 제외하거나 포함 여부 결정)
     // 여기서는 설정값(카테고리, 비번, 자산주소 등)만 백업
     const configToSave = {
-        adminCode: globalConfig.adminCode,
-        masterCode: globalConfig.masterCode, // [추가] Master Code 저장
+        // adminCode, masterCode: [보안] 프론트엔드에서 전송하지 않음 (서버에서만 관리)
         masterUrl: globalConfig.masterUrl, // [추가] Master Sync API URL 저장
         mainServerLink: globalConfig.mainServerLink, // [New] 메인 서버 링크 동기화
         // geminiKey: [보안] 프론트엔드에서 전송하지 않음 (서버에서만 관리)
@@ -1692,7 +1691,7 @@ function renderMainConfig(c) {
                             <p class="fs-14 text-slate-400">관리자 모드 접속 비밀번호</p>
                             <div class="flex gap-3 items-center">
                                 <input type="password" id="admin-code-input" class="ys-field flex-grow fs-20 font-black text-[#013976] tracking-widest text-center" value="" placeholder="새 코드 입력">
-                                <button onclick="(async()=>{if(!confirm('💾 관리자 코드를 변경하시겠습니까?')) return; const v=document.getElementById('admin-code-input').value; if(v){globalConfig.adminCode=v; save(); await saveConfigToCloud(); showToast('✅ 관리자 코드가 변경되었습니다.');}else{showToast('⚠️ 유효한 코드를 입력하세요');}})()"
+                                <button onclick="(async()=>{if(!confirm('관리자 코드를 변경하시겠습니까?')) return; const v=document.getElementById('admin-code-input').value; if(!v){showToast('⚠️ 유효한 코드를 입력하세요');return;} const fId=globalConfig.mainServerLink?globalConfig.mainServerLink.match(/folders\/([^/?]+)/)?.[1]:null; const r=await fetch(globalConfig.masterUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'UPDATE_CONFIG_KEYS',parentFolderId:fId,updates:{adminCode:v}})}); const d=await r.json(); if(d.status==='Success'){showToast('✅ 관리자 코드가 변경되었습니다.');}else{showToast('❌ 저장 실패: '+(d.message||''));}})()"
                                         class="bg-[#013976] text-white px-6 py-3 rounded-xl fs-14 font-bold hover:bg-blue-800 transition-all active:scale-95 whitespace-nowrap shadow-md flex-none">SAVE</button>
                             </div>
                         </div>
@@ -1704,8 +1703,7 @@ function renderMainConfig(c) {
                             <p class="fs-14 text-slate-400">최고 관리자 접속 비밀번호</p>
                             <div class="flex gap-3 items-center">
                                 <input type="password" id="master-code-input" class="ys-field flex-grow fs-20 font-black text-indigo-700 tracking-widest text-center" value="" placeholder="새 코드 입력">
-                                <button onclick="(async()=>{if(!confirm('💾 마스터 코드를 변경하시겠습니까?')) return; const v=document.getElementById('master-code-input').value; if(v){globalConfig.masterCode=v; save(); await saveConfigToCloud(); showToast('✅ 마스터 코드가 변경되었습니다.');}else{showToast('⚠️ 유효한 코드를 입력하세요');}})()"
-                                        class="bg-indigo-600 text-white px-6 py-3 rounded-xl fs-14 font-bold hover:bg-indigo-700 transition-all active:scale-95 whitespace-nowrap shadow-md flex-none">SAVE</button>
+                                <button onclick="(async()=>{if(!confirm('마스터 코드를 변경하시겠습니까?')) return; const v=document.getElementById('master-code-input').value; if(!v){showToast('⚠️ 유효한 코드를 입력하세요');return;} const fId=globalConfig.mainServerLink?globalConfig.mainServerLink.match(/folders\/([^/?]+)/)?.[1]:null; const r=await fetch(globalConfig.masterUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'UPDATE_CONFIG_KEYS',parentFolderId:fId,updates:{masterCode:v}})}); const d=await r.json(); if(d.status==='Success'){showToast('✅ 마스터 코드가 변경되었습니다.');}else{showToast('❌ 저장 실패: '+(d.message||''));}})()"                                        class="bg-indigo-600 text-white px-6 py-3 rounded-xl fs-14 font-bold hover:bg-indigo-700 transition-all active:scale-95 whitespace-nowrap shadow-md flex-none">SAVE</button>
                             </div>
                         </div>
                     </div>
@@ -1799,7 +1797,7 @@ function renderMainConfig(c) {
                                    class="py-3 px-5 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center gap-2 hover:bg-purple-100 transition-all no-underline whitespace-nowrap flex-none">
                                     <span class="fs-14 font-bold text-purple-700">🔑 GET KEY</span>
                                 </a>
-                                <button onclick="(async()=>{if(!confirm('서버에 API Key를 저장하시겠습니까?')) return; const gVal=document.getElementById('g-key').value; if(!gVal){showToast('⚠️ 유효한 키를 입력하세요');return;} const fId=globalConfig.mainServerLink?globalConfig.mainServerLink.match(/folders\/([^/?]+)/)?.[1]:null; const r=await fetch(globalConfig.masterUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'SAVE_CONFIG',parentFolderId:fId,config:{geminiKey:gVal}})}); const d=await r.json(); if(d.status==='Success'){showToast('✅ Gemini Key가 저장되었습니다.');}else{showToast('❌ 저장 실패: '+(d.message||''));}})()"
+                                <button onclick="(async()=>{if(!confirm('서버에 API Key를 저장하시겠습니까?')) return; const gVal=document.getElementById('g-key').value; if(!gVal){showToast('⚠️ 유효한 키를 입력하세요');return;} const fId=globalConfig.mainServerLink?globalConfig.mainServerLink.match(/folders\/([^/?]+)/)?.[1]:null; const r=await fetch(globalConfig.masterUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'UPDATE_CONFIG_KEYS',parentFolderId:fId,updates:{geminiKey:gVal}})}); const d=await r.json(); if(d.status==='Success'){showToast('✅ Gemini Key가 저장되었습니다.');}else{showToast('❌ 저장 실패: '+(d.message||''));}})()"
                                         class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl fs-14 font-bold shadow-md transition-all active:scale-95 whitespace-nowrap flex-none">SAVE</button>
                             </div>
                         </div>
