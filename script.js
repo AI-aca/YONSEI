@@ -8200,31 +8200,53 @@ function playBundleAudio(btn, bundleId) {
         window.onbeforeunload = function (e) { e.preventDefault(); return '듣기가 재생 중입니다.'; };
         return;
     }
-    // 캐시 미스 → GAS 프록시로 base64 가져와 blob URL 생성
-    sendReliableRequest({ type: 'GET_AUDIO_B64', fileId: fileId })
-        .then(function (res) {
-            if (!res || res.status !== 'Success' || !res.data) {
-                showToast('오디오 로드 실패: ' + (res && res.message || '알 수 없음'));
-                if (statusEl) statusEl.textContent = '⚠️ 오류';
-                return;
-            }
-            const byteStr = atob(res.data);
-            const ab = new ArrayBuffer(byteStr.length);
-            const ia = new Uint8Array(ab);
-            for (let i = 0; i < byteStr.length; i++) ia[i] = byteStr.charCodeAt(i);
-            const blob = new Blob([ab], { type: res.mimeType || 'audio/mpeg' });
-            const blobUrl = URL.createObjectURL(blob);
-            audio.src = blobUrl;
-            audio.currentTime = 0;
+    // 캐시 미스 → 프리로드 완료 대기 (폴링, 최대 40초)
+    if (statusEl) statusEl.textContent = '⏳ 로딩중...';
+    var _pollCount = 0;
+    var _pollMax = 80; // 0.5초 × 80 = 40초
+    var _pollId = setInterval(function () {
+        _pollCount++;
+        var _nowCached = window._preloadedAudioCache && window._preloadedAudioCache[bundleId];
+        if (_nowCached) {
+            clearInterval(_pollId);
             if (statusEl) statusEl.textContent = '▶ 재생중';
-            const pp = audio.play();
+            audio.src = _nowCached;
+            audio.currentTime = 0;
+            var pp = audio.play();
             if (pp !== undefined) pp.catch(function (e) { showToast('재생 실패: ' + e.message); });
             window.onbeforeunload = function (e) { e.preventDefault(); return '듣기가 재생 중입니다.'; };
-        })
-        .catch(function (err) {
-            showToast('오디오 요청 오류: ' + err.message);
-            if (statusEl) statusEl.textContent = '⚠️ 오류';
-        });
+        } else if (_pollCount >= _pollMax) {
+            clearInterval(_pollId);
+            // 폴링 초과 시 GAS 직접 재호출 (최후 폴백)
+            if (statusEl) statusEl.textContent = '⏳ 직접 로딩중...';
+            sendReliableRequest({ type: 'GET_AUDIO_B64', fileId: fileId })
+                .then(function (res) {
+                    if (!res || res.status !== 'Success' || !res.data) {
+                        showToast('오디오 로드 실패: ' + (res && res.message || '알 수 없음'));
+                        if (statusEl) statusEl.textContent = '⚠️ 오류';
+                        return;
+                    }
+                    var byteStr = atob(res.data);
+                    var ab = new ArrayBuffer(byteStr.length);
+                    var ia = new Uint8Array(ab);
+                    for (var i = 0; i < byteStr.length; i++) ia[i] = byteStr.charCodeAt(i);
+                    var blob = new Blob([ab], { type: res.mimeType || 'audio/mpeg' });
+                    var blobUrl = URL.createObjectURL(blob);
+                    window._preloadedAudioCache = window._preloadedAudioCache || {};
+                    window._preloadedAudioCache[bundleId] = blobUrl;
+                    audio.src = blobUrl;
+                    audio.currentTime = 0;
+                    if (statusEl) statusEl.textContent = '▶ 재생중';
+                    var pp2 = audio.play();
+                    if (pp2 !== undefined) pp2.catch(function (e) { showToast('재생 실패: ' + e.message); });
+                    window.onbeforeunload = function (e) { e.preventDefault(); return '듣기가 재생 중입니다.'; };
+                })
+                .catch(function (err) {
+                    showToast('오디오 요청 오류: ' + err.message);
+                    if (statusEl) statusEl.textContent = '⚠️ 오류';
+                });
+        }
+    }, 500);
 }
 
 function renderImageUploader(id, d, size = 'normal') {
@@ -9924,6 +9946,25 @@ function handleCategorySelect() {
         if (typeof cat.timeLimit !== 'undefined' && cat.timeLimit !== '') {
             const stmInput = document.getElementById('stm');
             if (stmInput) stmInput.value = cat.timeLimit;
+        }
+        // 시험지 선택 즉시 오디오 프리로드 시작 (백그라운드)
+        const _preloadCatId = selectedId;
+        const _hasBundles = (globalConfig.bundles || []).some(function(b) { return b.catId === _preloadCatId && b.audioFileId; });
+        if (!_hasBundles) {
+            const _cat02 = (globalConfig.categories || []).find(function(c) { return c.id === _preloadCatId; });
+            const _fid02 = _cat02 ? extractFolderId(_cat02.targetFolderUrl) : null;
+            if (_fid02) {
+                sendReliableRequest({ type: 'GET_FULL_DB', parentFolderId: _fid02, categoryName: _cat02.name })
+                    .then(function(res) {
+                        const fb = (res && res.bundles) ? res.bundles : [];
+                        fb.forEach(function(b) { b.catId = _preloadCatId; });
+                        globalConfig.bundles = (globalConfig.bundles || []).filter(function(b) { return b.catId !== _preloadCatId; });
+                        globalConfig.bundles.push.apply(globalConfig.bundles, fb);
+                        preloadBundleAudios(_preloadCatId);
+                    }).catch(function() { preloadBundleAudios(_preloadCatId); });
+            }
+        } else {
+            setTimeout(function() { preloadBundleAudios(_preloadCatId); }, 200);
         }
     }
 }
