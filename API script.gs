@@ -377,18 +377,28 @@ function doPost(e) {
       while (bFiles.hasNext()) { var bf = bFiles.next(); if (bf.getName().includes("학생DB")) { bTarget = bf; break; } }
       if (!bTarget) throw new Error("학생DB 파일 없음");
 
-      var bSheet  = SpreadsheetApp.open(bTarget).getSheets()[0];
-      var bLast   = bSheet.getLastRow();
-      // 전체 B열(학생ID) 한 번에 읽기
-      var allIds  = bSheet.getRange(2, 2, bLast - 1, 1).getValues(); // [[id], [id], ...]
-      // 뒤에서부터 삭제 (행 인덱스 변형 방지)
-      var deleted = 0;
-      for (var bi = bLast; bi >= 2; bi--) {
-        var rowId = String(allIds[bi - 2][0]);
-        if (bulkIdSet[rowId]) {
-          bSheet.deleteRow(bi);
-          deleted++;
-        }
+      var bSheet   = SpreadsheetApp.open(bTarget).getSheets()[0];
+      var bLast    = bSheet.getLastRow();
+      var bCols    = bSheet.getLastColumn();
+      // 헤더만 있거나 빈 시트 → 바로 성공 반환
+      if (bLast < 2) {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "Success",
+          message: "0명 삭제 완료 (데이터 없음)"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+      // ✅ [1] 전체 데이터 1회 읽기
+      var allData   = bSheet.getRange(2, 1, bLast - 1, bCols).getValues();
+      // ✅ [2] JS 메모리에서 삭제 대상 제외 (B열 인덱스1 = 학생ID)
+      var remaining = allData.filter(function(row) {
+        return !bulkIdSet[String(row[1])];
+      });
+      var deleted = allData.length - remaining.length;
+      // ✅ [3] 기존 데이터 영역 전체 1회 clear (헤더 1행 보존)
+      bSheet.getRange(2, 1, bLast - 1, bCols).clearContent();
+      // ✅ [4] 남은 데이터 있을 때만 1회 setValues (전체 삭제 엣지케이스 안전 처리)
+      if (remaining.length > 0) {
+        bSheet.getRange(2, 1, remaining.length, bCols).setValues(remaining);
       }
       return ContentService.createTextOutput(JSON.stringify({
         status: "Success",
