@@ -4622,9 +4622,12 @@ async function generateSectionComments(record, averages, activeSections) {
 
         const sName = record['이름'] || record.name || record.studentName || '';
 
+        // 영역명 한국어 변환
+        const _sectionKR = { Grammar: '문법', Writing: '영작', Reading: '독해', Listening: '듣기', Vocabulary: '어휘' }[section] || section;
+
         const prompt = `${gradeTone}
 
-아래 학생의 ${section} 영역 성적 데이터를 바탕으로 피드백을 작성해주세요.
+아래 학생의 ${_sectionKR} 영역 성적 데이터를 바탕으로 피드백을 작성해주세요.
 
 [학생 정보]
 이름: ${sName}
@@ -4637,7 +4640,12 @@ async function generateSectionComments(record, averages, activeSections) {
 2) 미흡한 점 또는 약점 (1문장)
 3) 구체적 학습 방향 제시 (1문장)
 
-실제 점수와 만점을 반드시 언급하세요. 호칭이 필요한 경우 "${sName} 학생은" 형식으로 실명을 사용하세요. "우리 OO 학생" 같은 가상 호칭은 절대 사용하지 마세요. 학원명, 교재명, 브랜드명은 절대 언급하지 마세요. 모든 답변은 순수 한국어바탕으로 하세요. 인사말(안녕하세요, 반갑습니다 등)로 시작하지 마세요. "${sName} 학생의 ~에 대한 피드백입니다", "~평가 결과입니다" 와 같은 메타 소개 문장·제목 문장도 절대 사용하지 마세요. 바로 실질적인 피드백 내용으로 시작하세요.`;
+⚠️ 출력 형식 절대 규칙 (위반 시 응답 전체가 무효):
+- 첫 번째 문장은 반드시 잘한 점에 대한 구체적인 내용으로 시작하세요.
+- "${sName} 학생의 ~에 대한 피드백입니다", "${sName} 학생의 ~ 영역 평가 결과입니다" 같은 소개·제목 문장은 절대 쓰지 마세요.
+- 인사말(안녕하세요 등) 금지. 영역명을 영어(Grammar, Reading 등)로 쓰지 마세요. 한국어(문법, 독해 등)로만 쓰세요.
+- 실제 점수와 만점을 반드시 언급하세요. 호칭이 필요하면 "${sName} 학생은" 형식만 사용하세요.
+- 학원명, 교재명, 브랜드명 절대 금지. 모든 답변은 순수 한국어로 작성하세요.`;
 
         comments[section] = await callGeminiAPI(prompt);
     }
