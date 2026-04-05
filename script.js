@@ -3146,7 +3146,15 @@ function calcAndRecommendClass06() {
     if (recOpt) recOpt.textContent = rec ? ('⭐ 추천: ' + rec) : '⭐ 추천 (해당없음)';
     // 점수 변경 시 무조건 AI 추천으로 덮어씌움 (저장 시점 값이 DB로 감)
     if (rec) {
-        sel.value = rec;
+        let finalRec = rec;
+        // 달성미달 시 → 드롭박스에서 미달 포함 옵션 자동 탐색
+        if (rec === '달성미달') {
+            const midalOpt = Array.from(sel.options).find(function (o) {
+                return o.value && o.value !== '__RECOMMEND__' && o.value !== '달성미달' && o.value.includes('미달');
+            });
+            if (midalOpt) finalRec = midalOpt.value;
+        }
+        sel.value = finalRec;
     }
     updateClassBadge06(rec);
 }
@@ -3157,8 +3165,7 @@ function updateClassDropdown06(grade) {
     const list = getClassesForGrade(grade);
     sel.innerHTML = '<option value="">' + (list.length ? '점수입력 시 자동 추천' : '등록된 학급 없음') + '</option>'
         + '<option value="__RECOMMEND__" style="font-weight:bold;color:#6366f1;">⭐ 추천</option>'
-        + list.map(function (n) { return '<option value="' + n + '">' + n + '</option>'; }).join('')
-        + '<option value="달성미달" style="color:#ef4444;font-weight:bold;">⛔ 달성미달</option>';
+        + list.map(function (n) { return '<option value="' + n + '">' + (n.includes('미달') ? '⛔ ' : '') + n + '</option>'; }).join('');
     sel.dataset.recommendedClass = '';
     sel.dataset.autoSelected = '0';
     sel.onchange = function () {
@@ -4669,7 +4676,13 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
     const sMax = parseFloat(getVal(record, ['만점', 'maxScore', 'max']) || 100);
     let sRate = getVal(record, ['정답률(%)', '정답률', 'rate']);
     if (!sRate && sMax) sRate = ((sTotal / sMax) * 100).toFixed(1);
-    const recCls05 = recommendClassByScore(sTotal, sGrade);
+    let recCls05 = recommendClassByScore(sTotal, sGrade);
+    // 달성미달 시 → 해당 학년 학급 목록에서 미달반 자동 탐색
+    if (recCls05 === '달성미달') {
+        const gradeClasses = getClassesForGrade(record['학년'] || record.grade || '') || [];
+        const midalCls = gradeClasses.find(function (c) { return c.includes('미달'); });
+        if (midalCls) recCls05 = midalCls;
+    }
     const defaultCls05 = record.studentClass || record['등록학급'] || recCls05 || '';
 
     const secMap = { Grammar: 'grammarScore', Writing: 'writingScore', Reading: 'readingScore', Listening: 'listeningScore', Vocabulary: 'vocabScore' };
@@ -4711,7 +4724,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
                             <option value="" style="font-size:16px;">선택</option>
                             <option value="__RECOMMEND__" style="font-size:16px;font-weight:bold;color:#6366f1;">${recCls05 ? '⭐ 추천: ' + recCls05 : '⭐ 추천 없음'}</option>
                             ${(getClassesForGrade(record['학년'] || record.grade || '') || []).map(c =>
-        `<option value="${c}" style="font-size:16px;" ${defaultCls05 === c ? 'selected' : ''}>${c}</option>`
+        `<option value="${c}" style="font-size:16px;" ${defaultCls05 === c ? 'selected' : ''}>${c.includes('미달') ? '⛔ ' : ''}${c}</option>`
     ).join('')}
                         </select>
                     </div>
