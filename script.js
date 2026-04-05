@@ -4714,6 +4714,9 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
 
     const secMap = { Grammar: 'grammarScore', Writing: 'writingScore', Reading: 'readingScore', Listening: 'listeningScore', Vocabulary: 'vocabScore' };
     const maxMap = { Grammar: 'grammarMax', Writing: 'writingMax', Reading: 'readingMax', Listening: 'listeningMax', Vocabulary: 'vocabMax' };
+    // 이름 길이에 따른 폰트 크기 (한글 6자 초과 or 영어만 10자 초과 → 20px)
+    const _korCount = (sName.match(/[\uAC00-\uD7A3]/g) || []).length;
+    const _nameFontSize = (_korCount > 5 || (_korCount === 0 && sName.length > 10)) ? '20px' : '24px';
 
     display.innerHTML = `
     <div class="card space-y-8 animate-fade-in mt-5">
@@ -4721,7 +4724,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
         <!-- 학생 기본 정보 -->
         <div class="border-b pb-6 flex items-start justify-between">
             <div>
-                <h3 style="font-size:24px;font-weight:900;color:#013976;">${sName} 학생 성적표</h3>
+                <h3 style="font-size:${_nameFontSize};font-weight:900;color:#013976;white-space:nowrap;">${sName} 학생 성적표</h3>
                 <p class="fs-18 text-slate-600 mt-2">${sGrade}학년 | 응시일: ${sDate}</p>
             </div>
             <!-- 우상단: 등록권장 학급 + 총점 -->
