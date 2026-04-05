@@ -1278,7 +1278,7 @@ async function obsolete_updateQ(id) {
 // --- GEMINI AI INTEGRATION ---
 async function callGeminiAPI(prompt, silent = false) {
     if (!globalConfig.geminiKey) { if (!silent) showToast("⚠️ 설정에서 Gemini API Key를 먼저 등록해주세요."); return null; }
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${globalConfig.geminiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent?key=${globalConfig.geminiKey}`;
     try {
         if (!silent) toggleLoading(true);
         const res = await fetch(url, {
