@@ -1850,12 +1850,17 @@ function getClassesForGrade(grade) {
 function recommendClassByScore(totalScore, grade) {
     if (totalScore == null || isNaN(totalScore)) return null;
     const records = window.cachedStudentRecords || [];
+    // 미달반 제외한 실제 학급만 필터링
     const gradeRecs = records.filter(r => {
         const rGrade = r['학년'] || r.grade || '';
         const rClass = r.studentClass || r['등록학급'] || '';
-        return rGrade === grade && rClass;
+        return rGrade === grade && rClass && !rClass.includes('미달');
     });
-    if (!gradeRecs.length) return null;
+    if (!gradeRecs.length) {
+        // 실제 학급 데이터 없음 → 미달반 직접 반환
+        const gradeClasses = getClassesForGrade(grade) || [];
+        return gradeClasses.find(function(c) { return c.includes('미달'); }) || null;
+    }
     const classMap = {};
     gradeRecs.forEach(r => {
         const cls = r.studentClass || r['등록학급'];
@@ -1871,8 +1876,11 @@ function recommendClassByScore(totalScore, grade) {
         if (diff < bestDiff) { bestDiff = diff; bestClass = cls; }
         if (avg < minAvg) minAvg = avg;
     });
-    // 최하반 평균의 60% 미만이면 미달 추천
-    if (minAvg < Infinity && totalScore < minAvg * 0.6) return '달성미달';
+    // 미달반 제외 최저반 평균의 60% 미만 → 미달반 직접 반환
+    if (minAvg < Infinity && totalScore < minAvg * 0.6) {
+        const gradeClasses = getClassesForGrade(grade) || [];
+        return gradeClasses.find(function(c) { return c.includes('미달'); }) || bestClass;
+    }
     return bestClass;
 }
 
@@ -3146,15 +3154,7 @@ function calcAndRecommendClass06() {
     if (recOpt) recOpt.textContent = rec ? ('⭐ 추천: ' + rec) : '⭐ 추천 (해당없음)';
     // 점수 변경 시 무조건 AI 추천으로 덮어씌움 (저장 시점 값이 DB로 감)
     if (rec) {
-        let finalRec = rec;
-        // 달성미달 시 → 드롭박스에서 미달 포함 옵션 자동 탐색
-        if (rec === '달성미달') {
-            const midalOpt = Array.from(sel.options).find(function (o) {
-                return o.value && o.value !== '__RECOMMEND__' && o.value !== '달성미달' && o.value.includes('미달');
-            });
-            if (midalOpt) finalRec = midalOpt.value;
-        }
-        sel.value = finalRec;
+        sel.value = rec;
     }
     updateClassBadge06(rec);
 }
@@ -4677,12 +4677,6 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
     let sRate = getVal(record, ['정답률(%)', '정답률', 'rate']);
     if (!sRate && sMax) sRate = ((sTotal / sMax) * 100).toFixed(1);
     let recCls05 = recommendClassByScore(sTotal, sGrade);
-    // 달성미달 시 → 해당 학년 학급 목록에서 미달반 자동 탐색
-    if (recCls05 === '달성미달') {
-        const gradeClasses = getClassesForGrade(record['학년'] || record.grade || '') || [];
-        const midalCls = gradeClasses.find(function (c) { return c.includes('미달'); });
-        if (midalCls) recCls05 = midalCls;
-    }
     const defaultCls05 = record.studentClass || record['등록학급'] || recCls05 || '';
 
     const secMap = { Grammar: 'grammarScore', Writing: 'writingScore', Reading: 'readingScore', Listening: 'listeningScore', Vocabulary: 'vocabScore' };
