@@ -34,8 +34,8 @@ const SUB_TYPE_MAP = {
 
 // 기본 설정 객체 (로컬 스토리지 없을 시 사용)
 let globalConfig = {
-    adminCode: "1111", // 초기 관리자 비번
-    masterCode: "0000", // [New] 마스터 비번
+    adminCode: "", // [보안] 서버에서만 관리 - 프론트엔드 저장 안 함
+    masterCode: "", // [보안] 서버에서만 관리 - 프론트엔드 저장 안 함
     masterUrl: "https://script.google.com/macros/s/AKfycbw_wP7aQlfrUVyEZlORObmrQghbRBMz3qpmz7aMj18jTc4WkuZhRVlp2kFfYxPWH3jFmQ/exec",
     mainServerLink: "https://drive.google.com/drive/folders/18dd5Gssjlw9jGZJHmES91HWNxKVqD32A", // [New] 연세국제 설정링크 중앙관리 시트 연동 링크
     geminiKey: "", // AI API Key
@@ -184,11 +184,9 @@ async function loadConfigFromCloud(silent = false) {
         if (json.status === "Success" && json.config) {
             console.log("✅ Config Loaded:", json.config);
             const c = json.config;
-            if (c.adminCode) globalConfig.adminCode = c.adminCode;
-            if (c.masterCode) globalConfig.masterCode = c.masterCode;
+            // [보안] adminCode, masterCode, geminiKey는 서버에서 전달하지 않으므로 로드하지 않음
             // masterUrl은 덮어쓰지 않음 (현재 연결된 URL이 기준이므로)
-            if (c.mainServerLink) globalConfig.mainServerLink = c.mainServerLink; // [New] Load Main Server Link
-            if (c.geminiKey) globalConfig.geminiKey = c.geminiKey;
+            if (c.mainServerLink) globalConfig.mainServerLink = c.mainServerLink;
 
             if (c.categories) {
                 try { globalConfig.categories = typeof c.categories === 'string' ? JSON.parse(c.categories) : c.categories; } catch (e) { console.warn("Categories Parse Error", e); }
@@ -655,17 +653,34 @@ async function verifyAuth(mode) {
 
     toggleLoading(false);
 
-    // 2. 검증 (동기화된 데이터로 대조) - [Fix] 타입 불일치(숫자/문자) 방지를 위해 문자열 변환 비교
-    if (mode === 'admin' && String(pw) === String(globalConfig.adminCode)) {
-        changeMode('admin_dashboard');
-    } else if (mode === 'master' && String(pw) === String(globalConfig.masterCode || "0000")) {
-        // [Refactor] master_dashboard 제거 - 인증 성공 시 직접 주요사항 설정으로 이동
-        const c = document.getElementById('dynamic-content');
-        renderMainConfig(c);
-    } else {
-        showToast("⛔ 비밀번호가 올바르지 않습니다.");
-        const el = document.getElementById('ac');
-        if (el) { el.value = ''; el.focus(); }
+    // 2. GAS 서버에서 코드 검증 (비밀번호를 프론트엔드에서 비교하지 않음)
+    try {
+        const verifyRes = await fetch(globalConfig.masterUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: 'VERIFY_CODE',
+                parentFolderId: globalConfig.mainServerLink ? globalConfig.mainServerLink.match(/folders\/([^/?]+)/)?.[1] : null,
+                code: pw,
+                mode: mode
+            })
+        });
+        const verifyData = await verifyRes.json();
+
+        if (verifyData.status === 'Success' && verifyData.verified) {
+            if (mode === 'admin') {
+                changeMode('admin_dashboard');
+            } else if (mode === 'master') {
+                const c = document.getElementById('dynamic-content');
+                renderMainConfig(c);
+            }
+        } else {
+            showToast("⛔ 비밀번호가 올바르지 않습니다.");
+            const el = document.getElementById('ac');
+            if (el) { el.value = ''; el.focus(); }
+        }
+    } catch (e) {
+        showToast("⛔ 서버 인증 오류: " + e.message);
     }
 }
 
@@ -1275,25 +1290,30 @@ async function obsolete_updateQ(id) {
     }
 }
 
-// --- GEMINI AI INTEGRATION ---
+// --- GEMINI AI INTEGRATION (GAS 프록시 경유 — API Key 브라우저 노출 없음) ---
 async function callGeminiAPI(prompt, silent = false) {
-    if (!globalConfig.geminiKey) { if (!silent) showToast("⚠️ 설정에서 Gemini API Key를 먼저 등록해주세요."); return null; }
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent?key=${globalConfig.geminiKey}`;
+    if (!globalConfig.masterUrl) { if (!silent) showToast("⚠️ 서버 연결이 필요합니다. (masterUrl 미설정)"); return null; }
+    const folderId = globalConfig.mainServerLink ? globalConfig.mainServerLink.match(/folders\/([^/?]+)/)?.[1] : null;
     try {
         if (!silent) toggleLoading(true);
-        const res = await fetch(url, {
+        const res = await fetch(globalConfig.masterUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            body: JSON.stringify({
+                type: 'CALL_GEMINI',
+                parentFolderId: folderId,
+                prompt: prompt
+            })
         });
-        const data = await res.json();
+        const wrapper = await res.json();
         if (!silent) toggleLoading(false);
 
-        if (data.error) {
-            console.error("Gemini API Error:", data.error);
-            throw new Error(data.error.message || "Unknown API Error");
+        if (wrapper.status !== 'Success') {
+            console.error("GAS CALL_GEMINI Error:", wrapper.message);
+            throw new Error(wrapper.message || "GAS Error");
         }
 
+        const data = wrapper.data;
         if (data.candidates && data.candidates.length > 0 && data.candidates[0].content) {
             return data.candidates[0].content.parts[0].text;
         } else {
@@ -1304,8 +1324,6 @@ async function callGeminiAPI(prompt, silent = false) {
     } catch (e) {
         if (!silent) toggleLoading(false);
         console.error("Gemini Call Exception:", e);
-        // Don't show toast for every AI error to avoid spamming user
-        // if (!silent) showToast("AI 통신 오류: " + e.message);
         return "AI 서비스 연결 실패";
     }
 }
@@ -1313,7 +1331,7 @@ async function callGeminiAPI(prompt, silent = false) {
 // [New] AI 자동 채점 핵심 로직
 async function gradeWithAI(q, userAns) {
     if (!userAns) return { score: 0, feedback: "답안이 입력되지 않았습니다." };
-    if (!globalConfig.geminiKey) return null;
+    if (!globalConfig.masterUrl) return null;
 
     // 묶음 지문 + 개별 지문 텍스트
     const bundleText = q.bundlePassageText || '';

@@ -86,12 +86,47 @@ function doPost(e) {
         }
       }
       
+      // 민감 정보(보안키, 비밀번호)는 프론트엔드로 전달하지 않음
+      var SENSITIVE_KEYS = ['geminiKey', 'adminCode', 'masterCode'];
+      var safeConfig = {};
+      for (var k in configData) {
+        if (SENSITIVE_KEYS.indexOf(k) === -1) {
+          safeConfig[k] = configData[k];
+        }
+      }
+
       return ContentService.createTextOutput(JSON.stringify({
         status: "Success",
-        config: configData
+        config: safeConfig
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
+    // --- [기능 3-2] 코드 검증 (VERIFY_CODE) - 비밀번호를 서버에서만 비교 ---
+    else if (data.type === "VERIFY_CODE") {
+      var inputCode = String(data.code || "");
+      var codeMode = data.mode || "admin"; // 'admin' or 'master'
+      var keyToFind = (codeMode === "master") ? "masterCode" : "adminCode";
+
+      var configSheet = getOrCreateConfigSheet(rootFolderId);
+      var lastRow = configSheet.getLastRow();
+      var storedCode = "";
+
+      if (lastRow > 1) {
+        var values = configSheet.getRange(2, 1, lastRow - 1, 2).getValues();
+        for (var vi = 0; vi < values.length; vi++) {
+          if (String(values[vi][0]) === keyToFind) {
+            storedCode = String(values[vi][1] || "");
+            break;
+          }
+        }
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "Success",
+        verified: (inputCode !== "" && inputCode === storedCode)
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     // --- [기능 4] 시스템 설정 저장 (클라우드 동기화) ---
     else if (data.type === "SAVE_CONFIG") {
       var configSheet = getOrCreateConfigSheet(rootFolderId);
@@ -1002,11 +1037,24 @@ else if (data.type === "GET_AUDIO_B64") {
 
     // --- [기능 16] AI Proxy (CALL_GEMINI) - Robust Fallback ---
     else if (data.type === "CALL_GEMINI") {
-        var apiKey = data.key;
         var prompt = data.prompt;
         var imageUrls = data.imageUrls || [];
-        
-        if (!apiKey) throw new Error("API Key is missing.");
+
+        // [보안] API Key는 프론트엔드에서 받지 않고 설정 시트에서 직접 읽음
+        var apiKey = "";
+        var cfSheet = getOrCreateConfigSheet(rootFolderId);
+        var cfLastRow = cfSheet.getLastRow();
+        if (cfLastRow > 1) {
+          var cfValues = cfSheet.getRange(2, 1, cfLastRow - 1, 2).getValues();
+          for (var ci = 0; ci < cfValues.length; ci++) {
+            if (String(cfValues[ci][0]) === "geminiKey") {
+              apiKey = String(cfValues[ci][1] || "");
+              break;
+            }
+          }
+        }
+
+        if (!apiKey) throw new Error("Gemini API Key가 설정 시트에 없습니다.");
 
         // [Fix] 이미지 파트 구성 (Drive 파일 직접 읽기 → base64 inlineData)
         var parts = [{ text: prompt }];
