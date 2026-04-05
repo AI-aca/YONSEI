@@ -1876,8 +1876,8 @@ function recommendClassByScore(totalScore, grade) {
         if (diff < bestDiff) { bestDiff = diff; bestClass = cls; }
         if (avg < minAvg) minAvg = avg;
     });
-    // 미달반 제외 최저반 평균의 60% 미만 → 미달반 직접 반환
-    if (minAvg < Infinity && totalScore < minAvg * 0.6) {
+    // 미달반 제외 최저반 평균의 70% 미만 → 미달반 직접 반환
+    if (minAvg < Infinity && totalScore < minAvg * 0.7) {
         const gradeClasses = getClassesForGrade(grade) || [];
         return gradeClasses.find(function(c) { return c.includes('미달'); }) || bestClass;
     }
