@@ -2073,6 +2073,7 @@ function _renderStudentDBTable() {
             case 'grade': return dir * String(a['학년'] || a.grade || '').localeCompare(String(b['학년'] || b.grade || ''), 'ko');
             case 'date': return dir * dA.localeCompare(dB);
             case 'score': return dir * ((parseFloat(a['총점'] ?? a.totalScore ?? 0) || 0) - (parseFloat(b['총점'] ?? b.totalScore ?? 0) || 0));
+            case 'class': return dir * String(a['등록학급'] || a['학급'] || a.class || '').localeCompare(String(b['등록학급'] || b['학급'] || b.class || ''), 'ko');
             default: return 0;
         }
     });
