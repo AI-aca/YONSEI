@@ -4732,7 +4732,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
 
                 <!-- 평균 표시 토글 no-print -->
                 <div class="no-print" style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;margin-right:4px;">
-                    <span style="font-size:14px;font-weight:700;color:#64748b;">평균 표시</span>
+                    <span style="font-size:16px;font-weight:700;color:#64748b;">[평균 표시]</span>
                     <div style="display:flex;gap:5px;align-items:center;">
                         <!-- 최저학급 체크박스 (버튼과 동일 높이/스타일) -->
                         <label style="display:flex;flex-direction:row;align-items:center;gap:5px;cursor:pointer;font-size:16px;font-weight:700;color:#64748b;white-space:nowrap;border:1.5px solid #e2e8f0;border-radius:7px;padding:3px 10px;background:#f8fafc;">
