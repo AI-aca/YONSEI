@@ -4374,12 +4374,13 @@ async function generateOverallComment(record, averages, activeSections, sectionC
 
     const gradeTone = getGradeTone(record.grade || record['학년']);
 
+    const _secKR = { Grammar: '문법', Writing: '영작', Reading: '독해', Listening: '듣기', Vocabulary: '어휘' };
     const sectionSummary = activeSections.map(s => {
         const score = parseFloat(record[s + '_점수'] || record[secMap[s]] || 0);
         const max = parseFloat(record[s + '_만점'] || record[maxMap[s]] || averages[maxMap[s]] || 0);
         const avg = parseFloat(averages[s + '_점수'] || averages[secMap[s]] || 0);
         const cmt = sectionComments[s] || '(코멘트 없음)';
-        return `[영역: ${s}] 개인 ${score}점 / 만점 ${max > 0 ? max + '점' : '?'} / 평균 ${avg.toFixed(1)}점\n영역 코멘트: ${cmt}`;
+        return `[영역: ${_secKR[s] || s}] 개인 ${score}점 / 만점 ${max > 0 ? max + '점' : '?'} / 평균 ${avg.toFixed(1)}점\n영역 코멘트: ${cmt}`;
     }).join('\n\n');
 
     const sName = record['이름'] || record.name || record.studentName || '';
@@ -4403,7 +4404,12 @@ ${sectionSummary}
 3) 부족한 영역의 핵심 학습 방향을 종합 관점에서 간결하게 제안하세요 (1~2문장)
 4) 전체적 격려 메시지로 마무리하세요 (1문장)
 
-실제 총점/만점을 반드시 언급하세요. 호칭이 필요한 경우 "${sName} 학생은" 형식으로 실명을 사용하세요. "우리 OO 학생" 같은 가상 호칭은 절대 사용하지 마세요. 학원명, 교재명, 브랜드명은 절대 언급하지 마세요. 모든 답변은 순수 한국어로만 작성하세요. 인사말(안녕하세요, 반갑습니다 등)로 시작하지 마세요. 바로 내용으로 시작하세요.`;
+⚠️ 출력 형식 절대 규칙 (위반 시 응답 전체가 무효):
+- 첫 번째 문장은 반드시 전체 성적에 대한 종합적 내용으로 시작하세요.
+- "${sName} 학생의 종합 피드백입니다", "${sName} 학생의 평가 결과입니다" 같은 소개·제목 문장은 절대 쓰지 마세요.
+- 인사말(안녕하세요 등) 금지. 영역명을 영어(Grammar, Reading 등)로 쓰지 마세요. 한국어(문법, 독해 등)로만 쓰세요.
+- 실제 총점과 만점을 반드시 언급하세요. 호칭이 필요하면 "${sName} 학생은" 형식만 사용하세요.
+- 학원명, 교재명, 브랜드명 절대 금지. 모든 답변은 순수 한국어로 작성하세요.`;
 
     return await callGeminiAPI(prompt);
 }
