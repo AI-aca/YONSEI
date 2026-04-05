@@ -4363,16 +4363,16 @@ function getGradeTone(grade) {
     // 초등: 초1~6
     if (/^초[1-6]$/.test(g) || /^초등/.test(g)) {
         return `당신은 초등학교 영어 학생을 위한 친절한 선생님입니다.
-[톤앤매너] 따뜻하고 친근한 말투로 작성하세요. 어려운 용어는 쓰지 마세요. 칭찬을 먼저 충분히 하고, 개선점은 "다음엔 이렇게 해보면 어떨까요?" 같이 부드럽게 제안하세요. 항상 격려로 마무리하세요.${HONORIFIC}`;
+[톤앤매너] 따뜻하고 친근한 말투로 작성하세요. 어려운 용어는 쓰지 마세요. 칭찬을 먼저 충분히 하고, 개선점은 "다음엔 이렇게 해보면 어떨까요?" 같이 부드럽게 제안하세요. 항상 격려로 마무리하세요. 성취레벨 표현은 직접적인 단어(부진, 미흡 등) 대신 "조금 더 노력이 필요합니다", "잘 따라오고 있습니다" 처럼 학생이 상처받지 않는 부드러운 표현을 사용하세요.${HONORIFIC}`;
     }
     // 고등: 고1~3
     if (/^고[1-3]$/.test(g) || /^고등/.test(g)) {
         return `당신은 고등학교 영어 학생을 위한 전문 강사입니다.
-[톤앤매너] 전문적이고 간결한 어조로 작성하세요. 수능/내신을 감안한 실질적인 학습 전략을 제시하세요. 격려는 한 문장으로 간결하게 하고, 분석과 학습 방향 제시에 집중하세요.${HONORIFIC}`;
+[톤앤매너] 전문적이고 간결한 어조로 작성하세요. 수능/내신을 감안한 실질적인 학습 전략을 제시하세요. 격려는 한 문장으로 간결하게 하고, 분석과 학습 방향 제시에 집중하세요. 성취레벨 표현은 백분위·수준에 맞는 직접적이고 객관적인 표현을 사용하세요.${HONORIFIC}`;
     }
     // 중등: 중1~3 (기본값)
     return `당신은 중학교 영어 학생을 위한 영어 강사입니다.
-[톤앤매너] 직접적이되 존중하는 톤으로 작성하세요. 부족한 부분은 명확하게 지적하되, 도전 의욕을 불러일으키는 언어를 사용하세요. 학생 스스로 목표를 세울 수 있도록 구체적인 방향을 제시하세요.${HONORIFIC}`;
+[톤앤매너] 직접적이되 존중하는 톤으로 작성하세요. 부족한 부분은 명확하게 지적하되, 도전 의욕을 불러일으키는 언어를 사용하세요. 학생 스스로 목표를 세울 수 있도록 구체적인 방향을 제시하세요. 성취레벨 표현은 학생의 동기를 꺾지 않으면서도 현실적인 수준을 정확히 전달하세요.${HONORIFIC}`;
 }
 
 // AI 종합 코멘트 생성 (영역별 코멘트 기반 종합분석)
@@ -4609,16 +4609,41 @@ async function generateSectionComments(record, averages, activeSections) {
         const overallAvgScore = parseFloat(averages[section + '_점수'] || averages[secMap[section]] || 0);
         const maxScore = parseFloat(record[section + '_만점'] || record[maxMap[section]] || averages[maxMap[section]] || 0);
 
-        // 성취레벨: 전체 평균 대비 상대 기준
+        // 전체 학생 상위 백분위 계산 (해당 영역 기준)
+        const _allRecords = window.cachedStudentRecords || [];
+        const _allSectionScores = _allRecords
+            .map(r => parseFloat(r[section + '_점수'] || r[secMap[section]] || 0))
+            .filter(v => !isNaN(v) && v > 0);
+        const _aboveCount = _allSectionScores.filter(s => s > studentScore).length;
+        const _totalCount = _allSectionScores.length;
+        const upperPercentile = _totalCount > 0 ? Math.min(100, Math.round((_aboveCount / _totalCount) * 100) + 1) : 50;
+
+        // 백분위 기반 성취레벨 (7단계) + 전체 평균 대비 보정
         const diff = overallAvgScore > 0 ? (studentScore - overallAvgScore) : 0;
-        const level = diff >= 10 ? '우수' : diff >= -10 ? '보통' : '부진';
+        let level;
+        if (upperPercentile <= 10) level = '매우 우수';
+        else if (upperPercentile <= 20) level = '우수';
+        else if (upperPercentile <= 35) level = '다소 우수';
+        else if (upperPercentile <= 55) level = '보통';
+        else if (upperPercentile <= 70) level = '다소 부진';
+        else if (upperPercentile <= 85) level = '부진';
+        else level = '매우 부진';
         const rate = maxScore > 0 ? (studentScore / maxScore * 100) : 0;
 
-        // 권장학급 평균 계산
+        // 권장학급 평균 + 학급 내 백분위 계산
         const _sGrd = record.grade || record['학년'] || '';
         const _recCls = record.studentClass || record['등록학급'] || '';
         const _clsData = (_recCls && _sGrd) ? computeClassAvg(_recCls, _sGrd, secMap) : null;
         const clsAvgScore = _clsData ? parseFloat(_clsData[section + '_점수'] || 0) : null;
+        // 권장학급 내 백분위
+        const _clsRecordsAll = (_recCls && _sGrd) ? _allRecords.filter(r => {
+            const rG = r['학년'] || r.grade || '';
+            const rC = r.studentClass || r['등록학급'] || '';
+            return rG === _sGrd && rC === _recCls;
+        }) : [];
+        const _clsSectionScores = _clsRecordsAll.map(r => parseFloat(r[section + '_점수'] || r[secMap[section]] || 0)).filter(v => !isNaN(v) && v > 0);
+        const _clsAbove = _clsSectionScores.filter(s => s > studentScore).length;
+        const clsUpperPercentile = _clsSectionScores.length > 0 ? Math.min(100, Math.round((_clsAbove / _clsSectionScores.length) * 100) + 1) : null;
 
         // 세부영역(subType) + 정오답 문항 파싱
         let subTypeInfo = '';
@@ -4666,7 +4691,7 @@ async function generateSectionComments(record, averages, activeSections) {
 이름: ${sName}
 
 [성적 데이터]
-개인 점수: ${studentScore}점 / 영역 만점: ${maxScore > 0 ? maxScore + '점' : '정보 없음'} / 전체 평균: ${overallAvgScore.toFixed(1)}점${clsAvgScore !== null ? ' / 권장학급 평균: ' + clsAvgScore.toFixed(1) + '점' : ''} / 성취레벨: ${level}(전체 평균 대비 ${diff >= 0 ? '+' : ''}${diff.toFixed(1)}점)${subTypeInfo}${wrongInfo}
+개인 점수: ${studentScore}점 / 영역 만점: ${maxScore > 0 ? maxScore + '점' : '정보 없음'} / 전체 평균: ${overallAvgScore.toFixed(1)}점(전체 대비 ${diff >= 0 ? '+' : ''}${diff.toFixed(1)}점) / 성취레벨: ${level} / 전체 상위 백분위: 약 ${upperPercentile}%${clsAvgScore !== null ? ' / 권장학급(' + _recCls + ') 평균: ' + clsAvgScore.toFixed(1) + '점' : ''}${clsUpperPercentile !== null ? ' / 권장학급 내 상위 백분위: 약 ' + clsUpperPercentile + '%' : ''}${subTypeInfo}${wrongInfo}
 
 [작성 규칙]
 1) 잘한 점 (2문장)
