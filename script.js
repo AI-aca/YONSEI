@@ -4715,6 +4715,19 @@ async function generateSectionComments(record, averages, activeSections) {
         // 영역명 한국어 변환
         const _sectionKR = { Grammar: '문법', Writing: '영작', Reading: '독해', Listening: '듣기', Vocabulary: '어휘' }[section] || section;
 
+        // 미흡한 점 지시 — JS가 3단계로 직접 판단
+        const _isPerfect = maxScore > 0 && studentScore >= maxScore;
+        const _aboveCls = clsAvgScore !== null ? studentScore > clsAvgScore : studentScore > overallAvgScore;
+        const _shortfall = maxScore > 0 ? (maxScore - studentScore) : null;
+        let _weaknessRule;
+        if (_isPerfect) {
+            _weaknessRule = '2) 현재 수준 유지 (1문장) — 만점이므로 미흡한 점, 부족한 점을 절대 쓰지 마세요. 현재의 실력을 앞으로도 유지하는 것의 중요성에 대해 서술하세요.';
+        } else if (_aboveCls) {
+            _weaknessRule = '2) 보완 포인트 (1문장) — 학급 평균보다 높으므로 "미흡하다", "부족하다", "발전할 여지가 있다" 같은 부정 표현 절대 금지. 만점(' + maxScore + '점) 대비 ' + _shortfall + '점 부족한 부분에 대해서만 짧게 서술하세요.';
+        } else {
+            _weaknessRule = '2) 미흡한 점 또는 약점 (1문장) — ' + (subTypeInfo ? '✅ 세부 영역별 점수 데이터 제공됨. 가장 취약한 세부 영역을 명시하세요.' : '⚠️ 세부 영역 데이터 없음. 학급 평균보다 낮은 점에 근거해 서술하세요. 세부 유형·문법 항목을 절대 추측하지 마세요.');
+        }
+
         const prompt = `${gradeTone}
 
 아래 학생의 ${_sectionKR} 영역 성적 데이터를 바탕으로 피드백을 작성해주세요.
@@ -4726,8 +4739,8 @@ async function generateSectionComments(record, averages, activeSections) {
 개인 점수: ${studentScore}점 / 영역 만점: ${maxScore > 0 ? maxScore + '점' : '정보 없음'} / 전체 평균: ${overallAvgScore.toFixed(1)}점(전체 대비 ${diff >= 0 ? '+' : ''}${diff.toFixed(1)}점) / 성취레벨: ${level} / 전체 상위 백분위: 약 ${upperPercentile}%${clsAvgScore !== null ? ' / 권장학급(' + _recCls + ') 평균: ' + clsAvgScore.toFixed(1) + '점(학급 평균 대비 ' + (studentScore - clsAvgScore >= 0 ? '+' : '') + (studentScore - clsAvgScore).toFixed(1) + '점)' : ''}${clsUpperPercentile !== null ? ' / 권장학급 내 상위 백분위: 약 ' + clsUpperPercentile + '%' : ''}${subTypeInfo}${wrongInfo}
 
 [작성 규칙]
-1) 잘한 점 (2문장)
-2) 미흡한 점 또는 약점 (1문장) — ${subTypeInfo ? '✅ 세부 영역별 점수 데이터가 위에 제공되었습니다. 가장 취약한 세부 영역을 명시하세요. (예: "시제 영역에서 0/20점으로 집중 감점되었습니다")' : '⚠️ 세부 영역 데이터 없음. 총점과 반 평균 비교만으로 서술하세요. 세부 유형·문법 항목·문제 유형을 절대 추측하거나 지어내지 마세요.'}
+1) 잘한 점 (2문장) — 전체 상위 백분위(약 ${upperPercentile}%)${clsUpperPercentile !== null ? '와 권장학급 내 상위 백분위(약 ' + clsUpperPercentile + '%)' : ''}를 활용하여 구체적으로 서술하세요.
+${_weaknessRule}
 3) 구체적 학습 방향 제시 (1문장) — ${subTypeInfo ? '취약 세부 영역 중심으로 제시하세요.' : '해당 영역 전반적 학습 방향만 제시하세요. 세부 유형 절대 지어내지 마세요.'}
 
 ⚠️ 출력 형식 절대 규칙 (위반 시 응답 전체가 무효):
