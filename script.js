@@ -4449,6 +4449,25 @@ async function generateOverallComment(record, averages, activeSections, sectionC
 
     const sName = record['이름'] || record.name || record.studentName || '';
 
+    // 영역별 백분위 편차 분석
+    const _allRecs = window.cachedStudentRecords || [];
+    const _secPcts = activeSections.map(s => {
+        const sScore = parseFloat(record[s + '_점수'] || record[secMap[s]] || 0);
+        const allScores = _allRecs.map(r => parseFloat(r[s + '_점수'] || r[secMap[s]] || 0)).filter(v => !isNaN(v) && v > 0);
+        const pct = allScores.length > 0 ? Math.min(100, Math.round((allScores.filter(v => v > sScore).length / allScores.length) * 100) + 1) : 50;
+        return { s, pct };
+    }).filter(x => x.pct > 0);
+
+    let _gapRule = '';
+    if (_secPcts.length >= 2) {
+        const _best  = _secPcts.reduce((a, b) => a.pct < b.pct ? a : b); // 백분위 낮을수록 우수
+        const _worst = _secPcts.reduce((a, b) => a.pct > b.pct ? a : b); // 백분위 높을수록 부족
+        const _gap = _worst.pct - _best.pct;
+        if (_gap >= 30) {
+            _gapRule = `\n5) ⚠️ 영역 간 백분위 편차 필수 언급: 최고 영역은 ${_secKR[_best.s]||_best.s}(전체 상위 ${_best.pct}% — ${_pctLabel(_best.pct)})이고, 최저 영역은 ${_secKR[_worst.s]||_worst.s}(전체 상위 ${_worst.pct}% — ${_pctLabel(_worst.pct)})으로 편차가 ${_gap}%p입니다. 이 불균형을 종합 코멘트에서 반드시 명시적으로 언급하세요.`;
+        }
+    }
+
     const prompt = `${gradeTone}
 
 아래 학생의 영역별 코멘트를 참고해 종합 피드백을 작성해주세요.
@@ -4468,7 +4487,7 @@ ${sectionSummary}
 1) 각 영역 코멘트에서 이미 언급된 세부 내용(특정 표현, 문법 항목, 단어 유형 등)은 그대로 반복하지 마세요.
 2) 전체 상위 백분위(약 ${oaUpperPercentile}%)${clsTotalPercentile !== null ? '·권장학급 내 상위 백분위(약 ' + clsTotalPercentile + '%)' : ''}를 활용하여 영역들을 가로질러 보이는 전체적 패턴이나 공통 특징을 종합적으로 언급하세요 (1~2문장)
 3) 부족한 영역의 핵심 학습 방향을 종합 관점에서 간결하게 제안하세요 (1~2문장)
-4) 전체적 격려 메시지로 마무리하세요 (1문장)
+4) 전체적 격려 메시지로 마무리하세요 (1문장)${_gapRule}
 
 ⚠️ 출력 형식 절대 규칙 (위반 시 응답 전체가 무효):
 - 첫 번째 문장은 반드시 전체 성적에 대한 종합적 내용으로 시작하세요.
