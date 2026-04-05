@@ -1175,8 +1175,18 @@ else if (data.type === "GET_AUDIO_B64") {
                                 .replace(/이셨습니다/g, "였습니다")
                                 .replace(/주셨습니다/g, "줍니다")
                                 .replace(/셨습니다/g, "했습니다");
+                            // 백분위 오표현 교체 (부진권에서 "높다/우수하다" 잘못 쓰는 패턴)
+                            rawText = rawText
+                                .replace(/에 해당되는 높은 백분위/g, "에 해당하는 백분위")
+                                .replace(/에 해당하는 높은 백분위/g, "에 해당하는 백분위")
+                                .replace(/높은 백분위를 기록/g, "백분위를 기록")
+                                .replace(/높은 백분위를 보유/g, "백분위를 보유")
+                                .replace(/상위 약 (\d+)%에 해당되는/g, function(_, n) {
+                                    return parseInt(n) > 55 ? "백분위 약 " + n + "%에 해당하는(하위권)" : "상위 약 " + n + "%에 해당하는";
+                                });
                             rawText = rawText.trimStart();
                             json.candidates[0].content.parts[0].text = rawText;
+
                         }
                     } catch(postErr) { Logger.log("후처리 오류: " + postErr); }
                     // Success! Return
