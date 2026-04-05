@@ -4446,7 +4446,7 @@ async function generateOverallComment(record, averages, activeSections, sectionC
 ${sectionSummary}
 
 [총점 현황]
-개인 총점: ${totalScore}점 / 시험지 만점: ${totalMax}점 / 전체 평균: ${totalAvg.toFixed(1)}점(전체 대비 ${_oaDiff >= 0 ? '+' : ''}${_oaDiff.toFixed(1)}점) / 정답률: ${totalRate}% / 성취레벨: ${totalLevel} / 전체 상위 백분위: 약 ${oaUpperPercentile}%${clsTotalAvg !== null ? ' / 권장학급(' + _oaCls + ') 총점 평균: ' + clsTotalAvg.toFixed(1) + '점' + (clsTotalPercentile !== null ? ' / 권장학급 내 상위 백분위: 약 ' + clsTotalPercentile + '%' : '') : ''}
+개인 총점: ${totalScore}점 / 시험지 만점: ${totalMax}점 / 전체 평균: ${totalAvg.toFixed(1)}점(전체 대비 ${_oaDiff >= 0 ? '+' : ''}${_oaDiff.toFixed(1)}점) / 정답률: ${totalRate}% / 성취레벨: ${totalLevel} / 전체 상위 백분위: 약 ${oaUpperPercentile}%${clsTotalAvg !== null ? ' / 권장학급(' + _oaCls + ') 총점 평균: ' + clsTotalAvg.toFixed(1) + '점(학급 평균 대비 ' + (totalScore - clsTotalAvg >= 0 ? '+' : '') + (totalScore - clsTotalAvg).toFixed(1) + '점)' + (clsTotalPercentile !== null ? ' / 권장학급 내 상위 백분위: 약 ' + clsTotalPercentile + '%' : '') : ''}
 
 [작성 규칙]
 1) 각 영역 코멘트에서 이미 언급된 세부 내용(특정 표현, 문법 항목, 단어 유형 등)은 그대로 반복하지 마세요.
@@ -4721,7 +4721,7 @@ async function generateSectionComments(record, averages, activeSections) {
 이름: ${sName}
 
 [성적 데이터]
-개인 점수: ${studentScore}점 / 영역 만점: ${maxScore > 0 ? maxScore + '점' : '정보 없음'} / 전체 평균: ${overallAvgScore.toFixed(1)}점(전체 대비 ${diff >= 0 ? '+' : ''}${diff.toFixed(1)}점) / 성취레벨: ${level} / 전체 상위 백분위: 약 ${upperPercentile}%${clsAvgScore !== null ? ' / 권장학급(' + _recCls + ') 평균: ' + clsAvgScore.toFixed(1) + '점' : ''}${clsUpperPercentile !== null ? ' / 권장학급 내 상위 백분위: 약 ' + clsUpperPercentile + '%' : ''}${subTypeInfo}${wrongInfo}
+개인 점수: ${studentScore}점 / 영역 만점: ${maxScore > 0 ? maxScore + '점' : '정보 없음'} / 전체 평균: ${overallAvgScore.toFixed(1)}점(전체 대비 ${diff >= 0 ? '+' : ''}${diff.toFixed(1)}점) / 성취레벨: ${level} / 전체 상위 백분위: 약 ${upperPercentile}%${clsAvgScore !== null ? ' / 권장학급(' + _recCls + ') 평균: ' + clsAvgScore.toFixed(1) + '점(학급 평균 대비 ' + (studentScore - clsAvgScore >= 0 ? '+' : '') + (studentScore - clsAvgScore).toFixed(1) + '점)' : ''}${clsUpperPercentile !== null ? ' / 권장학급 내 상위 백분위: 약 ' + clsUpperPercentile + '%' : ''}${subTypeInfo}${wrongInfo}
 
 [작성 규칙]
 1) 잘한 점 (2문장)
