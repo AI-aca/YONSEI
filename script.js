@@ -3156,6 +3156,26 @@ function rerenderReportCharts() {
     renderTotalChart(d.record, d.averages, d.sTotal, d.sMax, clsAvg, mode);
     renderSectionsBarChart(d.record, d.averages, d.activeSections, d.secMap, d.maxMap, clsAvg, mode);
     renderRadarChart(d.record, d.averages, d.activeSections, d.secMap, d.maxMap, clsAvg, mode);
+    updateSectionHeaders();
+}
+
+function updateSectionHeaders() {
+    const mode = window._reportAvgMode || 'all';
+    document.querySelectorAll('[id^="sec-hdr-avg-"]').forEach(function(el) {
+        const personal = el.dataset.personal;
+        const overall = el.dataset.overall;
+        const cls = el.dataset.class;
+        const max = parseFloat(el.dataset.max || 0);
+        let avgPart = '';
+        if (mode === 'all') {
+            avgPart = '전체 평균: ' + overall + '점' + (cls ? ' | 학급 평균: ' + cls + '점' : '');
+        } else if (mode === 'overall') {
+            avgPart = '전체 평균: ' + overall + '점';
+        } else {
+            avgPart = cls ? '학급 평균: ' + cls + '점' : '전체 평균: ' + overall + '점';
+        }
+        el.textContent = '개인: ' + personal + '점 | ' + avgPart + (max > 0 ? ' | 만점: ' + max + '점' : '');
+    });
 }
 
 // Canvas 06: 학년 선택 시 해당 학년 학급만 dropdown에 표시
@@ -4586,12 +4606,19 @@ async function generateSectionComments(record, averages, activeSections) {
 
     for (let section of activeSections) {
         const studentScore = parseFloat(record[section + '_점수'] || record[secMap[section]] || 0);
-        const avgScore = parseFloat(averages[section + '_점수'] || averages[secMap[section]] || 0);
+        const overallAvgScore = parseFloat(averages[section + '_점수'] || averages[secMap[section]] || 0);
         const maxScore = parseFloat(record[section + '_만점'] || record[maxMap[section]] || averages[maxMap[section]] || 0);
 
-        // 성취레벨 계산
+        // 성취레벨: 전체 평균 대비 상대 기준
+        const diff = overallAvgScore > 0 ? (studentScore - overallAvgScore) : 0;
+        const level = diff >= 10 ? '우수' : diff >= -10 ? '보통' : '부진';
         const rate = maxScore > 0 ? (studentScore / maxScore * 100) : 0;
-        const level = rate >= 90 ? '우수' : rate >= 70 ? '보통' : '부진';
+
+        // 권장학급 평균 계산
+        const _sGrd = record.grade || record['학년'] || '';
+        const _recCls = record.studentClass || record['등록학급'] || '';
+        const _clsData = (_recCls && _sGrd) ? computeClassAvg(_recCls, _sGrd, secMap) : null;
+        const clsAvgScore = _clsData ? parseFloat(_clsData[section + '_점수'] || 0) : null;
 
         // 세부영역(subType) + 정오답 문항 파싱
         let subTypeInfo = '';
@@ -4639,7 +4666,7 @@ async function generateSectionComments(record, averages, activeSections) {
 이름: ${sName}
 
 [성적 데이터]
-개인 점수: ${studentScore}점 / 영역 만점: ${maxScore > 0 ? maxScore + '점' : '정보 없음'} / 반 평균: ${avgScore.toFixed(1)}점 / 성취레벨: ${level}(${rate.toFixed(0)}%)${subTypeInfo}${wrongInfo}
+개인 점수: ${studentScore}점 / 영역 만점: ${maxScore > 0 ? maxScore + '점' : '정보 없음'} / 전체 평균: ${overallAvgScore.toFixed(1)}점${clsAvgScore !== null ? ' / 권장학급 평균: ' + clsAvgScore.toFixed(1) + '점' : ''} / 성취레벨: ${level}(전체 평균 대비 ${diff >= 0 ? '+' : ''}${diff.toFixed(1)}점)${subTypeInfo}${wrongInfo}
 
 [작성 규칙]
 1) 잘한 점 (2문장)
@@ -4731,6 +4758,11 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
     // 이름 길이에 따른 폰트 크기 (한글 6자 초과 or 영어만 10자 초과 → 20px)
     const _korCount = (sName.match(/[\uAC00-\uD7A3]/g) || []).length;
     const _nameFontSize = (_korCount > 5 || (_korCount === 0 && sName.length > 10)) ? '20px' : '24px';
+
+    // 헤더용 권장학급 평균 미리 계산
+    const _recClsForHdr = record.studentClass || record['등록학급'] || recCls05 || '';
+    const _clsAvgHdr = (_recClsForHdr && sGrade) ? computeClassAvg(_recClsForHdr, sGrade, secMap) : null;
+    const _secKRHdr = { Grammar: '문법', Writing: '영작', Reading: '독해', Listening: '듣기', Vocabulary: '어휘' };
 
     display.innerHTML = `
     <div class="card space-y-8 animate-fade-in mt-5">
@@ -4837,8 +4869,15 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
         return `<div class="bg-slate-50 rounded-2xl border overflow-hidden">
                     <div class="px-6 py-4 flex items-center justify-between">
                         <div class="flex items-center gap-3 flex-wrap">
-                            <h5 class="font-black text-[#013976] fs-18">${section} 영역</h5>
-                            <span class="text-slate-500" style="font-size:15px;">개인: ${sScore}점 | 평균: ${aScore.toFixed(1)}점${sMaxV > 0 ? ' | 만점: ' + sMaxV + '점' : ''}</span>
+                            <h5 class="font-black text-[#013976] fs-18">${_secKRHdr[section] || section} 영역</h5>
+                            <span id="sec-hdr-avg-${section}"
+                              data-personal="${sScore}"
+                              data-overall="${aScore.toFixed(1)}"
+                              data-class="${_clsAvgHdr && _clsAvgHdr[section + '_점수'] != null ? parseFloat(_clsAvgHdr[section + '_점수'] || 0).toFixed(1) : ''}"
+                              data-max="${sMaxV}"
+                              class="text-slate-500" style="font-size:15px;">
+                              개인: ${sScore}점 | 전체 평균: ${aScore.toFixed(1)}점${_clsAvgHdr && _clsAvgHdr[section + '_점수'] != null ? ' | 학급 평균: ' + parseFloat(_clsAvgHdr[section + '_점수'] || 0).toFixed(1) + '점' : ''}${sMaxV > 0 ? ' | 만점: ' + sMaxV + '점' : ''}
+                            </span>
                         </div>
                         <button onclick="regenerateSectionComment('${section}')" class="no-print text-xl px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all" title="이 영역 코멘트 재생성">🔄</button>
                     </div>
