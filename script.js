@@ -9516,6 +9516,15 @@ function sanitizePastedHtml(html) {
             }
         }
     });
+    // [Fix] <u> 내 공백 보존: 복붙 시 밑줄 빈칸(스페이스 연장) 손상 방지
+    // <u> 텍스트 노드의 공백 → \u00a0(non-breaking) 변환 → innerHTML 직렬화 시 &nbsp;로 출력 → 이후 공백 정규화 regex 회피
+    tmp.querySelectorAll('u').forEach(function(uEl) {
+        uEl.childNodes.forEach(function(node) {
+            if (node.nodeType === 3) { // 텍스트 노드만
+                node.textContent = node.textContent.replace(/ /g, '\u00a0');
+            }
+        });
+    });
     // &nbsp; → 일반 공백, 연속 공백 하나로 정규화
     let result = tmp.innerHTML;
     result = result.replace(/\u00a0/g, ' ');      // non-breaking space → 일반 공백
