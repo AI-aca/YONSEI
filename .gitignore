@@ -2,7 +2,7 @@
 *.gs
 
 # 내부 MD 문서 파일
-[MD] *.md
+\[MD\] *.md
 
 # 에이전트/IDE 설정
 .agents/
