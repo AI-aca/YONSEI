@@ -2730,8 +2730,8 @@ function renderAdminCode(c) {
                     <div class="card !bg-[#013976] !p-12 text-white border-none">
                         <h3 class="fs-32 text-white font-black uppercase tracking-tighter underline decoration-blue-400/30 decoration-8 underline-offset-8 mb-6 leading-none">Change Management Code</h3>
                         <p class="fs-18 text-blue-200 mb-8">관리자 모드(Admin) 접속에 사용할 새로운 액세스 코드를 설정하세요.</p>
-                        <input type="text" id="new-admin-code" autocomplete="off" class="ys-field !bg-white/10 !text-white border-white/20" value="${globalConfig.adminCode}" placeholder="새 코드 입력">
-                        <button onclick="(async()=>{const val=document.getElementById('new-admin-code').value; if(!val) return showToast('코드를 입력하세요'); globalConfig.adminCode=val; save(); await saveConfigToCloud(); showToast('관리자 코드가 성공적으로 변경 및 동기화되었습니다.'); changeTab('main_config');})()" 
+                        <input type="text" id="new-admin-code" autocomplete="off" class="ys-field !bg-white/10 !text-white border-white/20" value="" placeholder="새 코드 입력">
+                        <button onclick="(async()=>{const val=document.getElementById('new-admin-code').value; if(!val) return showToast('코드를 입력하세요'); const fId=globalConfig.mainServerLink?globalConfig.mainServerLink.match(/folders\/([^/?]+)/)?.[1]:null; const r=await fetch(globalConfig.masterUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'UPDATE_CONFIG_KEYS',parentFolderId:fId,updates:{adminCode:val}})}); const d=await r.json(); if(d.status==='Success'){showToast('관리자 코드가 성공적으로 변경 및 동기화되었습니다.'); changeTab('main_config');}else{showToast('❌ 저장 실패: '+(d.message||''));}})()" 
                         class="bg-white text-[#013976] w-full py-6 rounded-2xl fs-18 mt-4 hover:bg-slate-100 transition-all uppercase">💾 Update & Sync Code</button>
                     </div>
                 </div>`;
