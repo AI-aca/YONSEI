@@ -1129,10 +1129,26 @@ else if (data.type === "GET_AUDIO_B64") {
             var model = models[i];
             var url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + apiKey;
             
+            var systemInstruction = {
+                parts: [{ text: [
+                    "당신은 학생 성적 코멘트를 작성하는 교육 전문가입니다. 아래 규칙을 절대적으로 지켜야 합니다.",
+                    "[절대 금지 — 위반 시 응답 전체 무효]",
+                    "1. 첫 문장에 '피드백입니다', '코멘트입니다', '결과입니다', '분석입니다', '평가입니다', '평가 결과입니다' 같은 소개/제목 문장 절대 금지. 첫 문장은 반드시 학생 성취 내용으로 직접 시작할 것.",
+                    "2. 학생을 주어로 쓸 때 -시- 경어 절대 금지. '보여주셨습니다→보여줍니다', '받으셨습니다→받았습니다', '획득하셨습니다→획득했습니다', '기록하셨습니다→기록했습니다', '하셨습니다→했습니다' 형식으로만 쓸 것.",
+                    "3. 백분위는 숫자가 클수록 하위권. 백분위 1%=최상위, 100%=최하위. 백분위 55% 초과면 '높다', '우수하다', '높은 백분위' 절대 금지.",
+                    "4. ~ㅂ니다/습니다 격식체만 허용. ~요/~네요/~거예요 금지.",
+                    "5. 인사말, 축하, '훌륭합니다', '대단합니다' 등 과도한 칭찬 금지.",
+                    "6. 영역명은 한국어만 (Grammar→문법, Reading→독해, Writing→영작, Listening→듣기, Vocabulary→어휘)."
+                ].join("\n") }]
+            };
+            var payload = {
+                systemInstruction: systemInstruction,
+                contents: [{ parts: parts }]
+            };
             var options = {
                 'method': 'post',
                 'contentType': 'application/json',
-                'payload': JSON.stringify({ contents: [{ parts: parts }] }),
+                'payload': JSON.stringify(payload),
                 'muteHttpExceptions': true
             };
             
@@ -1142,11 +1158,32 @@ else if (data.type === "GET_AUDIO_B64") {
                 
                 if (responseCode === 200) {
                     var json = JSON.parse(response.getContentText());
-                    // Success! Return immediately
+                    // [후처리] 금지 표현 제거/교체
+                    try {
+                        var rawText = json.candidates[0].content.parts[0].text || "";
+                        if (rawText) {
+                            // 소개 문장 제거 (첫 줄이 소개 문장이면 제거)
+                            rawText = rawText.replace(/^[^\n]*(?:피드백입니다|코멘트입니다|결과입니다|분석입니다|평가입니다|평가\s*결과입니다)[^\n]*\n?/m, "");
+                            // -시- 존칭 교체
+                            rawText = rawText
+                                .replace(/보여주셨습니다/g, "보여줍니다")
+                                .replace(/받으셨습니다/g, "받았습니다")
+                                .replace(/획득하셨습니다/g, "획득했습니다")
+                                .replace(/기록하셨습니다/g, "기록했습니다")
+                                .replace(/보이셨습니다/g, "보입니다")
+                                .replace(/하셨습니다/g, "했습니다")
+                                .replace(/이셨습니다/g, "였습니다")
+                                .replace(/주셨습니다/g, "줍니다")
+                                .replace(/셨습니다/g, "했습니다");
+                            rawText = rawText.trimStart();
+                            json.candidates[0].content.parts[0].text = rawText;
+                        }
+                    } catch(postErr) { Logger.log("후처리 오류: " + postErr); }
+                    // Success! Return
                     return ContentService.createTextOutput(JSON.stringify({
                         status: "Success",
                         data: json,
-                        modelUsed: model // Inform client which model worked
+                        modelUsed: model
                     })).setMimeType(ContentService.MimeType.JSON);
                 } else {
                     // Log error and try next
