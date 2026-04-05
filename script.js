@@ -1859,7 +1859,7 @@ function recommendClassByScore(totalScore, grade) {
     if (!gradeRecs.length) {
         // 실제 학급 데이터 없음 → 미달반 직접 반환
         const gradeClasses = getClassesForGrade(grade) || [];
-        return gradeClasses.find(function(c) { return c.includes('미달'); }) || null;
+        return gradeClasses.find(function (c) { return c.includes('미달'); }) || null;
     }
     const classMap = {};
     gradeRecs.forEach(r => {
@@ -1879,7 +1879,7 @@ function recommendClassByScore(totalScore, grade) {
     // 미달반 제외 최저반 평균의 70% 미만 → 미달반 직접 반환
     if (minAvg < Infinity && totalScore < minAvg * 0.7) {
         const gradeClasses = getClassesForGrade(grade) || [];
-        return gradeClasses.find(function(c) { return c.includes('미달'); }) || bestClass;
+        return gradeClasses.find(function (c) { return c.includes('미달'); }) || bestClass;
     }
     return bestClass;
 }
@@ -3105,14 +3105,14 @@ function warnClassChange05(sel) {
 
 // 미달 제외 최저학급 평균 계산
 function getLowestClassAvg(grade, secMap) {
-    const records = (window.cachedStudentRecords || []).filter(function(r) {
+    const records = (window.cachedStudentRecords || []).filter(function (r) {
         const rGrade = r['학년'] || r.grade || '';
         const rClass = r['등록학급'] || r.studentClass || '';
         return rGrade === grade && rClass && !rClass.includes('미달');
     });
     if (!records.length) return null;
     const classMap = {};
-    records.forEach(function(r) {
+    records.forEach(function (r) {
         const cls = r['등록학급'] || r.studentClass || '';
         const total = parseFloat(r['총점'] || r.totalScore || 0) || 0;
         if (!classMap[cls]) classMap[cls] = { sum: 0, cnt: 0 };
@@ -3120,7 +3120,7 @@ function getLowestClassAvg(grade, secMap) {
         classMap[cls].cnt++;
     });
     let lowestCls = null, lowestAvg = Infinity;
-    Object.entries(classMap).forEach(function([cls, data]) {
+    Object.entries(classMap).forEach(function ([cls, data]) {
         const avg = data.sum / data.cnt;
         if (avg < lowestAvg) { lowestAvg = avg; lowestCls = cls; }
     });
@@ -3161,7 +3161,7 @@ function rerenderReportCharts() {
 
 function updateSectionHeaders() {
     const mode = window._reportAvgMode || 'all';
-    document.querySelectorAll('[id^="sec-hdr-avg-"]').forEach(function(el) {
+    document.querySelectorAll('[id^="sec-hdr-avg-"]').forEach(function (el) {
         const personal = el.dataset.personal;
         const overall = el.dataset.overall;
         const cls = el.dataset.class;
@@ -3374,29 +3374,33 @@ async function saveStudentScore() {
         const idEl = document.getElementById('input-student-id');
         if (idEl) idEl.value = studentId;
 
+        // 영역별 입력 여부 먼저 확인
+        const noQScoreMode = document.getElementById('chk-no-qscore')?.checked;
+
         const questionScores = [];
         let totalFromQ = 0, maxFromQ = 0;
-        document.querySelectorAll('[id^="q-score-"]').forEach(inp => {
-            const qid = inp.dataset.qid;
-            const maxQ = parseInt(inp.dataset.max) || 0;
-            const sc = parseInt(inp.value) || 0;
-            totalFromQ += sc;
-            maxFromQ += maxQ;
-            const q = (globalConfig.questions || []).find(q => String(q.id) === String(qid));
-            questionScores.push({
-                no: q?.no || '', id: qid, type: q?.type || '',
-                correct: null, studentAnswer: null, correctAnswer: null,
-                score: sc, maxScore: maxQ
+        if (!noQScoreMode) {
+            // 문항별 입력일 때만 수집
+            document.querySelectorAll('[id^="q-score-"]').forEach(inp => {
+                const qid = inp.dataset.qid;
+                const maxQ = parseInt(inp.dataset.max) || 0;
+                const sc = parseInt(inp.value) || 0;
+                totalFromQ += sc;
+                maxFromQ += maxQ;
+                const q = (globalConfig.questions || []).find(q => String(q.id) === String(qid));
+                questionScores.push({
+                    no: q?.no || '', id: qid, type: q?.type || '',
+                    correct: null, studentAnswer: null, correctAnswer: null,
+                    score: sc, maxScore: maxQ
+                });
             });
-        });
+        }
 
         // ── 영역별·난이도별 점수 계산 ──
-        // 문항별 점수를 입력한 경우: 각 문항의 section/difficulty로 자동 합산
-        // 아코디언만 입력한 경우: 해당 입력값 그대로 사용 (폴백)
         let grammarScore, writingScore, readingScore, listeningScore, vocabScore;
 
         // 체크박스 "문항별 점수 정보 없음" 여부로 분기
-        const noQScoreMode = document.getElementById('chk-no-qscore')?.checked;
+        // (noQScoreMode 이미 선언됨)
 
         if (!noQScoreMode) {
             // 문항별 입력 → section/difficulty 자동 집계
@@ -9700,8 +9704,8 @@ function sanitizePastedHtml(html) {
     });
     // [Fix] <u> 내 공백 보존: 복붙 시 밑줄 빈칸(스페이스 연장) 손상 방지
     // <u> 텍스트 노드의 공백 → \u00a0(non-breaking) 변환 → innerHTML 직렬화 시 &nbsp;로 출력 → 이후 공백 정규화 regex 회피
-    tmp.querySelectorAll('u').forEach(function(uEl) {
-        uEl.childNodes.forEach(function(node) {
+    tmp.querySelectorAll('u').forEach(function (uEl) {
+        uEl.childNodes.forEach(function (node) {
             if (node.nodeType === 3) { // 텍스트 노드만
                 node.textContent = node.textContent.replace(/ /g, '\u00a0');
             }
@@ -10053,22 +10057,22 @@ function handleCategorySelect() {
         }
         // 시험지 선택 즉시 오디오 프리로드 시작 (백그라운드)
         const _preloadCatId = selectedId;
-        const _hasBundles = (globalConfig.bundles || []).some(function(b) { return b.catId === _preloadCatId && b.audioFileId; });
+        const _hasBundles = (globalConfig.bundles || []).some(function (b) { return b.catId === _preloadCatId && b.audioFileId; });
         if (!_hasBundles) {
-            const _cat02 = (globalConfig.categories || []).find(function(c) { return c.id === _preloadCatId; });
+            const _cat02 = (globalConfig.categories || []).find(function (c) { return c.id === _preloadCatId; });
             const _fid02 = _cat02 ? extractFolderId(_cat02.targetFolderUrl) : null;
             if (_fid02) {
                 sendReliableRequest({ type: 'GET_FULL_DB', parentFolderId: _fid02, categoryName: _cat02.name })
-                    .then(function(res) {
+                    .then(function (res) {
                         const fb = (res && res.bundles) ? res.bundles : [];
-                        fb.forEach(function(b) { b.catId = _preloadCatId; });
-                        globalConfig.bundles = (globalConfig.bundles || []).filter(function(b) { return b.catId !== _preloadCatId; });
+                        fb.forEach(function (b) { b.catId = _preloadCatId; });
+                        globalConfig.bundles = (globalConfig.bundles || []).filter(function (b) { return b.catId !== _preloadCatId; });
                         globalConfig.bundles.push.apply(globalConfig.bundles, fb);
                         preloadBundleAudios(_preloadCatId);
-                    }).catch(function() { preloadBundleAudios(_preloadCatId); });
+                    }).catch(function () { preloadBundleAudios(_preloadCatId); });
             }
         } else {
-            setTimeout(function() { preloadBundleAudios(_preloadCatId); }, 200);
+            setTimeout(function () { preloadBundleAudios(_preloadCatId); }, 200);
         }
     }
 }
