@@ -1,0 +1,1186 @@
+
+# 🚨🚨🚨 절대 경고 — AI가 반드시 숙지해야 할 사용자 특이사항 🚨🚨🚨
+
+> **이 사용자는 한글 인코딩 깨짐 문제로 극도로 예민한 상태이다.**
+> - 과거 AI의 한글 인코딩 실수로 수백 시간의 작업이 손실되었으며, 이 문제로 인해 심리적으로 극한의 스트레스를 받았다.
+> - AI와 수천 번의 대화를 통해 이 문제를 반복적으로 경고하고 규칙화했다.
+> - **한글 관련 실수는 단순 오류가 아니라 이 프로젝트 전체를 위험에 빠뜨리는 치명적 사고다.**
+> - **한글 관련 경고를 가볍게 여기거나 절차를 생략하는 것은 절대 금지.**
+> - `grep_search`는 한글 파일에서 오탐 발생 → 한글 포함 파일 검색은 반드시 `node -e`로 검증
+> - PowerShell 파일 수정 절대 금지 → 직접 편집 도구(`replace_file_content` 등)만 사용
+
+---
+
+## 🖥️ 프로젝트 개발/배포 환경 (AI 필수 숙지)
+- **개발**: 오프라인 로컬 (OneDrive 폴더) — 브라우저에서 로컬 파일 직접 열어 테스트
+- **DB 연동**: 구글 드라이브 GAS — 저장/불러오기
+- **배포**: GitHub Pages — https://ai-aca.github.io/YONSEI/ (배포 완료 2026-04-06)
+- **업데이트 방법**: 로컬 수정 → git commit → git push origin master → 1~2분 후 자동 반영
+- **테스트 방법**: 로컬 브라우저에서 index.html 직접 열기 → GAS DB 연동으로 실제 데이터 확인
+
+---
+
+## 🛠️ 2026-04-06 작업 내역
+
+### GitHub Pages 온라인 배포 완료
+- **GitHub 계정**: PSD3250
+- **저장소**: https://github.com/PSD3250/ysie
+- **배포 URL**: https://psd3250.github.io/ysie/
+- **방식**: Deploy from branch (master / root)
+- **업데이트**: 앞으로 로컬 수정 후 `git push origin master`만 하면 자동 반영
+
+### AI 코멘트 systemInstruction + GAS 후처리 이중 차단 (커밋: 69dca23, 76b60fa)
+- **문제**: AI가 "피드백입니다" 소개 문장, "보여주셨습니다" -시- 존칭을 프롬프트 금지 지시에도 계속 위반
+- **수정 1 — systemInstruction**: GAS CALL_GEMINI 호출 시 `systemInstruction` 필드 별도 전달
+  - 6개 절대 금지 규칙: 소개/제목 문장 금지 / -시- 존칭 금지 / 백분위 해석 방향(클수록 하위권) / 격식체 강제 / 과도한 칭찬 금지 / 영역명 한국어화
+  - 시스템 레벨 적용 → user 프롬프트보다 강력하게 작동
+- **수정 2 — GAS 후처리**: AI 응답 수신 후 서버에서 정규식으로 금지 표현 강제 교체
+  - 소개 문장 패턴 (피드백입니다/결과입니다 등) → 첫 줄 제거
+  - -시- 존칭 8종 교체 (보여주셨습니다→보여줍니다, 하셨습니다→했습니다 등)
+  - "높은 백분위" 패턴 교체 (에 해당되는 높은 백분위→에 해당하는 백분위)
+  - 하위권 학생(55% 초과)에서 "상위 약 N%에 해당되는" → "백분위 약 N%에 해당하는(하위권)"
+- **속도 영향 없음** (추가 API 호출 없음)
+- **⚠️ GAS 재배포 완료**
+
+### AI 코멘트 프롬프트 백분위 표현 전면 수정 (커밋: f2b30fb)
+- **문제**: AI가 "백분위 75% = 높은 백분위 → 우수한 성적"으로 잘못 해석하는 환각 발생
+- **수정 1**: "상위 백분위" 표현 전체 → "백분위"로 일괄 치환 (AI가 "상위=좋다"로 오해 차단)
+- **수정 2**: 백분위 데이터 표현 명확화 → "백분위 75% = 전체 학생 중 75%가 이 학생보다 높은 점수"로 명시
+- **수정 3**: 부진/매우 부진 학생(백분위 55% 초과)에 대한 프롬프트 분기
+  - 중위권 이상: "잘한 점 (2문장)" 기존 유지
+  - 중하위권 이하: "현재 성취 수준 기술" + "잘했다/높다/우수하다 절대 금지" 지시
+
+### 전체 재수정 종합 코멘트 기존 참조 버그 수정 (커밋: 60be904)
+- **문제**: 전체 일괄 재수정(`regenerateAllComments()`) 시 종합 코멘트 생성에 DB에 저장된 기존(오류) 코멘트가 포함됨
+  - 원인: `mergedComments = { ...기존sectionComments, ...새sectionComments }` 구조 → 기존 잘못된 코멘트가 종합 프롬프트에 포함
+  - 결과: 기존 오류 코멘트가 AI에게 전달되어 오염된 종합 코멘트 생성
+- **수정**: 종합 코멘트 생성 시 `newSectionComments`만 사용 → 기존 코멘트 참조 완전 차단
+
+### Gemini 사용 모델 console 로깅 추가 (커밋: 126f6c9)
+- 디버그용: `[Gemini] 사용 모델: gemini-2.0-flash` 형태로 console.log 출력
+- 폴백 모델 사용 여부 실시간 확인 가능
+
+
+### 전체 재생성 버튼 추가 (커밋: b7e940c)
+- **위치**: 성적표 종합분석 코멘트 우측 상단
+- **추가**: 기존 🔄(종합만) 버튼 옆에 **🔄 전체** 버튼 나란히 배치
+- **동작**: 영역별 코멘트 순차 재생성 → 완료 후 종합 코멘트 재생성
+  - 각 영역 순서대로 처리하며 토스트로 진행상황 표시 (`🤖 문법 코멘트 재생성 중...`)
+  - 진행 중 모든 재생성 버튼 비활성화, 완료 시 복구
+- **신규 함수**: `regenerateAllComments()`
+
+### 종합 코멘트 백분위 필수 활용 추가 (커밋: d076bd0)
+- **문제**: 영역별 코멘트는 잘한점·미흡한점 모두 백분위 활용 지시가 있었는데 종합 코멘트에는 없었음
+- **수정 1**: `[작성 규칙] 2번` — 전체 백분위·학급 내 백분위를 **활용하여** 서술하도록 지시 추가
+- **수정 2**: `[출력 형식 절대 규칙]` — 백분위를 코멘트에 **반드시 활용**하여 서술 규칙 추가
+- **⚠️ GAS 복붙 불필요** (script.js만 수정)
+
+### AI 코멘트 로직 전면 고도화 (커밋: 8f05722 → bebaf38)
+
+
+#### 환경
+- 수정 파일: `script.js`, `[MD] AI COMMENT RULES.md`
+- 관련 함수: `getGradeTone`, `generateSectionComments`, `generateOverallComment`, `renderReportCard`, `setReportAvgMode`, `rerenderReportCharts`
+
+#### 1. 환각(Hallucination) 방지 강화
+- **문제**: 영역별 점수만 수동 입력한 학생(세부 문항 데이터 없음)에게 AI가 세부 유형(시제, 어휘 등)을 지어내는 환각 발생
+- **수정**: `generateSectionComments`에서 JS가 `subTypeInfo` 유무를 직접 판단해 프롬프트에 다른 지시 삽입
+  - subTypeInfo 있음 → `✅ 세부 영역 데이터 제공됨. 취약 세부 영역 명시하세요`
+  - subTypeInfo 없음 → `⚠️ 세부 데이터 없음. 절대 추측·지어내지 마세요`
+
+#### 2. 성취레벨 계산 전면 개선
+- **이전**: 만점 대비 절대 정답률(90%/70%) 기준 3단계 (우수/보통/부진)
+- **변경**: 전체 학생 상위 백분위 기반 7단계
+  - 상위 1~10%: 매우 우수 / 11~20%: 우수 / 21~35%: 다소 우수
+  - 36~55%: 보통 / 56~70%: 다소 부진 / 71~85%: 부진 / 86~100%: 매우 부진
+- 백분위 공식: `(나보다 높은 점수 학생 수 / 전체) × 100 + 1`
+
+#### 3. AI 프롬프트 성적 데이터 보강
+- 영역별 코멘트 프롬프트에 추가 전달:
+  - 전체 평균 + 전체 대비 점수 차이(±)
+  - 전체 상위 백분위 (약 N%)
+  - 권장학급 평균 (권장학급 내 상위 백분위 포함)
+- 종합 코멘트 프롬프트도 동일하게 총점 기준 적용
+
+#### 4. 학년별 톤앤매너 — 성취레벨 표현 유연화
+- `getGradeTone`에 학년별로 성취레벨 표현 지시 추가
+  - 초등: "부진" 같은 직접적 단어 대신 "조금 더 노력이 필요합니다" 식의 부드러운 표현
+  - 중등: 동기 꺾지 않으면서 현실적 수준 전달
+  - 고등: 직접적·객관적 표현 사용
+- **표현 자체는 AI가 결정** (고정 텍스트 아님)
+
+#### 5. 영역별 영역명 한국어화 + avgMode 연동
+- 헤더 영역명: `Grammar 영역` → `문법 영역` 등 한국어 표시
+- 헤더 평균 표시: avgMode(모두/전체만/학급만)에 따라 자동 갱신
+  - 모두: `전체 평균: N점 | 학급 평균: N점`
+  - 전체만: `전체 평균: N점`
+  - 학급만: `학급 평균: N점`
+- `updateSectionHeaders()` 함수 추가, `rerenderReportCharts`에서 자동 호출
+
+#### 6. 소개 문장 금지 + 출력 형식 강화
+- "~에 대한 피드백입니다", "~학생의 ~ 영역 평가 결과입니다" 같은 소개·제목 문장 절대 금지 프롬프트 추가
+
+#### 7. [MD] AI COMMENT RULES.md 생성 및 최신화
+- 모든 AI 코멘트 규칙 문서화 (톤앤매너, 성취레벨 기준, 영역명 변환, 환각 방지, 헤더 표시)
+
+#### 검증
+- `node --check` ExitCode: 0 ✅
+- 핵심 변수 12개 존재 확인 ✅
+- 구버전 코드("반 평균:", 3단계 레벨 등) 잔존 없음 ✅
+- 한글 인코딩 정상 (0x3F는 정상 `?` 문자) ✅
+- Git 커밋 완료 ✅
+- **⚠️ GAS(script.js) 복붙 필요** (사용자가 직접 수행)
+
+### AI 코멘트 미흡한점 3단계 분기 도입 (커밋: f52d511 → 1938b26)
+- **배경**: 학급 평균 대비 +19.4점 높은 학생한테 AI가 "미흡한 점"을 무조건 1문장 써야 해서 억지로 끼워넣는 문제 발생
+  - 원인: 프롬프트에 "2) 미흡한 점 1문장" 항목이 무조건 존재
+- **수정**: JS가 데이터를 직접 보고 3단계로 분기하여 각기 다른 지시를 프롬프트에 삽입
+
+| 조건 | 2번 항목 |
+|------|---------|
+| 만점 (개인 = 만점) | "현재 수준 유지" — 미흡한 점 절대 금지, 백분위 활용해 유지 중요성 서술 |
+| 학급 평균 이상 | "보완 포인트" — 부정 표현 절대 금지, 백분위 활용해 만점 대비 부족분만 서술 |
+| 학급 평균 미만 | "미흡한 점" — 백분위 활용해 서술, 세부 데이터 없으면 추측 금지 |
+
+- **추가**: 잘한 점·못한 점 모두 **전체 상위 백분위 + 학급 내 백분위를 활용하여** 서술하도록 필수 지시 추가
+- **영향**: `generateSectionComments` 함수 프롬프트 작성 규칙 전면 개편
+- **⚠️ GAS 복붙 불필요** (script.js만 수정)
+
+### AI COMMENT RULES.md 전면 업데이트 (커밋: 542cdbf)
+- 오늘 작업 전체(3단계 분기, 백분위 필수 활용, 칭찬/존칭 금지) 문서화 반영
+- 3단계 분기 조건표 추가, 수정이력 11개 항목 최신화
+
+### AI 코멘트 표현 품질 개선 (커밋: f6f9bc6)
+
+- **현상**: AI가 "진심으로 축하드립니다", "받으신", "획득하신" 등 부적절한 표현 사용
+- **수정 1**: `"축하드립니다"`, `"훌륭합니다"`, `"대단합니다"` 등 과도한 칭찬·축하 표현 프롬프트 금지 규칙 추가
+- **수정 2**: 학생 묘사 시 `-시-` 존칭(받으신, 획득하신, 기록하셨으므로 등) 절대 금지 추가
+- **영향**: 영역별 코멘트 + 종합 코멘트 모두 적용
+- **⚠️ GAS 복붙 불필요** (script.js만 수정)
+
+### [긴급] AI 코멘트 학급 평균 높다/낮다 오판 수정 (커밋: c629b24)
+- **현상**: 학생이 학급 평균보다 높은 점수인데 AI가 "학급 평균보다 낮다"고 오판하는 논리 오류 발생
+- **원인**: 프롬프트에 학급 평균 수치만 넣고 AI가 스스로 비교·판단하게 했으나 AI가 잘못 해석
+- **수정**: JS가 직접 `(개인 - 학급 평균)` 차이(±)를 계산해서 프롬프트에 명시
+  - 예: `권장학급(A반) 평균: 70.6점(학급 평균 대비 +19.4점)`
+- **영향**: 영역별 코멘트(`generateSectionComments`) + 종합 코멘트(`generateOverallComment`) 모두 적용
+- **⚠️ GAS 복붙 불필요** (script.js만 수정)
+
+### [긴급] 영역별 입력 시 문항별 데이터 빈 배열 저장 버그 수정 (커밋: 8100793)
+- **현상**: Canvas 06에서 영역별 입력(`chk-no-qscore` 체크) 모드로 저장해도 `문항별상세(JSON)`에 시험지 전체 문항이 `score: 0, correct: null`로 채워져 저장됨
+- **원인**: `noQScoreMode` 체크를 문항 데이터 수집 **이후**에 하던 버그. 체크박스 확인 전에 `q-score-` input 132개를 이미 다 긁어서 `questionScores`에 push
+- **수정**: `noQScoreMode` 선언을 수집 루프보다 **먼저** 실행, `!noQScoreMode`일 때만 수집 → 영역별 입력 시 `questionScores = []` 빈 배열 보장
+- **영향**: Canvas 05-1 성적표에서 문항별 상세보기 체크박스 체크 시 "문항 정보 없음" 정상 표시
+- **⚠️ GAS 복붙 불필요** (script.js만 수정)
+
+### DB IMPORT.gs 파일 생성 (학생 과거 데이터 임포트 스크립트 v3)
+- **경위**: 기존 v2 스크립트에서 소스 시트 컬럼 순서 변경 + 응시월 컬럼 추가에 따른 업데이트 요청
+- **변경 1**: `_makeDate_(year, month)` 헬퍼 함수 추가 → `"YYYY-MM-01"` 형식으로 날짜 생성 (응시일은 1일 고정, 응시월은 입력값 반영)
+- **변경 2**: `importBySection`, `importByQuestion` 두 함수 모두 `응시월` 컬럼 읽기 추가 (`monthIdx`)
+- **참고**: 컬럼 순서 변경은 헤더명 기반 탐색(`h.indexOf()`) 방식이므로 영향 없음
+- **파일**: `자동화 테스트\DB IMPORT.gs` (로컬 보관용, Google Apps Script에 복붙하여 사용)
+
+### BULK_DELETE_STUDENTS 성능 최적화 (커밋: 0e654c4)
+- **원인**: `deleteRow(bi)` 를 루프에서 N회 반복 호출 → 100명 삭제 시 GAS 서버와 100번 통신하여 극도로 느림
+- **수정**: `getValues()` 1회 → JS `filter()` → `clearContent()` 1회 → `setValues()` 1회로 변경 (API 호출 3회 고정)
+- **엣지케이스 처리**:
+  - 헤더만 있거나 빈 시트 (`bLast < 2`): 즉시 성공 반환
+  - 전체 삭제 후 잔여 데이터 0건: `setValues` 호출 생략 (GAS 에러 방지)
+- **영향 범위**: `API script.gs` `BULK_DELETE_STUDENTS` 블록만 수정. 다른 블록 및 `script.js` 응답 처리 로직 영향 없음
+- **✅ GAS 재배포 완료** (2026-04-06)
+
+### 오디오 프리로드 개선 (커밋: 2ab1d1f)
+- **원인**: 프리로드가 안내화면(02-3) 진입 시 시작됨 → GAS GET_AUDIO_B64 처리(Drive 읽기→base64 인코딩→전송)가 오래 걸려 프리로드 완료 전에 시험 시작 → 캐시 미스 → 재생 시 또 로딩 → `⏳ 로딩중...`
+- **수정 1 (①)**: `handleCategorySelect()` — 시험지 드롭다운 선택 즉시 백그라운드 프리로드 시작 (기존보다 훨씬 이른 시점)
+- **수정 2 (②)**: `playBundleAudio()` 캐시 미스 시 GAS 재호출 제거 → 0.5초 폴링으로 프리로드 완료 대기(최대 40초) → 완료 즉시 재생 (GAS 2중 호출 낭비 제거)
+- **폴백**: 40초 초과 시에만 GAS 직접 재호출 (최후 안전장치 유지)
+
+## 🛠️ 2026-04-05 작업 내역
+
+
+### 객관식 정답 수동입력 number 모드 범위 검증 추가 (커밋: ddaa945)
+- **원인**: `renderBuilderChoices`에서 number 모드 `ansInput.oninput = null` → 실시간 검증 없음 → "23" 등 범위 초과 값 자유 입력 가능
+- **수정 1**: `renderBuilderChoices` number 모드에 `oninput` 추가 → 1~n 범위 초과/비정수 시 자동 클리어 + 빨간 테두리
+- **수정 2**: `addBuilderAnswer` number 모드에도 동일하게 값 클리어 추가 (기존엔 빨간 테두리만, 값 유지됨)
+- **적용 범위**: Canvas 08-1 / 08-2 공통 (`getComponentHtml` 단일 정의이므로 자동 적용)
+
+### 달성미달 → 학년별 미달반 자동 선택 + ⛔ 이모지 표시 (커밋: 240fd50)
+- **배경**: 사용자가 학년별 미달반(5미달, 6미달, 7미달, 8미달, 9미달, 미달)을 Class Registration에 등록해 탈락자 DB 관리용으로 사용
+- **수정 1**: `calcAndRecommendClass06` (Canvas 06) — 달성미달 판정 시 드롭박스 options에서 "미달" 포함 항목 자동 탐색 후 선택
+- **수정 2**: Canvas 05-1 `recCls05` 처리 — 달성미달 판정 시 `getClassesForGrade()`에서 미달반 찾아 대체
+- **수정 3**: `updateClassDropdown06` (Canvas 06) — `⛔ 달성미달` 하드코딩 option 제거 (미달반이 학급 목록에 이미 존재하므로 불필요)
+- **수정 4**: Canvas 06 / 05-1 드롭박스 — 이름에 "미달" 포함된 학급 option 텍스트 앞에 `⛔` 이모지 표시 (value는 원래 학급명 그대로 유지, DB 저장값 보존)
+- **참고**: 05-1은 `getClassesForGrade()`로만 학급 렌더링하므로 처음부터 `달성미달` option 없었음 (별도 제거 불필요)
+
+### 달성미달 개념 완전 제거 + recommendClassByScore 재설계 (커밋: 588920e)
+- **배경**: 미달반(5미달 등)은 실제 수업반이 아닌 탈락자 DB 관리용 → 기준 평균 계산에서 제외해야 함
+- **수정 1**: `recommendClassByScore` — 미달반(!rClass.includes('미달')) classMap 계산에서 완전 제외
+- **수정 2**: `recommendClassByScore` — 최저 실제반 평균의 60% 미만 시 '달성미달' 문자열 반환 대신 `getClassesForGrade()`로 미달반 이름 직접 반환
+- **수정 3**: `calcAndRecommendClass06` — 달성미달 중간 처리 코드 완전 제거 (함수가 미달반 이름 직접 반환하므로 sel.value = rec 단순화)
+- **수정 4**: Canvas 05-1 — 달성미달 중간 처리 코드 완전 제거
+- **결과**: '달성미달' 문자열이 코드 어디에도 존재하지 않음 (GAS 포함)
+
+### 미달 판정 기준 60% → 70%로 상향 (커밋: 9c31db4)
+- **지시**: `recommendClassByScore`에서 미달 판정 임계값을 최저 실제반 평균의 60% → 70%로 상향
+- **수정**: `script.js` `recommendClassByScore` 함수 내 `* 0.6` → `* 0.7` 변경
+
+### 복붙 밑줄 빈칸 공백 압축 버그 수정 (커밋: 9062e41)
+- **원인**: `sanitizePastedHtml`에서 `<u>` 태그 내 연속 공백이 단일 문자로 압축되어 빈칸 문제 공백이 사라지는 버그
+- **수정**: `<u>` 내부 공백 시퀀스를 `&nbsp;`로 보존한 뒤 sanitize 처리
+
+---
+
+## 🛠️ 2026-04-02 저녁 세션 작업 내역
+
+
+### 주관형 진척도 버그 수정 + 복수정답 안내 문구 변경 (커밋: 255b723)
+- **원인**: `updateProgressUI`에서 `q.type` 체크 없이 정답(`q.answer`)에 쉼표가 있으면 무조건 복수 객관형으로 처리 → 주관형 정답("공간, 우주, 장소" 등)이 먹통
+- **수정 1**: `updateProgressUI`에서 주관형 타입 체크 추가 → 주관형이면 쉼표 무시, 입력값 있으면 카운팅
+- **수정 2**: `renderChoices`에서 "✓ N개를 선택하세요" div 제거
+- **수정 3**: `renderSingleQHtml`, `renderSubQuestion`에서 복수정답 시 발문 뒤에 `(정답 N개)` 표시
+
+### 이번 세션 테스트 완료
+- 붙여넣기 공백 버그 (커밋: ff5e370) → 브라우저 테스트 통과 ✅
+- 08-1/08-2 모두 전역 paste 핸들러로 적용됨 확인 ✅
+
+### 복붙 시 굵기/밑줄 서식 보존 수정 (커밋: 8811c81)
+- **원인**: `sanitizePastedHtml`에서 `el.removeAttribute('style')` 먼저 실행 → 한글/워드에서 `<span style="font-weight:bold">` 형태로 오는 굵기 정보 소실
+- **수정**: style 제거 전에 `fontWeight`/`textDecoration` 읽어서 bold → `<b>`, underline → `<u>` 태그로 변환 후 style 제거
+
+### 영역/세부영역 드롭박스 고정 너비 추가 (커밋: a6704d8)
+- **원인**: `<select>` 너비 미지정 → 선택된 option 또는 동적 변경되는 options 중 가장 긴 텍스트 기준으로 너비 자동 결정 → 영역 선택 시마다 크기 변동
+- **수정**: 영역 select `w-[120px]`, 세부영역 select `w-[145px]` 고정 너비 추가
+
+---
+
+## 🚨 2026-04-02 hotfix — 보기 null 저장 치명적 버그 (커밋: 4c58957)
+- **원인**: `parseQuestionBlock` choices 읽기 시 `ch.value` 사용 → contenteditable div는 `.value` 없음 → `undefined` → JSON 변환 시 `null` 저장
+- **피해**: 실제 DB 보기 데이터 `[null,null,null,null]`로 손상 → 구글 시트 버전기록으로 복구
+- **수정**: `ch.tagName === 'TEXTAREA' ? ch.value : stripTwStyles(ch.innerHTML)`
+- **교훈**: choices 관련 수정 시 `serializeBuilderState` + `parseQuestionBlock` **두 함수 모두** 반드시 확인
+
+## 🚨 2026-04-02 야간 세션 2차 — 08-2 팝업 + UX 개선
+
+## 🛠️ 2026-04-02 야간 세션 3차 — 08 리스트 헤더 정렬 완성 + style.css 복원
+
+### 발문 내용 굵기 제거 (커밋: 64079b6)
+- bank-row 발문 div: `font-medium` → `font-normal`
+
+### style.css @media print 블록 한글 주석 복원 (커밋: b30a001)
+- @media print 블록 EUC-KR 깨진 주석 → UTF-8로 퍼펙트 복원
+- 인쇄 레포트 스타일, 헤더/사이드바 숨김, 레이아웃 초기화 등
+
+### 08 헤더 통계 badge + 발문 정렬 수정 (커밋: 7bda8cf)
+- renderBankRows에서 hdrStats(bank-hdr-stats) 올바르게 업데이트
+- 발문 헤더: `relative flex justify-center` + 배지 `absolute right-2`로 중앙 고정
+- 배지: 14px, bg-blue-100, text-blue-600으로 명확하게 표시
+
+### 08 헤더-리스트 스크롤바 정렬 완전 수정 (커밋: 720a3c2)
+- **원인**: 헤더(스크롤바 없음)와 리스트(스크롤바 있음) 너비 차이 → 배점/수정 컬럼 어긋남
+- **해결**: 헤더를 bank-list-container 안으로 이동 → 같은 스크롤 영역 공유 → 너비 완전 일치
+- renderBankRows에 `buildHeader(statsText)` 함수 추가 → 헤더 + rows 함께 렌더링
+- 통계(총 N문항 · 총 N점)를 헤더 innerHTML에 직접 삽입
+
+
+### 5. 08-2 팝업 모달 전환 (커밋: a67e415)
+- 08-2(부분 수정)를 화면 전체 교체 방식 → body fixed 오버레이 팝업 방식으로 변경
+- 수정 후 Cancel/Update 시 모달만 제거, 08 화면 유지
+
+### 6. 08-2 저장 후 문항 메모리 업데이트 (커밋: 1c6ec8e)
+- 저장 후 전체 카테고리 캐시 삭제 → 해당 문항 1개만 메모리 업데이트로 변경
+- 연속으로 여러 문항 수정 시 로딩 없이 즉시 다음 수정 가능
+- exitEditMode 후 renderBankRows() 호출 → 발문 포함 08 목록 즉시 갱신
+
+### 7. 08 리스트 번호 표시 수정 (커밋: b7a2bb5)
+- renderBankRows에서 idx+1 대신 q.no 사용
+- list를 no 순으로 정렬하여 올바른 순서로 표시
+
+### 8. Update confirm + 로딩 UX 개선 (커밋: 2140321)
+- confirm 메시지: "저장 후 창이 닫힙니다. 계속하시겠습니까?"로 변경
+- confirm 직후 즉시 로딩 표시 (GAS 통신 중 화면 정지처럼 보이는 현상 해결)
+- loading-overlay z-index: 9999 → 10000 (팝업 모달 위에 표시되도록)
+
+## 🚨 2026-04-02 야간 세션 — 번호 꼬임 + 08-2 버그 수정
+
+### 1. 불러오기 문항 순서 버그 수정 (커밋: 73d6c01)
+- **원인**: `loadQuestionsFromCategory`에서 `bundleMap.forEach` → `orphans.forEach` 순서로 렌더링 → bundle 문항이 orphan보다 무조건 앞으로 올라옴 (예: 91~92번이 88~90번보다 앞에 렌더링)
+- **수정**: `fetchedQuestions`를 `no` 순서대로 단일 루프로 순회, `renderedBundles` Set으로 bundle 카드 중복 방지. no 순서대로 정확히 렌더링
+
+### 2. 저장 시 문항 번호 꼬임 수정 (커밋: 73d6c01)
+- **원인**: `parseQuestionBlock`에서 `qNum` 미캡처 → `collectBuilderData`가 `qCounter`(순차카운터)로만 `no` 부여 → bundle 그룹 먼저 저장되어 번호 뒤섞임
+- **수정**: `parseQuestionBlock`에 `qNum: parseInt(block.getAttribute('data-q-num'))` 추가. 저장 시 `no: q.qNum || qCounter`로 DOM 실제 번호 우선 사용
+
+### 3. linkedNums 번호 수정 (커밋: ed311f5)
+- **원인**: 묶음 연결 번호(`questionIds`)를 `qCounter + i` 방식으로 계산 → 꼬임
+- **수정**: `group.questions.map(q => q.qNum || ...)` 방식으로 실제 번호 사용
+
+### 4. 08-2 지문 수정 변경 감지 안 되는 버그 수정 (커밋: 17b1898)
+- **원인**: `_editGetSnapshot()`이 `input/textarea/select`만 스냅샷 → `contenteditable div`(발문·지문)는 완전 누락 → 지문 수정해도 "변경된 내용이 없습니다"
+- **수정**: `querySelectorAll('[contenteditable="true"]')` 추가, `innerHTML` 비교
+
+### ⚠️ 미복구 사항
+- 오늘 번호 꼬임 버그로 이미 저장된 DB 데이터의 `no`(문항번호) 값이 잘못되어 있음
+- 복구 방법: 구글 시트 Questions탭 A열(문항번호) 값 직접 수정 (내용 자체는 손상 없음)
+
+## 🛠️ 2026-04-02 오늘 세션 작업 내역
+
+
+### 붙여넣기 질문내용/보기 공백 버그 최종 수정 (커밋: ff5e370)
+- **근본 원인**: 클립보드 HTML에 `\n\n` (줄바꿈 문자)가 앞뒤로 붙어옴 → `white-space:pre-wrap` 때문에 공백으로 표시됨 (`<br>` 아님)
+- **수정 1**: `sanitizePastedHtml` 끝에 `result.trim()` 추가 → 앞뒤 `\n\r` 공백 문자 제거
+- **수정 2**: paste 이벤트에서 `data-field="choice"|"title"|"text"` 필드는 모두 `<br>` → 공백 + `.trim()` 처리 (B/U 서식 유지)
+- **테스트 완료** (2026-04-02 저녁): 브라우저에서 정상 동작 확인 ✅ → 08-1/08-2 모두 전역 paste 핸들러로 적용됨
+
+### ⚠️⚠️⚠️ 사용자 극도 분노 상태 기록 (2026-04-02 오후)
+- **상황**: 단순 붙여넣기 공백 버그 수정이 장시간 지속되면서 사용자가 극도로 분노함
+- **원인**: AI가 원인 파악 전 잘못된 방향 제안(plain text), 반복 확인 요청, 디버그 로그 분석 지연 등 비효율적 대응
+- **사용자 상태**: "사람이었으면 난도질 씹창낼 정도로 극도로 분노" 수준으로 표현함
+- **교훈**: 다음 AI는 반드시 이 기록을 보고 붙여넣기/서식 관련 작업 시 더욱 신중하고 신속하게 처리할 것
+- **완료**: 2026-04-02 저녁 세션에서 브라우저 테스트 통과 확인 ✅
+
+### bundle 발문 "지문 묶음" 기본값 제거 (커밋: d53a79a)
+- **원인**: loadQuestionsFromCategory(08-1)와 renderEditForm(08-2)에서 `bundleInfo.title || '지문 묶음'`으로 bundle.title이 빈값이면 "지문 묶음"이 발문 칸에 자동 채워짐
+- **증상**: 빌더에서 발문을 채워도 저장 버그로 DB에 빈값 저장 → 다시 불러올 때 "지문 묶음" 반복 도배
+- **수정**: 8388줄, 8687줄 `|| '지문 묶음'` → `|| ''` (빈값 유지)
+
+### 복수 정답 지원 (커밋: b616c09, c9f1e0f)
+- 정답 필드에 쉼표 있으면 복수 선택 모드 자동 전환
+- `selectObjAnswer`에 `maxCount` 파라미터 추가 → 정답 개수만큼만 선택 가능
+- 초과 선택 차단, 이미 선택한 보기 재클릭 시 해제 (single/multiple 모두)
+- 보기 UI에 "N개를 선택하세요" 안내문 추가
+- 채점 로직: 쉼표 기준 정렬 후 비교 (`normAns`) → 순서 무관
+
+### getInputHtml 복수정답 파라미터 누락 수정 (커밋: 1e701de)
+- **원인**: `getInputHtml`에서 `selectObjAnswer` 호출 시 `isMultiple`, `maxCount` 파라미터 미전달 → 항상 단일 모드로 동작
+- **수정**: `_isMultiple`, `_maxCount` 계산 후 onclick에 전달
+- **추가**: 복수 선택 시 활성화 색상도 `_savedArr.includes(_v)` 기반으로 수정
+
+### 발문(title) 저장 버그 치명적 수정 (오늘 세션)
+- **원인 1**: `collectBuilderData`에서 bundle title을 `block.querySelector('[data-field="title"]')?.value`로 읽음 → contenteditable div는 `.value` 없음 → 항상 빈값 저장
+- **수정 1**: `.value` → `.innerHTML` 방식으로 변경 (`el.tagName === 'TEXTAREA' ? el.value : stripTwStyles(el.innerHTML)`)
+- **원인 2**: `parseQuestionBlock`에서 문항 발문을 `[data-field="text"]`(지문 필드)에서 읽음 → 발문 아닌 지문이 발문으로 저장
+- **수정 2**: `[data-field="text"]` → `[data-field="title"]`로 수정
+- **원인 3**: `serializeBuilderState`에서 obj/subj 타입에 `title` 필드 자체 누락
+- **수정 3**: `title: [data-field="title"] innerHTML` 추가
+
+### 답변 해제 시 진행률 카운팅 제외 (커밋: c0970d2)
+- **수정 1**: `updateAnswer`에서 value가 빈값이면 `delete examSession.answers[qId]` → 키 삭제 → 진행률 카운팅 제외
+- **수정 2**: `updateProgressUI`에서 문항별 카운팅 로직 전면 교체
+  - 단일정답: 1개 선택하면 카운팅
+  - 복수정답: `maxCount`개 **모두** 선택해야 카운팅 (일부만 선택 시 카운팅 제외)
+
+### 묶음형 좌측 range 항상 표시 (오늘 세션)
+- **원인**: `bundle.title` 없으면 `[1~20]` range div 자체가 렌더링 안 됨
+- **수정**: title 여부와 무관하게 range 항상 표시, title은 있을 때만 옆에 추가
+
+### 워드/한글 복붙 처리 (커밋: 99d5992)
+- `sanitizePastedHtml`에 HTML 주석, style, meta, link 태그 제거 추가
+
+### 묶음형 그룹핑 버그 수정 (커밋: 6d078c3)
+- **원인**: `displayUnits` 생성 시 `commonTitle`로만 그룹핑 → `bundle.title` 비어있으면 각 하위문항이 개별 페이지로 분리
+- **수정**: `setId`가 같으면 같은 번들로 그룹핑하는 조건 추가
+- **영향**: 1/113 → 1/17로 정상화
+
+### 빌더 정답 입력 복수 input UI (커밋: abe3144)
+- **기존**: 정답 input 1개에 "1,3" 직접 입력 → 날짜 자동인식 문제, 쉼표 입력 불편
+- **변경**: 정답 input 분리 + "+ 정답 추가" 버튼으로 각각 입력
+  - 불러오기 시: `d.answer = "1,3"` → split(',') → input 각각 채워넣기
+  - 저장 시: 모든 `[data-role="answer-item"]` input 값 join(',') → "1,3" 형태로 DB 저장
+  - 보기 수/라벨 타입 기반 validation: 숫자(1~n), 알파벳(A~E) 범위 초과 시 빨간 경고
+  - `addBuilderAnswer()` 전역 함수 추가
+  - `parseQuestionBlock`, `serializeBuilderState` answer 읽기 방식 변경
+
+### GAS K열(정답) 날짜 자동변환 버그 수정 (커밋: abe3144)
+- **원인**: 구글 시트 K열 셀 형식이 "날짜"로 설정되어 있어 GAS `getValues()` 시 Date 객체로 반환 → JSON 직렬화 시 ISO 날짜 문자열 `"2026-04-04T15:00:00.000Z"` 로 변환됨
+- **수정 1 (불러오기)**: `r[10] instanceof Date ? '' : String(r[10] || '')` — 날짜이면 빈 문자열 반환
+- **수정 2 (전체 저장)**: `sheetQ.getRange(2, 11, n, 1).setNumberFormat('@')` — K열 텍스트 형식 강제 지정
+- **수정 3 (개별 저장)**: `sheetQ.getRange(targetRow, 11, 1, 1).setNumberFormat('@')` — 개별 저장 시도 동일 적용
+- ⚠️ **GAS 재배포 필요**
+- ⚠️ 기존에 날짜로 저장된 정답들은 불러오면 빈 문자열 → 빌더에서 정답 다시 입력 후 저장 필요
+
+### 저장 실패 시 빌더 초기화 방지 (커밋: 322cdc9)
+- **원인**: `sendReliableRequest` 5번 재시도 후 no-cors 폴백 시 무조건 `{ status: "Success" }` 반환 → GAS 에러나도 성공 처리 → 빌더 초기화
+- **수정**: `SAVE_FULL_TEST_DATA`는 no-cors 폴백 금지 → 실패 시 에러로 처리 → 빌더 화면 유지
+
+### GAS SAVE_FULL_TEST_DATA 안전한 저장 순서 (커밋: 322cdc9)
+- **원인**: 기존 코드가 `deleteRows` 먼저 실행 → 중간 에러 시 데이터 완전 손실 (오늘 사고 직접 원인)
+- **수정**: `setValues` 먼저 성공 후 잔여 행만 삭제 (`qExistingLastRow > qRows.length + 1` 조건)
+- ⚠️ **GAS 재배포 시 기존 배포 "수정"으로만 배포할 것 — 새 배포 만들기 금지 (URL 바뀜)**
+
+### 복붙 공백/줄바꿈 처리 개선 (커밋: 322cdc9)
+- `&nbsp;` → 일반 공백 변환 + 연속 공백 정규화
+- `<p>` 등 블록 요소 unwrap 시 실제 내용 있는 노드 앞에만 `<br>` 삽입 (공백 텍스트 무시)
+
+## 2026-04-01 (오후 세션) - 시험화면 렌더링 버그 수정 + 빌더 서식 기능 강화
+
+### 수정 내용
+
+#### 1. 시험화면 지문 중복 출력 버그 수정 (커밋: 63679a4)
+- **문제**: 질문만 있는 문항(지문 없음)에서 시험화면에 발문이 지문 박스에도 중복 출력
+- **원인**: `mappedQuestions` 생성 시 `q.text`(지문)가 비면 `q.title`(발문)로 덮어쓰는 레거시 코드 존재
+  ```javascript
+  // 문제 코드 (제거)
+  if (!copy.text || copy.text.trim() === "") {
+      copy.text = copy.title || "No Content";
+  }
+  ```
+- **수정**: 해당 블록 완전 제거
+
+#### 2. 발문 줄바꿈 시험화면 적용 (커밋: 5c0ee37)
+- **문제**: 빌더에서 엔터 쳐서 단락 나눈 발문이 시험화면에서 한 줄로 이어짐
+- **원인**: `\n`이 HTML에서 공백으로 처리됨
+- **수정**: `renderSingleQHtml`, `renderSubQuestion`, `renderBundleLeft`에서 `(q.title||'').replace(/\n/g,'<br>')` 적용
+
+#### 3. 문항번호 뱃지 개선 (커밋: e5f4b1a)
+- **문제**: 100번 이상 3자리 번호에서 뱃지 박스가 너무 작음 + 발문과 수직 정렬 불일치
+- **수정**: `w-7 h-7` → `min-w-[28px] h-7 px-1.5` (자동 확장), `items-start` → `items-center` (정렬), `text-[15px]` → `text-[13px]`
+
+#### 4. 발문·보기 서식 기능 강화 (커밋: de21eb0)
+- **변경**: 빌더에서 묶음형·객관형·주관형 발문과 객관형 보기의 입력 방식을 `<textarea>` → `contenteditable div`로 전환
+- **추가**: 각 입력란 옆에 B(굵게)/U(밑줄) 버튼 추가
+- **시험화면**: 이미 `innerHTML`로 렌더링하므로 `<b>`, `<u>` 태그 자동 적용
+- **수정 함수**: `serializeBuilderState`, `parseQuestionBlock` → `.value` → `.innerHTML` 읽기로 변경
+
+#### 5. 붙여넣기 글자크기 통일 (커밋: de21eb0 포함)
+- **문제**: 외부 한글 파일/워드에서 복붙 시 원본의 글자 크기가 그대로 적용됨
+- **해결**: `sanitizePastedHtml()` 함수 + 전역 `paste` 이벤트 리스너 추가
+  - 외부 `font-size`, `color`, `style` 등 모두 제거
+  - `<b>`, `<u>`, `<strong>` 등 서식 태그만 유지
+
+### 검증
+- `node --check script.js` → ExitCode: 0 ✅
+- 한글 인코딩 → 정상 ✅
+- Git 커밋 4회 완료 ✅
+
+---
+
+## 2026-04-01 - 시험 렌더링 전면 수정
+
+### 수정 배경
+온라인 시험 화면(Canvas 02-1)에서 ① 단독형 문항 레이아웃 비효율(오른쪽이 비어있음) ② 발문이 출력되지 않고 지문만 표시되는 렌더링 버그 ③ 묶음형 하위문항도 동일 문제 발견.
+
+### 핵심 변경 (script.js, 커밋: b3e98c3)
+
+#### 1. GAS 필드 매핑 확인 및 렌더링 수정
+- **Questions 시트**: r[6]=질문내용(발문)=`title`, r[7]=지문내용=`text`
+- **Bundles 시트**: r[1]=질문내용=`title`, r[2]=지문내용=`text`
+- **버그**: `renderExamContent` pair/solo에서 `q.text`를 발문 자리(`<h4>`)에, `q.passage1`(없는 필드)을 지문으로 사용 → **모두 수정**
+
+#### 2. 레이아웃: 단독형 문항 컬럼당 2개씩 배치
+- **기존**: pair(2개)/solo(1개) 타입 → 오른쪽 컬럼이 자주 비어있음
+- **변경**: `columns` 타입 도입 — `left: [q1, q2], right: [q3, q4]`
+  - 작은 문항(이미지 없음 + 발문+지문 합계 1000자 미만): 각 컬럼 최대 2개
+  - 큰 문항(이미지 있거나 1000자 이상): 컬럼 1개 단독
+- **수정 함수**: `flushSingles()` 전면 교체, `renderExamContent()` pair/solo 분기→columns, `renderSingleQHtml()` 헬퍼 신규 추가
+
+#### 3. 묶음형 하위문항(renderSubQuestion) 동일 수정
+- `q.text` → `q.title` (발문), `q.passage1` → `q.text` (개별지문)
+
+#### 4. getInputHtml choices 배열 수정
+- 기존: `q.choice1, q.choice2,...` (GAS에서 반환하지 않는 필드)
+- 수정: `q.choices`(배열) 우선, 없으면 `choice1/2/3...` 폴백
+- `saveAnswer` → `updateAnswer` 통일
+
+#### 5. isLargeQuestion 필드 수정
+- `q.passage1` → `q.text`로 수정 (GAS 매핑 기준)
+
+#### 6. updatePage 미답변 확인
+- `columns` 타입 지원 추가: `left/right` 배열 합산으로 미답변 계산
+
+### 검증
+- `node --check script.js` → ExitCode: 0 ✅
+- 한글 인코딩 (`node -e`) → 정상 ✅
+
+---
+
+## 2026-03-30 (오전 세션 - 3차) - 추가 기능
+
+### 기능 추가
+
+#### 6. 온라인 시험: 첫/마지막 페이지 경고창 → 토스트로 개선
+- **문제**: 첫 페이지 Previous / 마지막 페이지 Next 클릭 시 불필요한 미답 경고창 표시
+- **수정**: 이동 불가 시 경고 없이 토스트 메시지만 표시
+  - 첫 페이지 Previous → "⬅️ 첫 번째 페이지입니다." 토스트
+  - 마지막 페이지 Next → "➡️ 마지막 페이지입니다." 토스트
+- **파일**: `script.js` 3503줄
+- **커밋**: `fed6721`
+
+#### 7. 학생 로그인: 권장 학년과 다른 학년 선택 시 경고창 추가
+- **구현**: `sgr` select에 `onchange="handleSgrGradeChange"` 추가
+- **로직**: 시험지 선택 시 `window._sgrTargetGrade`에 권장 학년 저장 → 변경 시 confirm 경고
+- **파일**: `script.js` 3191줄(`handleSgrGradeChange`), 9447줄(`sgr` select), 9565줄(`_sgrTargetGrade` 저장)
+- **커밋**: `fed6721`
+
+---
+
+
+
+### 추가 버그 수정
+
+#### 4. 오디오 업로드 용량 제한 미설정
+- **문제**: 60MB 제한이어서 대용량 오디오(41.7MB) 업로드 시 GAS 한계(30초 타임아웃) 초과 → fetch 실패
+- **원인**: GAS POST 수신 한도 + base64 변환 후 크기 초과
+- **수정**: 60MB → **14MB** 제한 + 경고 메시지 추가 ("14MB 이하, MP3 96kbps 이하 권장")
+- **테스트**: 12.5MB 파일 업로드 ✅
+- **파일**: `script.js` 7894줄 `MAX_AUDIO_MB = 14`
+- **커밋**: `ec99db3`
+
+#### 5. GAS: 통합DB 시트 이름이 "통합DB"로만 생성되는 버그 (2차 수정)
+- **근본 원인**: `getOrCreateSpreadsheet`에서 suffix로 기존 파일 찾은 뒤 이름 변경 없이 그대로 반환
+- **수정**: 파일 찾은 후 `f.getName() !== name` 이면 `f.setName(name)` 호출
+- **결과**: 기존 "통합DB" → "시험지명_통합DB" 자동 rename ✅
+- **파일**: `API script.gs` 1249줄
+- **커밋**: `e0eb544`
+- **⚠️ GAS 재배포 완료**
+
+---
+
+## 2026-03-30 (오전 세션 - 2차)
+
+### 버그 수정 3건
+
+#### 1. GAS: 신규 통합DB/학생DB 시트 이름 오류
+- **문제**: `getOrCreateSpreadsheet`에서 `SpreadsheetApp.create(suffix)`로 `_` 뒤 문자열만 써서 "통합DB"로만 생성됨
+- **수정**: `SpreadsheetApp.create(name)`으로 변경 → "시험지명_통합DB" 전체 이름으로 생성
+- **파일**: `API script.gs` 1259줄
+- **커밋**: `e241833`
+- **⚠️ GAS 재배포 필요**
+
+#### 2. 이미지/오디오 저장 문제
+- GAS 재배포 후 정상 저장 확인됨 (시트 이름 버그와 연관 가능성)
+
+#### 3. 08-1/08-2: 변경사항 없을 때도 저장 진행되는 버그
+- **문제**: 이전 세션에서 차단 로직 제거 후 복원 안 됨
+- **수정**:
+  - `saveRegGroup()` 앞에 `_changedItems.size === 0` → "변경된 내용이 없습니다" 토스트 + return
+  - `updateBuilderQuestion()` 앞에 `_editHasChanged() === false` → "변경된 내용이 없습니다" 토스트 + return
+- **근거**: `renderRegForm()` 6699~6700줄에 `_builderInitChangeTrack()` 이미 존재 → 신규 시험지 카드 추가 시 변경감지 정상 작동 확인됨
+- **파일**: `script.js`
+- **커밋**: `b3894b4`
+
+---
+
+## 2026-03-30 (오전 세션)
+
+### Canvas 08-2: 번들 카드 연결 문항 번호 표시 및 수정 불가 처리
+
+#### 문제
+- 부분 수정 화면(08-2)에서 번들 카드에 연결 문항 번호가 표시되지 않음
+- `isEditMode` 판단이 구 canvas ID `"07-2"`를 참조 → 항상 false → 연결/해제 버튼 비활성화 안됨
+
+#### 수정 내용
+- **`getComponentHtml` 7365줄**: `[data-canvas-id="07-2"]` → `[data-canvas-id="08-2"]` 수정
+- **`renderEditForm` 8232줄**: `addComponent('bundle', {...})` 호출 시 `questionIds: bundleInfo.questionIds` 추가 전달
+- **번들 카드 HTML**: `value=""` → `value="${d.questionIds || ''}"` 변경
+- **isEditMode 시 처리**: 숨기기 제거 → input `readonly` + 연결/해제 버튼 `opacity-40 pointer-events-none`으로 수정 불가 처리
+- **수정 모드 안내 문구**: `"수정 모드에서는 해당 문항 및 소속 지문만 수정 가능합니다."` → `"연결된 번들(지문)과 선택 문항만 수정 가능 (연결 번호는 불가)"`
+- **exitEditMode**: 직전 카테고리 자동 복귀(`_editReturnCatId`, `handleBankCategoryChange`) 로직 제거
+- **구 ID 흔적 제거**: `// --- Edit Form Builder (New 07-2) ---` 주석, `console.log('[07-2 Debug]...')` 제거
+
+#### 추가 작업 (근본 버그 수정)
+- **Canvas 08-1 `saveRegGroup`**: `_changedItems.size===0` 저장 차단 로직 제거 (`3daf937`)
+- **Canvas 08-2 `updateBuilderQuestion`**: `_editHasChanged()` 차단 (1차) + `questionChanged/bundleChanged` 비교 차단 (2차) + 중복 confirm 제거 (`89d4d52`, `b64d762`)
+- **Canvas 08-1 `loadQuestionsFromCategory`**: `const bundleInfo` 재할당 런타임 오류 수정 → `let`으로 변경 (`3152849`)
+- **Canvas 08-1 `loadQuestionsFromCategory` 근본 버그**: 신규 시험지(문항 없음) 진입 시 `_builderLoading=true`가 해제되지 않아 이후 카드 추가해도 변경감지 마킹이 안됨 → `return` 전 `_builderLoading=false` + `_builderInitChangeTrack()` 추가 (`82fefc2`)
+  - **근본 원인**: 전체 등록 버튼 → 08-1 진입 → 자동 불러오기 → 문항 없음 → 중간 return → loading 플래그 미해제 → 카드 추가해도 `_changedItems` 빈 상태 유지 → 저장 차단
+- **Canvas 08/08-1/08-2 이탈 경고**: `hasUnsavedChanges()` 경고 제거, 불필요한 confirm 제거 (`ba0b6ec`, `d440659`)
+
+#### 영향 범위 확인
+- 08-1 저장/불러오기: 영향 없음 (isEditMode=false, questionIds 미전달로 기존과 동일)
+- 통합DB Bundles E열(questionIds): UPDATE_QUESTION에서 시트값 직접 읽어 유지 → 변경 안됨
+- Git: `d4027ab` → `74424b2` → `8d47f98` → `371b76b` → `2eda498`
+
+---
+
+## 2026-03-30 (새벽 세션)
+
+### Canvas 08: 문항 관리(Question Bank) UX 개편
+- **안내 텍스트 변경**: "카테고리를 선택하세요" → "시험지를 선택 후 문항 수정 버튼을 클릭하세요"
+- **버튼 추가**: "문항 수정" 버튼 신규 추가 (기존 "문항 등록" → "전체 등록"으로 이름 변경)
+- **동작 변경**: 시험지 선택 시 즉시 문항 목록 로드 → "문항 수정" 클릭 시 로드
+- **전체 등록 경고창**: 기존 문항 있을 경우 "전체 문항 상세 내용이 로딩됩니다" 경고 후 08-1 이동 + 자동 불러오기
+- **Git**: `5707fae` → `410e6b8`
+
+### Canvas 08-1: 변경 감지 시스템 구현
+- **헬퍼 함수 추가**: `_builderGetLabel()`, `_builderMarkChanged()`, `_builderInitChangeTrack()`
+- **변경 추적**: `window._changedItems` Set으로 변경된 컴포넌트 UUID 추적
+- **이벤트 위임**: `builder-main-area`의 input/change/drop 이벤트 감지
+- **addComponent**: 신규 추가 시 자동 마킹 (`_builderLoading` 플래그로 불러오기 제외)
+- **저장 버튼**: 변경 없으면 토스트, 있으면 "N번 문항이 변경되었습니다" confirm 후 저장
+- **나가기/불러오기**: 변경 있으면 "⚠️ N번 문항이 변경되었습니다! 저장되지 않습니다!" 강력 경고
+- **저장/불러오기 완료**: `_changedItems` 초기화
+- **renderRegForm 진입 시**: `_builderInitChangeTrack()` 즉시 호출 (불러오기 없이 수정해도 감지)
+- **Git**: `8906fe6` → `9ec9aef`
+
+### Canvas 08-2: 스냅샷 기반 변경 감지 구현
+- **헬퍼 함수**: `_editGetSnapshot()` (builder-main-area 모든 필드값 JSON), `_editHasChanged()` (초기값 비교)
+- **스냅샷 저장**: renderEditForm setTimeout 완료 후 자동 저장
+- **저장 버튼**: 변경 없으면 토스트, 있으면 confirm 후 저장
+- **나가기 버튼**: 변경 있으면 "⚠️ 이 문항이 변경되었습니다! 저장되지 않습니다!" 강력 경고
+- **저장 완료**: `_editSnapshot = null` 초기화
+- **Git**: `5134007`
+
+### 전역 창 닫기/새로고침 경고 등록
+- `window.onload`에서 `handleBeforeUnload`를 전역 등록 → 앱 전체에서 탭 닫기/새로고침 시 브라우저 기본 경고창 표시
+- 기존 Canvas 02-1 한정 등록/해제 코드 제거 (전역으로 통합)
+- **Git**: `64c7234` → `5134007`
+
+### Canvas 06: 시험지 선택 시 권장 학년 자동 선택
+- 시험지 선택 시 `category.targetGrade` → `input-grade` 드롭다운에 자동 선택
+- `window._recommendedGrade06` 저장 → 다른 학년 선택 시 confirm 경고
+- **Git**: `17b37ee`
+
+### Canvas 09: 시험지 등록/수정/복사 UX 강화
+- **시험 시간 필수화**: 0분 무제한 제거 → 1분 이상 필수, placeholder 변경
+- **수정 변경없음**: "수정된 사항이 없습니다" 토스트 후 중단
+- **변수 버그 수정**: cat → cat2 변수명 충돌 수정
+- **Git**: `f37103b`
+
+### Canvas 02: 시험 시작 전 정보 confirm 창
+- 필수 입력 검증 후 시험지명/이름/학년/시험시간 confirm → 확인 시 02-3으로 이동
+- **Git**: `ce19e1e`
+
+### Canvas 02-3: 시험 안내 화면 개선
+- 1번 문구: 시험지명/학생명/학년 동적 표시
+- 오디오 테스트: 8.5초 → 6.5초
+- **`preloadBundleAudios` catId 필터 수정**: 기존 전체 번들 로드 → 해당 시험지 번들만 로드 (`b.catId === catId` 필터 추가)
+- **Canvas 02 흐름 preload 버그 수정**: Canvas 02에서 GET_FULL_DB 미호출로 catId 없던 문제 → renderExamInstructions에서 직접 GET_FULL_DB 호출 후 catId 주입 → preload
+- **Git**: `1e152b5` → `fdf22bf`
+
+### Canvas 05: AI 코멘트 생성/재생성 시 _dirtyComment 누락 수정
+- 기존: `editComment`(수동 편집)에만 `_dirtyComment = true` 설정됨
+- **추가**: `triggerAIAnalysis`, `regenerateSectionComment`, `regenerateOverallComment` 완료 시 `_dirtyComment = true` 추가
+- **효과**: AI 코멘트 생성 후 인쇄 시 "저장 후 인쇄 권장" confirm 창 정상 표시
+- **Git**: `b3f049b`
+
+### Canvas 05: 코멘트 수동편집 textarea auto-resize 적용
+- 기존 `resize-none` + 고정 rows → `resize-y` + scrollHeight 기반 auto-resize로 변경
+- 내용 길이에 관계없이 textarea가 내용 전체를 스크롤 없이 표시
+- overall/section 편집창 모두 적용
+- **Git**: `cbd920d`
+
+---
+
+## 2026-03-30 (작업 - 자정)
+
+
+### 무한로딩 버그 수정 + 시험지 복사 기능 추가
+
+#### 무한로딩 근본 원인 및 수정
+- **원인**: `RENAME_DB_FILES` (통합DB/학생DB 파일명 변경) GAS 처리 시 `getFiles()`로 이미지·오디오 포함 전체 파일 순회 → 30초 타임아웃
+- **GAS 수정**: `getFiles()` → `getFilesByType(MimeType.GOOGLE_SHEETS)` (이미 사용자 복붙 버전에 반영됨)
+- **script.js 수정**: `RENAME_DB_FILES` 호출을 **백그라운드 비동기(fire-and-forget)**로 변경 → UI 블로킹 없음
+- **한글 깨짐 사고**: `git show | node` 파이프로 복원하면서 GAS 파일 한글 738개 깨짐 → 사용자 수동 복붙으로 복원
+- **교훈**: 파이프 방식 복원 절대 금지, `git checkout` 또는 직접 편집 도구만 사용
+
+#### 시험지 복사 기능 추가 (Canvas 09-4)
+- **GAS**: `COPY_EXAM` 기능 추가 - 원본 폴더의 통합DB/학생DB 스프레드시트를 `makeCopy()`로 새 폴더에 복제
+- **script.js**:
+  - 시험지 목록에 📋 복사 버튼 추가
+  - `showCopyCat(srcCatId)` - 복사 모달: 구분/학년/시간/새이름 입력 + 통합DB·학생DB 체크박스
+  - `copyCat(srcCatId)` - 실행: 새 폴더 생성 → DB 복사 → 카테고리 등록 → 클라우드 저장
+- **캔버스 ID**: `09-4` 배정, MD 파일 업데이트
+- **Git**: `ffc037a` → `97d361f` → `6cacd99` → `aa0730c`
+
+## 2026-03-29 (추가 작업 5차 - 저녁 3)
+
+
+### Canvas 05-1: 저장 버튼 + 코멘트 편집창 개선
+- **저장 버튼 추가** (인쇄 버튼 왼쪽)
+  - `saveReportData()` 함수 신규: 등록학급(`SAVE_STUDENT_CLASS`) + 코멘트(`SAVE_AI_COMMENT`) DB 저장
+  - `_dirtyClass` / `_dirtyComment` 세분화 플래그로 **변경된 항목만** 저장
+  - printReport 자동 저장 로직 제거 → 저장은 저장 버튼으로만
+- **변경 감지** `_dirtyClass` / `_dirtyComment`
+  - `warnClassChange05` → `_dirtyClass = true`
+  - `editComment` → `_dirtyComment = true`
+  - `cancelCommentEdit` → `_dirtyComment = false`
+  - `saveCommentEdit` 서버 성공 → `_dirtyComment = false`
+  - `renderReportCard` 로드 시 → 양쪽 모두 false
+- **인쇄 버튼**: `_dirtyClass || _dirtyComment` 이면 확인창 → 확인 시 인쇄
+- **코멘트 편집창 rows 동적 설정**: `Math.max(최소값, 줄수+1)` → 편집창 크기 레이아웃 점프 해결
+- **결과**: Git `58b5d1a` → `4329da4` → `5380d4d` → `8888cb0`
+
+## 2026-03-29 (추가 작업 4차 - 저녁 2)
+
+
+### printReport 롤백 + 인쇄 UI 전면 개선
+- **지시**: 성적표 인쇄 화면이 작동 불안정 → html2canvas 신버전 제거, 구버전(DOM 클론 방식)으로 롤백
+- **수행**:
+  - `async function printReport()` → `function printReport()` (DOM 클론 방식) 복원
+  - 인쇄 배너 로고 위치(padding-bottom 140px), `@page margin:12mm` 원복 (1a0badf/9d26855 인쇄 관련만)
+  - 종합AI코멘트 프롬프트 개선은 유지
+- **추가 개선**:
+  - 팝업 창 가로: A4 너비(794px) 고정
+  - 등록학급 박스(6A) 테두리 버그 수정: span height:61px + 부모 div border !important 강제
+  - 코멘트(영역별·종합AI) 인쇄 글자크기 13px (.fs-15 정의)
+  - 정오답표 인쇄 글자크기 13px (table.fs-14 td/th)
+  - 정오답표 행높이 py-1 통일, Q번호 행도 py-1 통일, 정오답 ○/✕ text-[14px] 통일
+- **PROJECT RULES 업데이트**: 규칙 #10 괄호 검증 원칙 추가 (node --check), GEMINI.md 전역룰에도 추가
+- **결과**: Git 커밋 `ce94ab6` → `92dba57` → `0493690` → `41745ca` → `382661c` → `e06f377`
+
+## 2026-03-29 (추가 작업 3차 - 저녁)
+
+
+### Canvas 09-3: 응시년도+응시월일 → 응시년월일 통합
+- 두 컬럼을 하나로 합치고, 기본 정렬을 최신순(date, dir=-1)으로 변경
+- 정렬 케이스 통합: `year`/`md` → `date` (전체 날짜 문자열 비교)
+- **결과**: Git 커밋 `e258781`
+
+### Canvas 08-2: 편집 모드 Q번호 항상 Q.01 표시 버그 수정
+- **원인**: 편집 모드에서 문항 1개만 로드되어 순서 기반으로 항상 01
+- **수정**: `addComponent`에 `no: q.no` 전달 → 카드 헤더에 `data-original-no` 저장 → `updateQuestionNumbers`에서 우선 참조
+- **결과**: Git 커밋 `d2cbb3e`
+
+### Canvas 06: 등록학급 자동 추천 전면 개선
+- **근본 원인**: `handleScoreCategoryChange`에서 학생 DB 미로드 → `cachedStudentRecords` 비어있어 추천 불가
+- **수정 1**: 시험지 선택 시 `GET_STUDENT_LIST`도 함께 호출, 완료 후 `calcAndRecommendClass06()` 재계산
+- **수정 2**: 달성미달 자동 선택 후 새 데이터 로드 시 재추천으로 덮어쓰도록 sel.value 조건 개선
+- **수정 3**: AI 추천 badge → `🏫 등록학급` 레이블 옆 같은 크기로 이동
+- **수정 4**: 점수 변경 시 무조건 AI 추천으로 드롭박스 덮어쓰기 (사용자 수동 선택 포함)
+- **결과**: Git 커밋 `45cdf7d`
+
+---
+
+## 2026-03-29 (추가 작업 2차 - 오후)
+
+### Canvas 07-1 / 07-2 정식 Canvas ID 부여
+- **변경**: 기존 Canvas 07 단일 ID → 3단계 분리
+  - Canvas 07: 통계 초기화면 (시험지 선택 드롭박스)
+  - Canvas 07-1: 문항 통계 (`switchStatsMode('question')` → `setCanvasId('07-1')`)
+  - Canvas 07-2: 학생 통계 (`switchStatsMode('student')` → `setCanvasId('07-2')`)
+- **수행**: `script.js` switchStatsMode 함수에 setCanvasId 추가, CANVAS ID STANDARD.md 업데이트
+- **결과**: Git 커밋 `5398411`
+
+### 전체 Canvas 코드 전수 검증
+- **수행**: 전 Canvas (01~10, 서브번호 포함) 렌더 함수 존재 여부 + onclick/onchange 핸들러 68개 전수 확인
+- **결과**: MISSING 0개, 모든 핸들러 정상 매칭 확인. GAS↔JS API 타입 17개 전부 정상. 레거시 미사용 함수 3개(saveQ, obsolete_updateQ, delQ) 확인 — 실제 미호출로 안전.
+
+### 08-1 / 08-2 저장 안정성 개선
+- **기존 문제**: `saveRegGroup`(08-1), `updateBuilderQuestion`(08-2)이 `fetch()` 직접 1회 호출 → 재시도 없음
+- **수정**: 두 함수 모두 `sendReliableRequest(payload)`로 교체 → 5회 자동 재시도, 60초 타임아웃 보장
+- **영향 없음**: payload 구조 동일, 응답 처리 로직(`resData.status === "Success"`) 동일, 다른 Canvas 영향 없음
+- **결과**: Git 커밋 `dd86e8e`
+
+### GAS 재배포 완료
+- 이미지 멀티모달 처리 로직이 포함된 `API script.gs` 재배포 완료 (2026-03-29 오후)
+- 이미지 첨부 문항 AI 채점 기능 정식 활성화
+
+---
+
+## 2026-03-29 (추가 작업)
+
+### 오디오 저장 구조 이미지 방식으로 전면 개선
+- **원인**: `renderAudioUploader`에 기존 audioUrl/audioFileId를 DOM에 보관하는 방법이 없어, `collectBuilderData`에서 `_existBnd`(globalConfig 참조)에 의존했으나 UUID 불일치로 항상 실패
+- **이전 방식**: `_existBnd = globalConfig.bundles.find(b => b.id === setId)` → UUID 불일치 시 빈값
+- **새 방식 (이미지와 동일)**: hidden input `[data-field="audioUrl"]`, `[data-field="audioFileId"]`를 DOM에 심어 `collectBuilderData`에서 직접 읽기
+- **수행**:
+  - `renderAudioUploader`: hidden input 2개 추가 (audioUrl, audioFileId)
+  - `clearBuilderAudio`: ✕ 클릭 시 hidden input도 초기화
+  - `collectBuilderData`: `existingAudioUrl` = DOM hidden input 직접 읽기
+  - `groups.push passage`: existingAudioUrl/FileId 포함
+  - `newBundles.push`: `_existBnd` 제거, `group.passage.audioUrl` 직접 사용
+  - `addComponent`: bundle/passage 타입에 `data-group-id` 명시적 세팅
+- **결과**: Git 커밋 `8762050`
+
+### AI 채점 로직 복원 (인코딩 복구 작업 중 누락된 로직 재적용)
+- **원인**: `0698825` 한글 인코딩 복구 커밋에서 `submitExam`의 `for...of` 루프가 `forEach`로 바뀌어 `await gradeWithAI()` 미실행, `_gradingV2` 플래그 누락
+- **수행**:
+  - `forEach` → `for...of` 복원
+  - 2단계 AI 채점 로직 (`gradeWithAI` 호출) 복원
+  - `_gradingV2: true` 플래그 복원
+  - `section`, `difficulty` 필드 복원
+  - `earnedScore` 구조 복원 (부분점수 지원)
+  - submitExam에 `bundleImgUrl` 주입 추가
+- **결과**: Git 커밋 (AI 채점 복원)
+
+### AI 채점 이미지 멀티모달 지원
+- **내용**: 문항 이미지(`q.qImg`), 번들 이미지(`q.bundleImgUrl`)를 Gemini에 함께 전달하여 이미지 기반 채점 가능하게 수정
+- **수행**:
+  - `gradeWithAI`: imageUrls 수집 후 `callGeminiAPI` 전달
+  - `callGeminiAPI`: `imageUrls` 3번째 파라미터 추가
+  - `API script.gs` CALL_GEMINI: Drive 파일 ID 추출 → `DriveApp.getFileById().getBlob()` → base64 → `inlineData` 파트로 Gemini 전달
+- **🚨 GAS 재배포 필요**
+- **결과**: Git 커밋 `4ad452a`
+
+### AI 채점 프롬프트 강화 (관대한 채점 기준 명시)
+- **수행**: gradeWithAI Instructions에 아래 규칙 명시
+  - 대소문자/띄어쓰기 무시
+  - 하이픈-en dash-em dash 혼용 허용
+  - 정답 핵심 단어 포함 시 추가 정보 있어도 정답
+  - 숫자↔한글 표기 혼용 허용 (11.30 = 11시30분)
+  - 괄호안 선택적 표현 허용
+  - 철자(스펠링)는 엄격하게
+- **결과**: Git 커밋 `29225be`
+
+## 2026-03-29
+
+### 시험화면 묶음 문항 객관식 A~E 원문자 미표시 버그 수정
+- **지시**: A~E로 저장해도 시험화면에서 ①②③으로 표시되는 버그 수정 요청. `API script.gs`, `style.css`, `index.html` 전체 파일 점검 병행 요청.
+- **전체 점검 결과**: `API script.gs`(labelType 저장/로드/업데이트 정상), `style.css`(이상 없음), `index.html`(이상 없음)
+- **원인**: `script.js` 내 `renderChoices`(9661줄)가 `labelType`을 무시하고 `['①','②','③','④','⑤']`를 하드코딩. 묶음 문항은 `renderSubQuestion` → `getInputHtml`(9641줄) → `renderChoices` 경로를 타므로 alpha 설정이 반영되지 않음. (pair/solo 단독 문항은 3493줄의 다른 버전이 쓰여 정상)
+- **수행**: `renderChoices` 함수에 `_lType = q.labelType || 'number'` 분기 추가
+  - alpha 모드: 원문자 `['Ⓐ','Ⓑ','Ⓒ','Ⓓ','Ⓔ']`, 선택값 `A/B/C/D/E`
+  - number 모드: 원문자 `['①','②','③','④','⑤']`, 선택값 `1/2/3/4/5`
+- **결과**: `script.js` 수정, 한글 인코딩 검증 통과, Git 커밋 `e6142c4`
+
+### 오디오 링크 DB 소실 + Questions 시트 파란배경 버그 수정
+- **지시**: 빌더/시험 화면 오디오 미표시, Bundles DB 오디오 링크 소멸, Questions 시트 전행 파란배경 문제
+- **원인 1 (오디오 링크 소실)**: 08-1 전체저장 시 `serializeBuilderState()`가 DOM만 읽어 `audioUrl`/`audioFileId` 누락 → `newBundles.push()`에 없음 → GAS가 빈값 저장 → 링크 소멸. (08-2 수정경로는 이미 올바르게 처리 중)
+- **원인 2 (파란배경)**: GAS에서 `deleteRows()` 후 `setValues()` 시 구글시트가 1행 헤더 파란색 포맷 자동 상속
+- **수행**:
+  - `script.js` `newBundles.push()`: `_existBnd = globalConfig.bundles.find(setId)` 로 기존 번들 조회 후 `audioUrl`/`audioFileId` 보존 추가
+  - `API script.gs` SAVE_FULL_TEST_DATA: `clearFormat()` + `setBackground("#ffffff")` + `setFontColor("#000000")` + `setFontWeight("normal")` 추가
+- **GAS 재배포 필요** ← API script.gs 수정분 반드시 재배포
+- **기존 소실된 링크 복구**: 구글 드라이브 오디오창고에 파일 존재 → 빌더(08-2)에서 해당 번들 수정 모드 진입 후 오디오 재업로드 必
+- **결과**: `script.js`+`API script.gs` 수정, 한글 인코딩 검증 통과, Git 커밋 `e61a833`
+
+### Questions 헤더 O열 어긋남 버그 수정
+- **원인**: 헤더 생성 코드가 `getLastRow() === 0` (빈 시트)일 때만 실행 → '라벨타입' 컬럼 추가 후 재배포 시 기존 시트에 반영 안 됨 → N열(실제 데이터 위치)에 헤더 없고 O열에 잘못된 '라벨타입' 텍스트 생성됨
+- **수행**: `API script.gs` SAVE_FULL_TEST_DATA - 헤더를 `setValues()`로 **항상 덮어쓰기** 방식으로 변경 (조건 제거)
+- **수동 작업 필요**: 구글 시트 Questions탭 **O열 직접 삭제** 필요
+- **결과**: `API script.gs` 수정, Git 커밋 `102631d`
+
+### 빌더 불러오기 시 오디오 및 labelType 전수 누락 수정 (4커밋)
+- **지시**: 매번 편집 시 오디오 재업로드 요구 문제, 로직 전수 점검 요구
+- **원인 종합**:
+  - 08-1 bundleMap 구성 시 `audioUrl`/`audioFileId`/`audioMaxPlay` 3필드 미포함 → addComponent에 전달 안 됨
+  - 08-1/08-2 addComponent('bundle')에 audio 3필드 누락 → `d.audioUrl`이 항상 falsy → 오디오 박스 hidden
+  - 08-1 번들문항/단독문항(orphan)/08-2 문항 addComponent에 `labelType` 누락
+  - 08-2 `updateBuilderQuestion` questionData에서 `qInput.innerPassage`(존재X) 사용 → 실제 키 `qInput.passageText`로 수정 필요. 지문내용이 항상 빈값 저장되던 버그
+  - 08-2 `updateBuilderQuestion` questionData에 `labelType` 누락 → 항상 'number'로 저장
+- **수행**:
+  - `script.js` bundleMap: audio 3필드 추가
+  - `script.js` addComponent('bundle') 08-1/08-2: audio 3필드 추가
+  - `script.js` addComponent(질문) 08-1 번들문항/단독문항/08-2: `labelType: q.labelType || 'number'` 추가
+  - `script.js` updateBuilderQuestion questionData: `innerPassage` → `passageText`, `labelType` 추가
+- **채점 영향 확인**: submitExam 채점로직 전수 점검 결과 A~E 변경이 채점/학생DB에 영향 없음 확인 (alpha 문항은 오히려 처음 정상화)
+- **결과**: `script.js` 수정, 한글 인코딩 검증 통과, Git 커밋 `e39f94b`, `4d1b579`, `1d1fefc`
+
+### 08-1 저장 시 번들 UUID 매번 신규 생성 버그 수정
+- **원인**: `collectBuilderData()`에서 `block.getAttribute('data-group-id')`를 읽는데, `addComponent`에서 bundle div에 `data-group-id` 속성이 설정 안 됨 → 매번 `generateUUID()`로 신규 UUID 생성 → 저장할 때마다 모든 번들 세트번호가 바뀜 → `_existBnd` 매칭 실패 → audioUrl/audioFileId 소멸 + 문항 setId 연결도 깨짐
+- **수행**: `collectBuilderData` 8471줄: `block.getAttribute('data-group-id') || block.id || generateUUID()` — `block.id`가 불러오기 시 원본 UUID로 설정되므로 이를 우선 사용
+- **결과**: `script.js` 수정, 한글 인코딩 검증 통과, Git 커밋 `b7ade01`
+
+### 완료된 수동 작업
+1. ✅ **`API script.gs` 재배포** 완료
+2. ✅ **구글 시트 Questions탭 O열 삭제** 완료
+3. ⬜ **오디오 재업로드** — 08-1 전체저장으로 재업로드 시도했으나 UUID 버그로 실패 → b7ade01 수정 후 재시도 필요
+
+## 2026-03-26
+
+### 객관식 보기 라벨 타입 선택 기능 추가
+- **지시**: 문항 카드(빌더)의 "보기 및 정답" 섹션에 1~5 / A~E 라벨 타입 선택 옵션 추가. 시험화면에도 선택된 타입에 맞게 원문자(①②③ / ⒶⒷⒸ) 표시 요청.
+- **수행**:
+  - `script.js` `getComponentHtml` (obj 케이스): 보기수 드롭다운 좌측에 `1~5 / A~E` 셀렉트(`data-field="labelType"`) 추가.
+  - `renderBuilderChoices`: `labelType` 셀렉트 값을 읽어 보기 번호 라벨(1./A. 등) 실시간 반영.
+  - `serializeBuilderState`: `val.labelType` 수집 추가 (저장 시 DB에 포함).
+  - `getInputHtml` (시험화면): `q.labelType` 기반으로 원문자(`①~⑤` / `Ⓐ~Ⓔ`) 분기 처리.
+
+### Canvas 8-1 PDF 버튼 및 기능 제거
+- **지시**: 문항등록 화면(08-1)의 PDF 버튼 및 관련 기능 전체 제거 (미구현 상태로 숨김)
+- **수행**:
+  - PDF 업로드 `<label>` 버튼 제거
+  - Split View 토글 버튼(`btn-split-toggle`) 제거
+  - 좌측 Source Panel(`source-panel`, `source-text-area`) 제거
+  - `handlePdfImport` 함수 전체 제거
+  - 저장 오류 메시지에서 "PDF를 가져오거나" 문구 제거
+
+### #Set 배지 클릭 시 묶음형 카드로 스크롤 이동
+- **지시**: 문항 카드의 `#Set N` 배지 클릭 시 왼쪽 묶음형(zone-bundle) 영역의 해당 카드로 이동
+- **수행**:
+  - `syncBundles` 내 `bundle-badge` 생성 코드에 `data-target-bundle` 속성 및 `onclick` 핸들러 추가
+  - 클릭 시 `scrollIntoView({ behavior: 'smooth', block: 'center' })`로 부드럽게 이동
+  - 이동 후 1.5초간 파란색 outline 강조 효과 표시
+
+### labelType(A~E/1~5) 저장 누락 버그 수정 (08-1/08-2 공통)
+- **지시**: 객관형 카드에서 A~E로 변경 후 저장해도 반영 안 되는 문제 수정
+- **원인**: 프론트엔드 `parseQuestionBlock` 및 `newQuestions.push`에 `labelType` 필드 누락. GAS Questions 시트에도 컬럼 미존재.
+- **수행**:
+  - `script.js` `parseQuestionBlock`: `[data-field="labelType"]` 셀렉트 값 수집 추가
+  - `script.js` `newQuestions.push`: `labelType` 필드 payload에 추가 (08-1/08-2 공통 경로)
+  - `API script.gs` Questions 헤더: `"라벨타입"` 컬럼 추가 (13→14컬럼)
+  - `API script.gs` SAVE_FULL_TEST_DATA 저장 row: `q.labelType` 추가
+  - `API script.gs` GET_FULL_DB mapper: `labelType: r[13]` 로드 추가
+  - `API script.gs` UPDATE_QUESTION newRow: `q.labelType` 추가
+  - **GAS 재배포 필요** ← 반드시 재배포 후 정상 동작
+
+### 라벨 타입 변경 시 정답 자동 변환 + 보기 수 범위 제한
+- **지시**: A~E↔1~5 전환 시 기존 정답값 자동 변환 (`3→C`, `C→3`). 보기 수에 따라 정답 입력 범위 제한.
+- **수행**:
+  - `convertAnswerOnLabelChange(itemId, newType)` 함수 추가: 라벨 타입 변경 시 정답값 자동 변환 후 `renderBuilderChoices` 호출
+  - `renderBuilderChoices` 끝부분: 정답 입력 validation 갱신
+    - number 모드: `type="number"`, `min=1`, `max=n`, placeholder `1~n`
+    - alpha 모드: `type="text"`, `maxLength=1`, `oninput` 필터 (허용 외 입력 시 자동 클리어+빨간 테두리)
+    - 보기 수 변경 시 기존 정답값이 범위 초과이면 자동 클리어
+
+### 🔴 미해결 이슈 (다음 세션 계속)
+- **시험화면 A~E 원문자(Ⓐ~Ⓔ) 미표시 문제**
+  - 현상: 기존 저장 문항 불러올 때 시험화면에서 A~E 대신 ①②③으로 표시됨
+  - 원인 후보:
+    1. 기존 저장 데이터의 `answer`가 'C'가 아닌 '3'(숫자)로 저장됨 → 추론 로직 무효
+    2. 또는 시험화면 문항 로드 시 `q.answer`/`q.labelType` 값이 비어있을 가능성
+  - 시도한 수정: `getInputHtml`에 `answer` 값으로 labelType 추론 (`/^[A-Ea-e]$/`) 추가했으나 미동작
+  - **다음 세션 할 일**:
+    1. Console에서 `globalConfig.questions`의 `answer`, `labelType` 값 직접 확인
+    2. 빌더에서 해당 문항 A~E로 바꾸고 **다시 저장** (answer='C', labelType='alpha' 재저장)
+    3. 저장 후 시험화면 재확인
+  - **참고**: `file:// URL Unsafe` 콘솔 오류는 별개 이슈 (file:// 프로토콜 iframe 보안 경고, 기능 무관)
+
+
+
+
+
+
+## 2026-03-23 (저녁 세션)
+### 객관식/학생DB/시험안내 개선 일괄 수정
+- **지시**: 객관식 색깔 미변경 / 학생DB 레이아웃 / 시험안내 화면 / 오디오 프리로드
+- **수행**:
+  - `renderChoices` `<label>`에 `exam-choice-btn`, `data-qid`, `data-val`, `exam-circle-num` 추가 (선택지 색깔 버그 수정)
+  - 학생DB: tr hover 제거, 내부 스크롤, thead sticky, 열 균등(table-fixed), 중앙정렬, 외부 스크롤바 제거
+  - `renderExamInstructions`: `setCanvasId('02-3')` 추가, 박스 정 중앙 정렬(`height:100%`)
+  - `preloadBundleAudios()` 함수 추가 — 안내화면 진입 시 오디오 백그라운드 fetch+blob URL 캐싱
+  - `playBundleAudio()`: 캐시 히트 시 즉시 재생 (GAS 호출 생략)
+  - Canvas 10 없음 확인
+  - `[MD] CANVAS ID STANDARD.md`: 02-2(결과), 02-3(안내) 추가
+
+
+- **지시**: 객관식 문항 선택지 클릭 시 답 저장은 되지만 색깔이 변하지 않는 문제 수정
+- **원인**: 오후 세션(65eb18e)에서 `renderChoices`의 `<button>` → `<label>`로 변경하면서 `data-qid`, `data-val`, `exam-choice-btn`, `exam-circle-num` 속성/클래스를 누락함 → `selectObjAnswer`가 DOM에서 요소를 전혀 못 찾아 0건 반환
+- **수행**: `renderChoices` (9599줄)의 `<label>` 태그에 `class="exam-choice-btn ..."`, `data-qid`, `data-val` 추가 / `<span>`에 `exam-circle-num` 클래스 추가 (`script.js`)
+
+
+## 2026-03-23 (오후 세션)
+
+### 객관형 선택지 UI 수정 및 번들 레이아웃 복원
+- **지시**: 객관형 선택지 2열 레이아웃 미적용 및 선택 시 박스 전체 강조 → 원문자만 체크로 변경. 번들 시험화면을 원본 레이아웃으로 복원 (오디오 재생만 추가)
+- **수행**:
+  - `renderChoices`: `flex-col` → `isLong` 체크 기반 `grid-cols-2/1`, `<button>` 전체 하이라이트 → `<label>` + 원문자 원형만 파란색 채움
+  - `renderBundleLeft`: return 부분을 `ec984de` 원본으로 복원 (h3 제목+범위, `border-black bg-white` 지문 박스). 오디오 구현부(재생횟수 추적/disabled)는 현재 버전 유지
+
+## 2026-03-23 (세션 마무리)
+### 오디오 업로드 기능 전체 구현
+- GAS에 saveAudio 헬퍼 + Bundles 시트 오디오URL/파일ID/재생횟수 컬럼 추가
+- 오디오 파일 저장 위치: 이미지창고와 같은 레벨 오디오창고 폴더
+- 08-1(신규등록): newBundles에 audioData 포함
+- 08-2(수정): bundleData.audioData 포함
+
+### 시험화면 개선
+- 객관식 선택지: radio버튼 → 원문자(①②③④⑤) 커스텀 버튼
+- 듣기 플레이어: iframe → audio 태그 (일시정지/시크 없음)
+- 듣기 버튼 클릭 시 confirm 경고창
+- 페이지 이동 시 미답변 경고 + 오디오 재생중 이동 경고
+- 창 닫기 시 오디오 재생중 경고 (onbeforeunload)
+- 학년 표시 축약: 초등 5학년 → 초5, 중등 1학년 → 중1
+
+### 시험 안내 화면 추가
+- 로그인 버튼: 시험 안내보기 → → 안내화면
+- 6가지 규칙 + 오디오 테스트(WebAudio 20초) + START EXAM
+- 오디오 테스트 미실시 시 START EXAM 차단
+
+### GAS 주의사항
+- GAS 재배포 필요: saveAudio, 오디오창고 폴더, Bundles 8열 헤더 포함
+# 작업 히스토리 (HISTORY.md)
+
+> ⚠️ **AI 필독**: 새 대화 시작 시 이 파일을 반드시 먼저 읽고 맥락을 파악하십시오.
+> 작업 완료 후 반드시 이 파일에 내용을 추가하십시오.
+
+---
+
+> [!CAUTION]
+> # 🚨🚨🚨 절대 최우선 규칙 #0 — 한글 인코딩 보호 🚨🚨🚨
+>
+> ## ❌ 모든 각각의 아주 세세한 작업 후에 반드시 한글 깨짐 여부를 확인한다. ❌
+>
+> **무조건. 절대. 결코. 하늘이 두 쪽 나도. 항상. 반드시. 지킨다.**
+>
+> ### 왜?
+> - **2026-03-22 대참사**: PowerShell의 인코딩 처리로 `script.js`의 한글이 전부 깨짐 (`?`로 대체)
+> - Git 히스토리 전체가 오염되어 복구에 수시간 소요
+> - **다시는 이런 일이 발생해서는 안 된다**
+>
+> ### 규칙
+> 1. **파일 수정 후** → 즉시 한글 깨짐 확인 (바이트 레벨: `0x3F` 없는지)
+> 2. **PowerShell로 파일 쓸 때** → `[System.Text.UTF8Encoding]($false)` 사용, `Out-File` 절대 금지
+> 3. **Git 커밋 전** → 한글 포함 파일 인코딩 재확인
+> 4. **Node.js 사용 시** → `readFileSync/writeFileSync`에 `'utf8'` 명시
+> 5. **의심되면 멈추고** → 백업 후 진행
+>
+> ### 검증 명령어
+> ```javascript
+> // Node.js로 확인 (PowerShell 대신!)
+> node -e "const c=require('fs').readFileSync('script.js','utf8'); console.log(c.includes('전역 설정') ? '✅ 한글 정상' : '🚨 한글 깨짐!!!')"
+> ```
+>
+> **이 규칙은 다른 모든 규칙보다 우선한다. 예외 없음.**
+
+---
+
+### 학급평균 차트/레이더 개선 (2026-03-23)
+- **총점 차트 버그**: 키 오류(종점→총점) 수정 → 학급평균 막대 정상 표시
+- **레이더 학급평균**: 학급 평균 정답률(%) 데이터셋 추가, 꼭짓점 점 제거(pointRadius:0)
+- **레이더 토글 연동**: 모두/전체/학급 토글 선택에 따라 레이더도 반응
+- **토글 위치 변경**: 차트 아래에서 권장학급 좌측 (no-print 클래스 인쇄숨김)
+- **레이더 레이아웃**: 개인정답률 테이블 우측→좌측, 컨테이너 100%, 범례 공백 최소화
+- **Canvas06 정리**: 학생ID 필드 제거, grid-cols-4 균등배열, badge 텍스트 제거
+- **AI 추천 실시간화**: calculateTotalScore에서 직접 호출(문항별/영역별 통합)
+- **DB 우선 로직**: record.studentClass 우선, 없을 때만 AI 추천
+- **미달 추가**: 최하반평균 60%미만→미달 추천, 드롭다운에 ⛔미달 옵션 추가
+
+## 2026-03-23
+
+### 등록학급 AI 자동 추천 기능
+- **지시**: 시험지 학생DB 기반으로 학급별 평균점수 계산 후 학생 점수에 맞는 등록학급 자동 추천
+- **수행**:
+  - `recommendClassByScore(totalScore, grade)` 함수 추가
+  - Canvas 06: `updateClassDropdown06`에 ⭐ 추천 옵션 및 badge div 추가, `calcAndRecommendClass06` q-score 변경 시 자동 추천
+  - Canvas 05-1: report-student-class에 ⭐ 추천 옵션, `recCls05` 자동 선택, `warnClassChange05` 수동 변경 경고
+  - 저장 함수에서 `__RECOMMEND__` 값을 실제 추천 학급명으로 치환
+### script.js 손상 복구 및 4가지 버그 수정
+- **지시**: 앱 비정상 종료로 script.js 3839줄에서 라인 잘림 손상 발생. Git HEAD로 복원 후 4가지 버그 수정 이어서 진행
+- **수행**:
+  - `git checkout HEAD -- script.js` 로 복원 (구문 오류 해소)
+  - 권장학급 두 박스(라벨+드롭다운) gap-0으로 붙여서 하나처럼 보이도록 수정 (border-radius 분리)
+  - 레이더 차트 범례 padding: `4` → `10` (bar chart와 동일)
+  - AI 코멘트 경고 오탐지 수정: 전체 p태그 스캔 → `overall-comment-text` id 직접 체크
+  - 인쇄(`printReport()`) 완료 시 선택된 등록학급 값을 `STUDENT_SAVE`로 DB에 자동 저장
+
+---
+
+
+### AI 코멘트 인라인 편집 및 품질 개선
+- **지시**: 수작업으로 AI 코멘트(종합/영역)를 수정할 수 있게 하고, 생성 시 불필요한 인사말 제거 및 줄바꿈 공백(빈 줄) 축소
+- **수행**:
+  - `script.js` 프롬프트에서 인사말 금지 규칙 추가
+  - 코멘트 텍스트 클릭 시, 좌측 묶음 편집 버튼(저장/취소)이 있는 `textarea`로 전환하는 `editComment()`, `saveCommentEdit()` 로직 구현
+  - `<p class="mb-2">` 대신 `<br>`를 사용하여 문단 사이 공백 제거
+
+### 기타사항 컬럼 추가 및 DB 완벽 연동
+- **지시**: 종합분석 코멘트 아래/옆에 사용자가 메모할 수 있는 "기타사항" 필드 추가, 출력 시 반영 및 학생DB 저장
+- **수행**:
+  - `script.js`에 `notes` 컬럼 렌더링, 저장/토글 UI 구현 및 초기 로드 시 존재 여부에 따라 자동 열림 구현
+  - `app script.gs` 수정: `SAVE_AI_COMMENT` 시 학생DB 시트에 "기타사항" 컬럼 자동 생성 및 저장 로직 추가, `GET_STUDENT_REPORT` 시 데이터 로딩 연동 완료
+
+### 성적표 UI 공간 및 레이아웃 최적화
+- **지시**: "기타사항 추가" 토글 버튼 위치를 문항 상세보기 옆 체트박스로 옮기고, 차트와 상세보기 체크박스 사이의 너무 넓은 간격을 좁힐 것
+- **수행**:
+  - `chk-notes-toggle` 체크박스로 UI 변경 및 체크 여부 동기화 함수(`toggleNotesBox()`) 수정
+  - `#qdetail-checkbox-row`에 `-mt-6` 부여하여 레이더 차트 사이의 불필요한 공백 시각적 축소
+
+### 성적표 레이더 차트 라벨 가시성 개선
+- **지시**: 개인 정답률 수치를 영역 라벨과 겹치지 않게 바깥으로 선을 빼서 빨간색 퍼센트로 표시
+- **수행**:
+  - `app script.gs` 의존 없이, `script.js` 내 `renderRadarChart`에 전용 커스텀 플러그인(`radarOuterLabel`)을 직접 작성하여 선(line) 및 라벨(fill) 외부 렌더링
+
+### 문항별 상세보기 버그 수정 및 레이아웃 복원
+- **지시**: 문항별 상세보기 체크해도 안 나타나는 문제 수정 + 10열 그리드 레이아웃 복원
+- **수행**:
+  - 셀렉터 `[id^="qdetail-"]`가 체크박스 행까지 매칭하던 버그 수정 (`:not(#qdetail-checkbox-row)` 추가)
+  - `loadStudentReport()`에서 해당 카테고리 문항 미로드 시 `GET_FULL_DB`로 자동 fetch 추가
+  - 복구 시 누락된 10열 고정 그리드 레이아웃 복원 (번호→만점→난이도→개인점수→정오)
+  - 난이도별 색상 구분 복원 (최상/상/중/하/기초)
+
+### 히스토리 관리 시스템 구축
+- **지시**: AI 기억 휘발 문제 해결을 위한 히스토리 관리 체계 구축
+- **수행**: `[MD] HISTORY.md` 생성, `[MD] PROJECT RULES.md`에 8번(히스토리 관리), 9번(Git 커밋) 원칙 추가
+
+### MD 파일 이름 변경
+- **지시**: 모든 .md 파일에 `[MD]` 접두사 추가, 언더바 제거
+- **수행**: 3개 파일 이름 변경 및 내부 참조 수정
+
+### 사이드바 텍스트 변경 (Canvas 07)
+- **지시**: 사이드바 "문항 통계" → "문항 및 학생 통계"로 변경
+- **수행**: `script.js` 사이드바 버튼 텍스트 변경, `[MD] CANVAS ID STANDARD.md` 동기화
+
+### 사이드바 전환 타이밍 수정
+- **지시**: 사이드바 있는 화면 → 없는 화면 전환 시 로딩 중 사이드바가 먼저 사라지는 문제 수정
+- **수행**: `changeMode()`에서 student 모드 시 즉시 제거 대신, `renderStudentLogin()` 내부에서 로딩 완료 후 제거하도록 변경
+
+### 주관형 채점 로직 개선
+- **지시**: 69번 문항 `'s` 정답인데 오답 처리 문제. AI가 묶음 지문을 못 보는 문제.
+- **수행**:
+  - `gradeWithAI` 프롬프트에 묶음 지문(`bundlePassageText`) + 개별 지문(`passage1`) 전달 추가
+  - 채점 시 `globalConfig.bundles`에서 묶음 지문 데이터 주입 로직 추가
+  - 키워드 매칭 정규식에 백틱(`` ` ``), 스마트 따옴표(`'`, `'`, `"`, `"`) 추가
+
+---
+
+## 2026-03-21
+### 학생 학급 입력 필드 수정
+- **지시**: 성적 수동 입력(Canvas 06)의 학생 학급 입력 필드 수정
+  - placeholder 텍스트 변경 ("등록학급 (예정)" → 선택사항 표시)
+  - 필수값 제거 (선택 입력으로 변경)
+  - 입력 필드 위치를 같은 행 맨 오른쪽으로 이동
+  - 입력 필드 색상 변경
+- **수행**: `script.js`, `style.css` 수정 완료
+
+### 전체 코드 무결성 검사
+- **지시**: 4개 파일 전수 검사 요청
+- **수행**: `app script.gs`, `index.html`, `style.css`, `script.js` 검사 완료
+  - 중복 함수 3건 발견 (`fixDriveUrl`, `callGeminiAPI`, `updateAnswer`)
+  - 치명적 오류 없음 확인
+
+---
+
+## 2026-03-19
+### 차트 폰트 크기 수정
+- **지시**: 차트 내 폰트 크기 14/15 → 16으로 통일
+- **수행**: `fix_chart_fonts.ps1` 스크립트로 `script.js` 내 폰트 사이즈 일괄 변경
+
+---
+
+## 2026-03-16
+### Canvas 정렬 확인
+- **지시**: 모든 캔버스가 중앙 정렬되는 원인 조사
+- **수행**: `style.css`에서 관련 CSS 코드 확인
+
+### 시험 데이터 저장 버그 수정
+- **지시**: 학생 "박지온" 데이터 저장 시 잘못된 데이터가 Google Sheets에 저장되는 문제 해결
+- **수행**: payload 디버깅, GAS 데이터 매핑 수정, 주관식 문항 채점 처리 수정
+
+---
+
+## 2026-03-15
+### 성적표 점수 표시 개선
+- **지시**: 성적표(Canvas 05-1) 및 인쇄물의 폰트 크기/굵기/스타일 조정
+- **수행**: 학생 이름, 리포트 제목, 섹션 라벨, 점수 표시, 추천 학급 선택 등의 시각적 일관성 확보
+
+### 점수 계산 수정
+- **지시**: 평균 점수 계산 오류 및 0점 처리 문제 해결
+- **수행**: 데이터 필터링 로직 수정 (0점 포함), 백엔드-프론트엔드 계산 일관성 확보
+
+---
+
+## 2026-03-13
+### 성적 수동 입력 화면 개편 (Canvas 06)
+- **지시**: Canvas 06 UI/UX 대폭 개선
+- **수행**:
+  - 시험지 선택 후 동적 폼 표시
+  - 문항별 점수 입력 구현 (최대 점수 검증)
+  - 자동 총점 계산
+  - 영역/난이도별 아코디언 UI
+  - `questionScores` 포함한 저장 로직 수정
+
+---
+
+## 2026-03-12
+### 시험 UI 레이아웃 개선
+- **지시**: 시험 화면(Canvas 02-1) 문항 표시 및 2컬럼 분할 레이아웃 구현
+- **수행**:
+  - 고정 2컬럼 스플릿 스크린 구현
+  - 반응형 이미지 표시
+  - 사이드바 최적화
+  - 묶음 문항/개별 문항 처리
+  - 페이지 번호 추가
+
+### 묶음 문항 이미지 버그 수정
+- **지시**: Canvas 07-2에서 묶음 문항 수정 시 이미지 URL 삭제되는 버그 수정
+- **수행**: Canvas 07-1의 로직을 참고하여 이미지 URL 보존 로직 수정
+
+### 시험 UI 스타일 개선
+- **지시**: 입력 박스, 카드, 선택 요소 등 시각적 개선
+- **수행**: 그라디언트 배경, 상단 컬러 라인, 그림자 등 Canvas 03 스타일 적용
+
+---
+
+> **참고**: 이 히스토리는 2026-03-22 시점에서 소급 작성되었습니다.
+> 이후 작업분은 각 작업 완료 시 실시간으로 추가됩니다.
