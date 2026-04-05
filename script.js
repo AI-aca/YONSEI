@@ -38,7 +38,7 @@ let globalConfig = {
     masterCode: "", // [보안] 서버에서만 관리 - 프론트엔드 저장 안 함
     masterUrl: "https://script.google.com/macros/s/AKfycbw_wP7aQlfrUVyEZlORObmrQghbRBMz3qpmz7aMj18jTc4WkuZhRVlp2kFfYxPWH3jFmQ/exec",
     mainServerLink: "https://drive.google.com/drive/folders/18dd5Gssjlw9jGZJHmES91HWNxKVqD32A", // [New] 연세국제 설정링크 중앙관리 시트 연동 링크
-    geminiKey: "", // AI API Key
+    // geminiKey: [보안] 서버에서만 관리 - 프론트엔드에서 완전 제거
     categories: [], // { id, name, createdDate, targetFolderUrl }
     questions: [], // 로컬 캐싱된 문항 리스트
     classes: [], // 등록 학급 목록 예) ["중2A반", "중3B반"]
@@ -90,7 +90,7 @@ async function saveConfigToCloud(silent = false) {
         masterCode: globalConfig.masterCode, // [추가] Master Code 저장
         masterUrl: globalConfig.masterUrl, // [추가] Master Sync API URL 저장
         mainServerLink: globalConfig.mainServerLink, // [New] 메인 서버 링크 동기화
-        geminiKey: globalConfig.geminiKey,
+        // geminiKey: [보안] 프론트엔드에서 전송하지 않음 (서버에서만 관리)
         categories: JSON.stringify(globalConfig.categories),
         questions: '[]', // Don't upload questions directly to unified config
         logo: globalConfig.logo,
@@ -1691,7 +1691,7 @@ function renderMainConfig(c) {
                             <h4 class="fs-16 text-[#013976] font-bold uppercase">Admin Access Code</h4>
                             <p class="fs-14 text-slate-400">관리자 모드 접속 비밀번호</p>
                             <div class="flex gap-3 items-center">
-                                <input type="password" id="admin-code-input" class="ys-field flex-grow fs-20 font-black text-[#013976] tracking-widest text-center" value="${globalConfig.adminCode || '1111'}" placeholder="CODE">
+                                <input type="password" id="admin-code-input" class="ys-field flex-grow fs-20 font-black text-[#013976] tracking-widest text-center" value="" placeholder="새 코드 입력">
                                 <button onclick="(async()=>{if(!confirm('💾 관리자 코드를 변경하시겠습니까?')) return; const v=document.getElementById('admin-code-input').value; if(v){globalConfig.adminCode=v; save(); await saveConfigToCloud(); showToast('✅ 관리자 코드가 변경되었습니다.');}else{showToast('⚠️ 유효한 코드를 입력하세요');}})()"
                                         class="bg-[#013976] text-white px-6 py-3 rounded-xl fs-14 font-bold hover:bg-blue-800 transition-all active:scale-95 whitespace-nowrap shadow-md flex-none">SAVE</button>
                             </div>
@@ -1703,7 +1703,7 @@ function renderMainConfig(c) {
                             <h4 class="fs-16 text-indigo-700 font-bold uppercase">Master Access Code</h4>
                             <p class="fs-14 text-slate-400">최고 관리자 접속 비밀번호</p>
                             <div class="flex gap-3 items-center">
-                                <input type="password" id="master-code-input" class="ys-field flex-grow fs-20 font-black text-indigo-700 tracking-widest text-center" value="${globalConfig.masterCode || '0000'}" placeholder="CODE">
+                                <input type="password" id="master-code-input" class="ys-field flex-grow fs-20 font-black text-indigo-700 tracking-widest text-center" value="" placeholder="새 코드 입력">
                                 <button onclick="(async()=>{if(!confirm('💾 마스터 코드를 변경하시겠습니까?')) return; const v=document.getElementById('master-code-input').value; if(v){globalConfig.masterCode=v; save(); await saveConfigToCloud(); showToast('✅ 마스터 코드가 변경되었습니다.');}else{showToast('⚠️ 유효한 코드를 입력하세요');}})()"
                                         class="bg-indigo-600 text-white px-6 py-3 rounded-xl fs-14 font-bold hover:bg-indigo-700 transition-all active:scale-95 whitespace-nowrap shadow-md flex-none">SAVE</button>
                             </div>
@@ -1794,12 +1794,12 @@ function renderMainConfig(c) {
                                 <p class="fs-14 text-slate-500">AI 문항 분석 및 자동 생성 기능을 위한 인증 키</p>
                             </div>
                             <div class="flex gap-3 items-center">
-                                <input type="password" id="g-key" autocomplete="off" class="ys-field !bg-slate-50 !text-purple-900 border-slate-200 focus:border-purple-500 font-mono flex-grow" value="${globalConfig.geminiKey || ''}" placeholder="AI Studio Key">
+                                <input type="password" id="g-key" autocomplete="off" class="ys-field !bg-slate-50 !text-purple-900 border-slate-200 focus:border-purple-500 font-mono flex-grow" value="" placeholder="새 API Key 입력 (보안)">
                                 <a href="https://aistudio.google.com/app/apikey" target="_blank"
                                    class="py-3 px-5 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center gap-2 hover:bg-purple-100 transition-all no-underline whitespace-nowrap flex-none">
                                     <span class="fs-14 font-bold text-purple-700">🔑 GET KEY</span>
                                 </a>
-                                <button onclick="(async()=>{if(!confirm('💾 API Key를 저장하시겠습니까?')) return; const gVal=document.getElementById('g-key').value; globalConfig.geminiKey=gVal; save(); await saveConfigToCloud(); showToast('✅ Gemini Key가 저장되었습니다.');})()"
+                                <button onclick="(async()=>{if(!confirm('서버에 API Key를 저장하시겠습니까?')) return; const gVal=document.getElementById('g-key').value; if(!gVal){showToast('⚠️ 유효한 키를 입력하세요');return;} const fId=globalConfig.mainServerLink?globalConfig.mainServerLink.match(/folders\/([^/?]+)/)?.[1]:null; const r=await fetch(globalConfig.masterUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'SAVE_CONFIG',parentFolderId:fId,config:{geminiKey:gVal}})}); const d=await r.json(); if(d.status==='Success'){showToast('✅ Gemini Key가 저장되었습니다.');}else{showToast('❌ 저장 실패: '+(d.message||''));}})()"
                                         class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl fs-14 font-bold shadow-md transition-all active:scale-95 whitespace-nowrap flex-none">SAVE</button>
                             </div>
                         </div>
@@ -2742,11 +2742,7 @@ function renderAdminCode(c) {
 window.onload = () => {
     // [전역] 창 닫기/새로고침 시 항상 브라우저 기본 경고창 표시
     window.addEventListener('beforeunload', handleBeforeUnload);
-    // Initialize adminCode if not present (e.g., first run)
-    if (globalConfig.adminCode === undefined) {
-        globalConfig.adminCode = "1111";
-        save();
-    }
+    // [보안] adminCode 하드코딩 초기화 제거 — 서버에서만 관리
     applyBranding();
 
     // [Fix] 앱 진입 시 무조건 백그라운드에서 최신 데이터를 동기화하도록 강제
@@ -4061,7 +4057,7 @@ async function submitExam() {
                 }
 
                 // 주관형 2단계: 키워드 매칭 실패 시 AI 채점
-                if (!isCorrect && studentAns.trim() && globalConfig.geminiKey) {
+                if (!isCorrect && studentAns.trim() && globalConfig.masterUrl) {
                     try {
                         const aiResult = await gradeWithAI(q, studentAns);
                         if (aiResult && aiResult.score !== undefined) {
@@ -4823,8 +4819,8 @@ ${_weaknessRule}
 // Gemini API 호출
 // Gemini API 호출 (Fixed Scope & Backend Proxy)
 async function callGeminiAPI(prompt, silent = false, imageUrls = []) {
-    if (!globalConfig.geminiKey) {
-        if (!silent) showToast("⚠️ 설정에서 Gemini API Key를 먼저 등록해주세요.");
+    if (!globalConfig.masterUrl) {
+        if (!silent) showToast("⚠️ 서버 연결이 필요합니다. (masterUrl 미설정)");
         return "AI 설정 필요";
     }
 
@@ -4834,9 +4830,8 @@ async function callGeminiAPI(prompt, silent = false, imageUrls = []) {
 
         const payload = {
             type: 'CALL_GEMINI',
-            key: globalConfig.geminiKey,
             prompt: prompt,
-            imageUrls: imageUrls.length > 0 ? imageUrls : undefined // [Fix] 이미지 URL 전달
+            imageUrls: imageUrls.length > 0 ? imageUrls : undefined
         };
 
         const result = await sendReliableRequest(payload);
