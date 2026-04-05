@@ -4448,6 +4448,8 @@ ${sectionSummary}
 [총점 현황]
 개인 총점: ${totalScore}점 / 시험지 만점: ${totalMax}점 / 전체 평균: ${totalAvg.toFixed(1)}점(전체 대비 ${_oaDiff >= 0 ? '+' : ''}${_oaDiff.toFixed(1)}점) / 정답률: ${totalRate}% / 성취레벨: ${totalLevel} / 전체 상위 백분위: 약 ${oaUpperPercentile}%${clsTotalAvg !== null ? ' / 권장학급(' + _oaCls + ') 총점 평균: ' + clsTotalAvg.toFixed(1) + '점(학급 평균 대비 ' + (totalScore - clsTotalAvg >= 0 ? '+' : '') + (totalScore - clsTotalAvg).toFixed(1) + '점)' + (clsTotalPercentile !== null ? ' / 권장학급 내 상위 백분위: 약 ' + clsTotalPercentile + '%' : '') : ''}
 
+⚠️ 백분위 해석 주의 (절대 엄수): 상위 백분위(%) 숫자는 작을수록 우수합니다. 상위 1%=최상위 / 상위 100%=최하위. 예시: 상위 75%는 하위권이므로 "높은 백분위", "우수한 실력" 절대 사용 금지.
+
 [작성 규칙]
 1) 각 영역 코멘트에서 이미 언급된 세부 내용(특정 표현, 문법 항목, 단어 유형 등)은 그대로 반복하지 마세요.
 2) 전체 상위 백분위(약 ${oaUpperPercentile}%)${clsTotalPercentile !== null ? '·권장학급 내 상위 백분위(약 ' + clsTotalPercentile + '%)' : ''}를 활용하여 영역들을 가로질러 보이는 전체적 패턴이나 공통 특징을 종합적으로 언급하세요 (1~2문장)
@@ -4738,6 +4740,8 @@ async function generateSectionComments(record, averages, activeSections) {
 
 [성적 데이터]
 개인 점수: ${studentScore}점 / 영역 만점: ${maxScore > 0 ? maxScore + '점' : '정보 없음'} / 전체 평균: ${overallAvgScore.toFixed(1)}점(전체 대비 ${diff >= 0 ? '+' : ''}${diff.toFixed(1)}점) / 성취레벨: ${level} / 전체 상위 백분위: 약 ${upperPercentile}%${clsAvgScore !== null ? ' / 권장학급(' + _recCls + ') 평균: ' + clsAvgScore.toFixed(1) + '점(학급 평균 대비 ' + (studentScore - clsAvgScore >= 0 ? '+' : '') + (studentScore - clsAvgScore).toFixed(1) + '점)' : ''}${clsUpperPercentile !== null ? ' / 권장학급 내 상위 백분위: 약 ' + clsUpperPercentile + '%' : ''}${subTypeInfo}${wrongInfo}
+
+⚠️ 백분위 해석 주의 (절대 엄수): 상위 백분위(%) 숫자는 작을수록 우수합니다. 상위 1%=최상위 / 상위 100%=최하위. 예시: 상위 75%는 하위권이므로 "높은 백분위", "우수한 실력"  절대 사용 금지. 상위 5%이면 영역에서 실력이 뛰어남을 시사합니다.
 
 [작성 규칙]
 1) 잘한 점 (2문장) — 전체 상위 백분위(약 ${upperPercentile}%)${clsUpperPercentile !== null ? '와 권장학급 내 상위 백분위(약 ' + clsUpperPercentile + '%)' : ''}를 활용하여 구체적으로 서술하세요.
