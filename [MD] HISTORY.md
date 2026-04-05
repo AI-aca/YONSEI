@@ -14,12 +14,20 @@
 ## 🖥️ 프로젝트 개발/배포 환경 (AI 필수 숙지)
 - **개발**: 오프라인 로컬 (OneDrive 폴더) — 브라우저에서 로컬 파일 직접 열어 테스트
 - **DB 연동**: 구글 드라이브 GAS — 저장/불러오기
-- **배포**: 완성 후 Git으로 온라인 배포 예정 (현재 미배포)
+- **배포**: GitHub Pages — https://psd3250.github.io/ysie/ (배포 완료 2026-04-06)
+- **업데이트 방법**: 로컬 수정 → git commit → git push origin master → 1~2분 후 자동 반영
 - **테스트 방법**: 로컬 브라우저에서 index.html 직접 열기 → GAS DB 연동으로 실제 데이터 확인
 
 ---
 
 ## 🛠️ 2026-04-06 작업 내역
+
+### GitHub Pages 온라인 배포 완료
+- **GitHub 계정**: PSD3250
+- **저장소**: https://github.com/PSD3250/ysie
+- **배포 URL**: https://psd3250.github.io/ysie/
+- **방식**: Deploy from branch (master / root)
+- **업데이트**: 앞으로 로컬 수정 후 `git push origin master`만 하면 자동 반영
 
 ### AI 코멘트 systemInstruction + GAS 후처리 이중 차단 (커밋: 69dca23, 76b60fa)
 - **문제**: AI가 "피드백입니다" 소개 문장, "보여주셨습니다" -시- 존칭을 프롬프트 금지 지시에도 계속 위반
