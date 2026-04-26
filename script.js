@@ -11151,12 +11151,18 @@ function renderQuestionCard(q) {
 }
 
 document.addEventListener('input', function(e) {
+    if (e.target.id === 'chk-recent-1m') return;
+    if (e.target.id === 'input-student-name' && window.scoreInputMode === 'edit') return;
+    
     const c = document.getElementById('dynamic-content');
     if (c && c.getAttribute('data-canvas-id') === '06') {
         window._isDirty06 = true;
     }
 });
 document.addEventListener('change', function(e) {
+    if (e.target.id === 'chk-recent-1m') return;
+    if (e.target.id === 'input-student-name' && window.scoreInputMode === 'edit') return;
+    
     const c = document.getElementById('dynamic-content');
     if (c && c.getAttribute('data-canvas-id') === '06') {
         window._isDirty06 = true;
