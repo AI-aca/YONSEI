@@ -4930,7 +4930,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
                 </div>
 
                 <!-- 권장학급 라벨+드롭다운 (두 박스 gap-0으로 붙임) -->
-                <div class="flex items-stretch" style="gap:0;">
+                <div class="flex items-stretch" style="gap:0;overflow:hidden;border-radius:1rem;">
                     <div style="background:#013976;border-radius:1rem 0 0 1rem;height:65px;width:70px;display:flex;align-items:center;justify-content:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
                         <span style="color:white;font-size:15px;font-weight:800;white-space:nowrap;letter-spacing:0.5px;line-height:1.3;text-align:center;">권장<br>학급</span>
                     </div>
