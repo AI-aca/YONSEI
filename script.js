@@ -5327,8 +5327,7 @@ function printReport() {
         if (canvasEl && imgDataMap[id]) {
             const img = document.createElement('img');
             img.src = imgDataMap[id].dataUrl;
-            img.style.width = 'calc(100% + 24px)';
-            img.style.margin = '0 -12px';
+            img.style.width = '100%';
             img.style.height = 'auto';
             img.style.display = 'block';
             img.style.maxHeight = (canvasEl.style.maxHeight || '400px');
@@ -5394,9 +5393,8 @@ function printReport() {
 
     // 5. 팝업 열기
     const _dispW = display.offsetWidth || 900;
-    const _popW = Math.min(window.screen.availWidth, 1400);
-    const _popH = window.screen.availHeight || 1200;
-    const win = window.open('', '_blank', `width=${_popW},height=${_popH}`);
+    const _popW = 794;
+    const win = window.open('', '_blank', `width=${_popW},height=1200`);
     if (!win) { showToast('⚠️ 팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도해주세요.'); return; }
     win.document.write(`<!DOCTYPE html>
 <html><head>
