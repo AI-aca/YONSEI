@@ -5796,22 +5796,15 @@ ${bannerHtml}
 <script>
 window.onload = function() {
   if ('${orientation}' === 'landscape') {
-    // 팝업 DOM에서 직접 재배치: [레이더][종합분석][기타사항] / [영역별코멘트]
-    var sw = (function(){ var sc=document.getElementById('sections-container'); return sc?sc.parentElement:null; })();
-    var aiSec = (function(){
-      var hs=document.querySelectorAll('h4');
-      for(var i=0;i<hs.length;i++){if(hs[i].textContent.indexOf('종합분석')>=0){
-        var el=hs[i]; while(el&&(!el.className||el.className.indexOf('bg-gradient-to-r')<0)){el=el.parentElement;} return el;
-      }}
-      return null;
-    })();
-    var ns = document.getElementById('notes-section');
-    if(sw && sw.parentNode) {
-      var breakVal = ';page-break-before:always;break-before:page;margin-top:0;';
-      sw.style.cssText = (sw.style.cssText||'').replace(/page-break-before:[^;]+;?/g,'').replace(/break-before:[^;]+;?/g,'');
-      if(aiSec) sw.parentNode.insertBefore(aiSec, sw);
-      if(ns)    sw.parentNode.insertBefore(ns, sw);
-      sw.style.cssText += breakVal;
+    var sc = document.getElementById('sections-container');
+    if(sc) {
+      var sw = sc.parentElement;
+      if(sw) {
+        // sw page-break 제거, sections-container에 page-break 추가 후 sw 맨 끝으로 이동
+        sw.style.cssText = (sw.style.cssText||'').replace(/page-break-before:[^;]+;?/g,'').replace(/break-before:[^;]+;?/g,'');
+        sc.style.cssText = (sc.style.cssText||'') + ';page-break-before:always;break-before:page;margin-top:0;';
+        sw.appendChild(sc);
+      }
     }
   }
   setTimeout(function(){ window.print(); }, 800);
