@@ -5791,6 +5791,7 @@ function printReport(orientation = 'portrait') {
     body { padding-top:0 !important; padding-bottom:0 !important; }
     body > *:first-child { margin-top: 0 !important; }
     .card, section, [class*='rounded'] { page-break-inside: avoid; }
+    [class*='space-y'] > * + * { margin-top: 0 !important; }
     h4 { page-break-after: avoid; }
     .print-banner { display:block !important; }
   }
@@ -5809,7 +5810,7 @@ window.onload = function() {
       if(sw) {
         // sw page-break 제거, sections-container에 page-break 추가 후 sw 맨 끝으로 이동
         sw.style.cssText = (sw.style.cssText||'').replace(/page-break-before:[^;]+;?/g,'').replace(/break-before:[^;]+;?/g,'');
-        sc.style.cssText = (sc.style.cssText||'') + ';page-break-before:always;break-before:page;margin-top:24px;';
+        sc.style.cssText = (sc.style.cssText||'') + ';page-break-before:always;break-before:page;';
         sw.appendChild(sc);
       }
     }
