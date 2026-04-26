@@ -5484,9 +5484,6 @@ function toggleAllQuestionDetail(checked) {
                     const diffColor = { '최상': 'text-red-600', '상': 'text-orange-500', '중': 'text-blue-500', '하': 'text-green-500', '기초': 'text-slate-400' }[diff] || 'text-slate-500';
                     return `<td class="py-1 px-1 text-center border border-slate-200 text-[14px] ${diffColor}">${diff}</td>`;
                 }).join('')}${'<td class="py-1 border border-slate-200"></td>'.repeat(10 - cols)}</tr>
-                    <tr class="bg-slate-50">${chunk.map(q =>
-                    `<td class="py-1 px-1 text-center border border-slate-200 text-[14px]"><span class="font-bold">${q.score || 0}점</span><span class="text-slate-400 font-normal"> / ${q.maxScore || 0}점</span></td>`
-                ).join('')}${'<td class="py-1 border border-slate-200"></td>'.repeat(10 - cols)}</tr>
                     <tr class="bg-white">${chunk.map(q =>
                     `<td class="py-1 px-1 text-center font-black border border-slate-200 text-[14px]">${mark(q)}</td>`
                 ).join('')}${'<td class="py-1 border border-slate-200"></td>'.repeat(10 - cols)}</tr>
