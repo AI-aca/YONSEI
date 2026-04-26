@@ -5375,7 +5375,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
 
         <!-- 5. 종합분석 코멘트 -->
 
-        <div class="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-3xl border-2 border-blue-200 mt-3">
+        <div id="ai-comment-section" class="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-3xl border-2 border-blue-200 mt-3">
             <div class="flex items-center justify-between mb-3">
                 <h4 class="ys-label text-blue-700 !mb-0">🤖 종합분석 코멘트</h4>
                 <div class="flex items-center gap-2 no-print">
@@ -5813,6 +5813,8 @@ window.onload = function() {
         sw.appendChild(sc);
       }
     }
+    var aic = document.getElementById('ai-comment-section');
+    if(aic) aic.style.marginTop = '16px';
   }
   setTimeout(function(){ window.print(); }, 800);
 };
