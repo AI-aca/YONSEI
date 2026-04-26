@@ -5784,6 +5784,7 @@ function printReport(orientation = 'portrait') {
   .print-banner { display:none; }
   .fs-15 { font-size: 13px !important; line-height: 1.6; }
   table.fs-14 td, table.fs-14 th { font-size: 13px !important; }
+  .ys-label { font-size: 14px !important; }
   @media print {
     @page { size: A4 ${orientation}; margin:12mm; }
     body { padding-top:0 !important; padding-bottom:140px; }
