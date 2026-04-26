@@ -5327,7 +5327,8 @@ function printReport() {
         if (canvasEl && imgDataMap[id]) {
             const img = document.createElement('img');
             img.src = imgDataMap[id].dataUrl;
-            img.style.width = '100%';
+            img.style.width = 'calc(100% + 24px)';
+            img.style.margin = '0 -12px';
             img.style.height = 'auto';
             img.style.display = 'block';
             img.style.maxHeight = (canvasEl.style.maxHeight || '400px');
