@@ -5305,8 +5305,16 @@ function printReport() {
     canvasIds.forEach(id => {
         const cvs = document.getElementById(id);
         if (cvs) {
+            // 1.5x 고해상도 캡처: 오프스크린 캔버스에 확대 후 PNG 추출
+            const scale = 1.5;
+            const tmpCvs = document.createElement('canvas');
+            tmpCvs.width  = cvs.offsetWidth  * scale;
+            tmpCvs.height = cvs.offsetHeight * scale;
+            const tmpCtx = tmpCvs.getContext('2d');
+            tmpCtx.scale(scale, scale);
+            tmpCtx.drawImage(cvs, 0, 0);
             imgDataMap[id] = {
-                dataUrl: cvs.toDataURL('image/png'),
+                dataUrl: tmpCvs.toDataURL('image/png'),
                 width: cvs.offsetWidth,
                 height: cvs.offsetHeight
             };
@@ -5404,7 +5412,7 @@ function printReport() {
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap">
 <style>
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  body { font-family: 'Noto Sans KR', sans-serif; background:#fff; margin:0; padding:24px 32px 160px; color:#1e293b; }
+  body { font-family: 'Noto Sans KR', sans-serif; background:#fff; margin:0; padding:24px 12px 160px; color:#1e293b; }
   img { max-width:100%; }
   .no-print { display:none !important; }
   .fs-15 { font-size: 13px !important; line-height: 1.6; }
