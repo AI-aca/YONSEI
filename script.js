@@ -5345,7 +5345,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
         const aScore = parseFloat(averages[section + '_점수'] || averages[secMap[section]] || 0);
         const comment = sectionComments?.[section];
         return `<div class="bg-slate-50 rounded-2xl border overflow-hidden">
-                    <div class="px-6 py-4 flex items-center justify-between">
+                    <div class="px-6 py-2.5 flex items-center justify-between">
                         <div class="flex items-center gap-3 flex-wrap">
                             <h5 class="font-black text-[#013976] fs-18">${_secKRHdr[section] || section} 영역</h5>
                             <span id="sec-hdr-avg-${section}"
