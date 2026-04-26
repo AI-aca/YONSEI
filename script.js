@@ -5740,17 +5740,29 @@ function printReport(orientation = 'portrait') {
             }
         });
 
-        // L2. DOM 재배치: 종합분석 + 기타사항을 영역별코멘트 앞으로 이동
-        //     결과: [헤더][차트1][차트2] / [레이더][종합분석][기타사항] / [영역별코멘트]
+        // L2. DOM 재배치: [레이더][종합분석][기타사항] / [영역별코멘트]
         const _secWrap = clone.querySelector('#sections-container')?.parentElement;
         const _aiH = Array.from(clone.querySelectorAll('h4')).find(h => h.textContent.includes('종합분석'));
         const _aiSec = _aiH ? (_aiH.closest('.bg-gradient-to-r') || _aiH.closest('div[class]')) : null;
         const _notesSec = clone.querySelector('#notes-section');
+
+        // sectionsWrapper의 portrait 페이지 분리 제거 후, landscape용 재설정
+        if (_secWrap) {
+            _secWrap.style.cssText = (_secWrap.style.cssText || '').replace(/page-break-before:[^;]+;?/g, '').replace(/break-before:[^;]+;?/g, '');
+        }
+
+        // aiSec → notesSec → (page-break) → secWrap 순으로 재배치
         if (_secWrap && _aiSec && _secWrap.parentNode) {
             _secWrap.parentNode.insertBefore(_aiSec, _secWrap);
         }
-        if (_secWrap && _notesSec && _secWrap.parentNode) {
-            _secWrap.parentNode.insertBefore(_notesSec, _secWrap);
+        if (_aiSec && _notesSec && _aiSec.parentNode) {
+            // aiSec 다음에 notesSec 삽입 (aiSec.nextSibling 앞에)
+            _aiSec.parentNode.insertBefore(_notesSec, _aiSec.nextSibling);
+        }
+
+        // _secWrap에 landscape용 페이지 분리 재적용
+        if (_secWrap) {
+            _secWrap.style.cssText = (_secWrap.style.cssText || '') + ';page-break-before:always;break-before:page;margin-top:0;';
         }
 
         // L3. 레이더 차트 앞 페이지 분리 (2페이지 시작)
