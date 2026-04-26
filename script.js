@@ -5730,44 +5730,17 @@ function printReport(orientation = 'portrait') {
 
     // [가로 인쇄 전용] 레이아웃 재구성
     if (orientation === 'landscape') {
-        // L1. 차트 이미지 3개 → 80% 크기 중앙 정렬 (maxHeight/objectFit 제거로 상단 공백 방지)
+        // L1. 차트 이미지 3개 → 80% 크기 중앙 정렬
         clone.querySelectorAll('img').forEach(img => {
             if (img.src && img.src.startsWith('data:')) {
                 img.style.width = '80%';
                 img.style.height = 'auto';
-                img.style.maxHeight = 'none';
-                img.style.objectFit = 'fill';
                 img.style.margin = '0 auto';
                 img.style.display = 'block';
             }
         });
 
-        // L2. DOM 재배치: [레이더][종합분석][기타사항] / [영역별코멘트]
-        const _secWrap = clone.querySelector('#sections-container')?.parentElement;
-        const _aiH = Array.from(clone.querySelectorAll('h4')).find(h => h.textContent.includes('종합분석'));
-        const _aiSec = _aiH ? (_aiH.closest('.bg-gradient-to-r') || _aiH.closest('div[class]')) : null;
-        const _notesSec = clone.querySelector('#notes-section');
-
-        // sectionsWrapper의 portrait 페이지 분리 제거 후, landscape용 재설정
-        if (_secWrap) {
-            _secWrap.style.cssText = (_secWrap.style.cssText || '').replace(/page-break-before:[^;]+;?/g, '').replace(/break-before:[^;]+;?/g, '');
-        }
-
-        // aiSec → notesSec → (page-break) → secWrap 순으로 재배치
-        if (_secWrap && _aiSec && _secWrap.parentNode) {
-            _secWrap.parentNode.insertBefore(_aiSec, _secWrap);
-        }
-        if (_aiSec && _notesSec && _aiSec.parentNode) {
-            // aiSec 다음에 notesSec 삽입 (aiSec.nextSibling 앞에)
-            _aiSec.parentNode.insertBefore(_notesSec, _aiSec.nextSibling);
-        }
-
-        // _secWrap에 landscape용 페이지 분리 재적용
-        if (_secWrap) {
-            _secWrap.style.cssText = (_secWrap.style.cssText || '') + ';page-break-before:always;break-before:page;margin-top:0;';
-        }
-
-        // L3. 레이더 차트 앞 페이지 분리 (2페이지 시작)
+        // L2. 레이더 차트 앞 페이지 분리 (2페이지 시작) — DOM 재배치는 팝업 JS에서 처리
         const _radarSec = clone.querySelector('#radar-section');
         if (_radarSec) _radarSec.style.cssText = (_radarSec.style.cssText || '') + ';page-break-before:always;break-before:page;margin-top:0;';
     }
@@ -5821,7 +5794,28 @@ function printReport(orientation = 'portrait') {
 ${clone.innerHTML}
 ${bannerHtml}
 <script>
-window.onload = function() { setTimeout(function(){ window.print(); }, 800); };
+window.onload = function() {
+  if ('${orientation}' === 'landscape') {
+    // 팝업 DOM에서 직접 재배치: [레이더][종합분석][기타사항] / [영역별코멘트]
+    var sw = (function(){ var sc=document.getElementById('sections-container'); return sc?sc.parentElement:null; })();
+    var aiSec = (function(){
+      var hs=document.querySelectorAll('h4');
+      for(var i=0;i<hs.length;i++){if(hs[i].textContent.indexOf('종합분석')>=0){
+        var el=hs[i]; while(el&&(!el.className||el.className.indexOf('bg-gradient-to-r')<0)){el=el.parentElement;} return el;
+      }}
+      return null;
+    })();
+    var ns = document.getElementById('notes-section');
+    if(sw && sw.parentNode) {
+      var breakVal = ';page-break-before:always;break-before:page;margin-top:0;';
+      sw.style.cssText = (sw.style.cssText||'').replace(/page-break-before:[^;]+;?/g,'').replace(/break-before:[^;]+;?/g,'');
+      if(aiSec) sw.parentNode.insertBefore(aiSec, sw);
+      if(ns)    sw.parentNode.insertBefore(ns, sw);
+      sw.style.cssText += breakVal;
+    }
+  }
+  setTimeout(function(){ window.print(); }, 800);
+};
 <\/script>
 </body></html>`);
     win.document.close();
