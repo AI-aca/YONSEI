@@ -5751,7 +5751,7 @@ function printReport(orientation = 'portrait') {
     }
 
     // 4. 배너 HTML (가로: 22%, 세로: 45%)
-    const _bannerW = orientation === 'landscape' ? '22%' : '45%';
+    const _bannerW = orientation === 'landscape' ? '22%' : '32%';
     const bannerHtml = globalConfig.banner
         ? `<div class="print-banner" style="position:fixed;bottom:0;right:0;width:${_bannerW};z-index:9999;">
                <img src="${getSafeImageUrl(globalConfig.banner)}" alt="Report Banner"
