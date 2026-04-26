@@ -4247,6 +4247,7 @@ function updateAnswer(qId, value) {
         examSession.answers[qId] = value;
     }
     updateProgressUI();
+    saveExamDraft(); // [ExamDraft] 답 변경 시 즉시 저장
 
     // Force UI refresh for the specific question's options if needed
     const inputs = document.getElementsByName(`q-${qId}`);
@@ -4427,6 +4428,9 @@ async function submitExam() {
 
         // Send to Backend
         await sendReliableRequest(apiPayload);
+
+        // [ExamDraft] 제출 완료 → 임시저장 삭제
+        clearExamDraft(examSession.categoryId, examSession.studentName);
 
         // Success UI
         renderExamResult(questionScores, totalScore, maxScore);
@@ -10542,6 +10546,41 @@ function renderExamInstructions() {
     const timeTxtConfirm = timeLimit > 0 ? `${timeLimit}분` : '시간 제한 없음';
     if (!confirm(`📋 시험 정보를 확인해주세요.\n\n📄 시험지: ${catName}\n👤 이름: ${name}\n🎓 학년: ${grade}\n⏱️ 시험 시간: ${timeTxtConfirm}\n\n위 정보로 시험이 진행됩니다.`)) return;
     window._examPending = { name, grade, catId, date, timeLimit };
+
+    // [ExamDraft] 기존 임시저장 확인
+    const _draftKey = 'EXAM_DRAFT_' + catId + '_' + name;
+    const _draftRaw = localStorage.getItem(_draftKey);
+    if (_draftRaw) {
+        try {
+            const _draft = JSON.parse(_draftRaw);
+            const _savedMins = Math.round((Date.now() - (_draft.savedAt || 0)) / 60000);
+            const _resumeMsg = '⚠️ 이전에 진행하던 시험이 있습니다.\n\n'
+                + '저장 시각: ' + _savedMins + '분 전\n'
+                + '답변 완료: ' + Object.keys(_draft.answers || {}).length + '문항\n\n'
+                + '[확인] 이어보기   [취소] 새로 시작';
+            if (confirm(_resumeMsg)) {
+                // 이어보기
+                window._resumeDraft = _draft;
+                window._examPending = {
+                    name:      _draft.studentName,
+                    grade:     _draft.grade,
+                    catId:     _draft.categoryId,
+                    date:      _draft.date,
+                    timeLimit: _draft.timeLimit
+                };
+                window._audioTestDone = true;
+                startExamSequence();
+                return; // Canvas 02-3 렌더 건너릇
+            } else {
+                // 새로 시작
+                clearExamDraft(catId, name);
+            }
+        } catch (e) {
+            // JSON 파싱 실패 → 손상된 draft 삭제 후 새로 시작
+            localStorage.removeItem(_draftKey);
+        }
+    }
+
     window._audioTestDone = false;
     setCanvasId('02-3');
     // 해당 시험지 번들 확인 후 미로드 시 직접 GET_FULL_DB로 가져와 catId 주입 후 프리로드
@@ -10715,6 +10754,18 @@ async function startExamSequence() {
             isExamActive: true,
             timeLimit: timeLimit // User input time limit
         };
+
+        // [ExamDraft] 이어보기 복원 처리
+        if (window._resumeDraft) {
+            const _rd = window._resumeDraft;
+            examSession.answers        = _rd.answers        || {};
+            examSession.startTime      = _rd.startTime      || examSession.startTime;
+            examSession.studentId      = _rd.studentId      || examSession.studentId;
+            examSession.date           = _rd.date           || examSession.date;
+            examSession.timeLimit      = _rd.timeLimit != null ? _rd.timeLimit : examSession.timeLimit;
+            window._audioPlaysUsed     = _rd.audioPlaysUsed || {};
+            window._resumeDraft        = null; // 사용 완료 후 즉시 정리
+        }
 
         // Filter Questions
         const filteredQuestions = globalConfig.questions.filter(q => String(q.catId) === String(catId));
@@ -11117,7 +11168,34 @@ function getMediaHtml(q) {
 function saveAnswer(qId, val) {
     examSession.answers[qId] = val;
     updateProgressUI();
-    // Auto-save logic if needed
+    saveExamDraft(); // [ExamDraft] 답 변경 시 즉시 저장
+}
+
+// [ExamDraft] 현재 시험 상태를 localStorage에 저장
+function saveExamDraft() {
+    if (!examSession || !examSession.isExamActive) return;
+    const key = 'EXAM_DRAFT_' + examSession.categoryId + '_' + examSession.studentName;
+    try {
+        localStorage.setItem(key, JSON.stringify({
+            studentName:    examSession.studentName,
+            studentId:      examSession.studentId,
+            grade:          examSession.grade,
+            categoryId:     examSession.categoryId,
+            date:           examSession.date,
+            timeLimit:      examSession.timeLimit,
+            answers:        examSession.answers || {},
+            startTime:      examSession.startTime,
+            audioPlaysUsed: window._audioPlaysUsed || {},
+            savedAt:        Date.now()
+        }));
+    } catch (e) {
+        console.warn('[ExamDraft] 저장 실패:', e.message);
+    }
+}
+
+// [ExamDraft] localStorage에서 임시저장 삭제
+function clearExamDraft(catId, studentName) {
+    localStorage.removeItem('EXAM_DRAFT_' + catId + '_' + studentName);
 }
 
 // [Restored] setupScrollArrows (Left Side)
