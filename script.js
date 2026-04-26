@@ -5305,14 +5305,13 @@ function printReport() {
     canvasIds.forEach(id => {
         const cvs = document.getElementById(id);
         if (cvs) {
-            // 1.5x 고해상도 캡처: 오프스크린 캔버스에 확대 후 PNG 추출
+            // 1.5x 고해상도 캡처: dst 크기 직접 지정으로 잘림 방지
             const scale = 1.5;
             const tmpCvs = document.createElement('canvas');
             tmpCvs.width  = cvs.offsetWidth  * scale;
             tmpCvs.height = cvs.offsetHeight * scale;
             const tmpCtx = tmpCvs.getContext('2d');
-            tmpCtx.scale(scale, scale);
-            tmpCtx.drawImage(cvs, 0, 0);
+            tmpCtx.drawImage(cvs, 0, 0, tmpCvs.width, tmpCvs.height);
             imgDataMap[id] = {
                 dataUrl: tmpCvs.toDataURL('image/png'),
                 width: cvs.offsetWidth,
