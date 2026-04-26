@@ -5713,11 +5713,13 @@ function printReport(orientation = 'portrait') {
     const sectionsWrapper = clone.querySelector('#sections-container')?.parentElement;
     if (sectionsWrapper) sectionsWrapper.style.cssText = (sectionsWrapper.style.cssText || '') + ';page-break-before:always;break-before:page;';
 
-    // 3d. AI 종합 분석 섹션 앞 페이지 강제 분리
-    const aiHeader = Array.from(clone.querySelectorAll('h4')).find(h => h.textContent.includes('종합분석'));
-    if (aiHeader) {
-        const aiSection = aiHeader.closest('div[class]');
-        if (aiSection) aiSection.style.cssText += ';page-break-before:always;break-before:page;';
+    // 3d. AI 종합 분석 섹션 앞 페이지 강제 분리 (세로 전용)
+    if (orientation === 'portrait') {
+        const aiHeader = Array.from(clone.querySelectorAll('h4')).find(h => h.textContent.includes('종합분석'));
+        if (aiHeader) {
+            const aiSection = aiHeader.closest('div[class]');
+            if (aiSection) aiSection.style.cssText += ';page-break-before:always;break-before:page;';
+        }
     }
 
     // 3e. 차트 컨테이너 페이지 분리 방지
@@ -5726,9 +5728,40 @@ function printReport(orientation = 'portrait') {
         if (el.parentElement) el.parentElement.style.pageBreakInside = 'avoid';
     });
 
-    // 4. 배너 HTML
+    // [가로 인쇄 전용] 레이아웃 재구성
+    if (orientation === 'landscape') {
+        // L1. 차트 이미지 3개 → 80% 크기 중앙 정렬
+        clone.querySelectorAll('img').forEach(img => {
+            if (img.src && img.src.startsWith('data:')) {
+                img.style.width = '80%';
+                img.style.height = 'auto';
+                img.style.margin = '0 auto';
+                img.style.display = 'block';
+            }
+        });
+
+        // L2. DOM 재배치: 종합분석 + 기타사항을 영역별코멘트 앞으로 이동
+        //     결과: [헤더][차트1][차트2] / [레이더][종합분석][기타사항] / [영역별코멘트]
+        const _secWrap = clone.querySelector('#sections-container')?.parentElement;
+        const _aiH = Array.from(clone.querySelectorAll('h4')).find(h => h.textContent.includes('종합분석'));
+        const _aiSec = _aiH ? (_aiH.closest('.bg-gradient-to-r') || _aiH.closest('div[class]')) : null;
+        const _notesSec = clone.querySelector('#notes-section');
+        if (_secWrap && _aiSec && _secWrap.parentNode) {
+            _secWrap.parentNode.insertBefore(_aiSec, _secWrap);
+        }
+        if (_secWrap && _notesSec && _secWrap.parentNode) {
+            _secWrap.parentNode.insertBefore(_notesSec, _secWrap);
+        }
+
+        // L3. 레이더 차트 앞 페이지 분리 (2페이지 시작)
+        const _radarSec = clone.querySelector('#radar-section');
+        if (_radarSec) _radarSec.style.cssText = (_radarSec.style.cssText || '') + ';page-break-before:always;break-before:page;margin-top:0;';
+    }
+
+    // 4. 배너 HTML (가로: 22%, 세로: 45%)
+    const _bannerW = orientation === 'landscape' ? '22%' : '45%';
     const bannerHtml = globalConfig.banner
-        ? `<div class="print-banner" style="position:fixed;bottom:0;right:0;width:45%;z-index:9999;">
+        ? `<div class="print-banner" style="position:fixed;bottom:0;right:0;width:${_bannerW};z-index:9999;">
                <img src="${getSafeImageUrl(globalConfig.banner)}" alt="Report Banner"
                     style="width:100%;max-height:108px;object-fit:cover;object-position:center;display:block;">
            </div>`
