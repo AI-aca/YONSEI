@@ -5280,7 +5280,7 @@ function printReport() {
         return;
     }
 
-    // [Fix] AI 종합 코멘트가 없으면 경고 팝업
+    // AI 종합 코멘트가 없으면 경고 팝업
     const overallCommentEl = document.getElementById('overall-comment-text');
     const overallTxt = overallCommentEl?.textContent?.trim() || '';
     const aiNotReady = !overallTxt || overallTxt === '분석 대기 중...' || overallTxt === '로딩 중...' || overallTxt === '분석 중...';
@@ -5293,147 +5293,42 @@ function printReport() {
     const display = document.getElementById('report-display');
     if (!display) return;
 
-    // 1. 현재 페이지의 CSS 수집
-    const styles = Array.from(document.styleSheets).map(ss => {
-        try { return Array.from(ss.cssRules).map(r => r.cssText).join('\n'); }
-        catch (e) { return ''; }
-    }).join('\n');
-
-    // 2. 모든 chart canvas를 PNG 이미지 데이터로 변환
-    const canvasIds = ['chart-total', 'chart-sections-bar', 'chart-radar'];
-    const imgDataMap = {};
-    canvasIds.forEach(id => {
-        const cvs = document.getElementById(id);
-        if (cvs) {
-            // 1.5x 고해상도 캡처: dst 크기 직접 지정으로 잘림 방지
-            const scale = 1.5;
-            const tmpCvs = document.createElement('canvas');
-            tmpCvs.width  = cvs.offsetWidth  * scale;
-            tmpCvs.height = cvs.offsetHeight * scale;
-            const tmpCtx = tmpCvs.getContext('2d');
-            tmpCtx.drawImage(cvs, 0, 0, tmpCvs.width, tmpCvs.height);
-            imgDataMap[id] = {
-                dataUrl: tmpCvs.toDataURL('image/png'),
-                width: cvs.offsetWidth,
-                height: cvs.offsetHeight
-            };
-        }
-    });
-
-    // 3. display 내부 HTML 클론 후 canvas → img 교체
-    const clone = display.cloneNode(true);
-    canvasIds.forEach(id => {
-        const canvasEl = clone.querySelector('#' + id);
-        if (canvasEl && imgDataMap[id]) {
-            const img = document.createElement('img');
-            img.src = imgDataMap[id].dataUrl;
-            img.style.width = '100%';
-            img.style.height = 'auto';
-            img.style.display = 'block';
-            img.style.maxHeight = (canvasEl.style.maxHeight || '400px');
-            img.style.objectFit = 'contain';
-            canvasEl.parentNode.replaceChild(img, canvasEl);
-        }
-    });
-
-    // 3b. 인쇄 불필요 요소 제거
-    const isDetailChecked = document.getElementById('chk-qdetail')?.checked || false;
-    const chkRow = clone.querySelector('#qdetail-checkbox-row');
-    if (chkRow) chkRow.remove();
-    clone.querySelectorAll('[id^="qdetail-"]').forEach(el => {
-        if (isDetailChecked) { el.classList.remove('hidden'); el.style.display = ''; }
-        else { el.remove(); }
-    });
-    clone.querySelectorAll('p').forEach(p => {
-        const txt = p.textContent.trim();
-        if (txt === '분석 대기 중...' || txt === '로딩 중...' || txt === '분석 중...') {
-            const parent = p.closest('div');
-            if (parent) parent.remove(); else p.remove();
-        }
-    });
-
-    // 3b-2. 등록권장 학급 <select> → span으로 교체
-    const _clsSel = clone.querySelector('#report-student-class');
-    if (_clsSel) {
-        const _clsParent = _clsSel.parentNode;
-        const _clsSpan = document.createElement('span');
-        _clsSpan.style.cssText = 'font-size:20px;font-weight:900;color:#013976;background:white;display:inline-flex;align-items:center;justify-content:center;min-width:80px;padding:0 12px;height:61px;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
-        _clsSpan.textContent = clsVal || '미선택';
-        _clsSel.parentNode.replaceChild(_clsSpan, _clsSel);
-        if (_clsParent) {
-            _clsParent.style.setProperty('border', '2px solid #013976', 'important');
-            _clsParent.style.setProperty('border-left', 'none', 'important');
-        }
+    // 1. 학급 select → span으로 임시 교체 (인쇄 후 복원)
+    const clsParent = clsEl?.parentNode;
+    let clsSpan = null;
+    if (clsEl && clsParent) {
+        clsSpan = document.createElement('span');
+        clsSpan.id = '__print-cls-span__';
+        clsSpan.style.cssText = 'font-size:20px;font-weight:900;color:#013976;background:white;display:inline-flex;align-items:center;justify-content:center;min-width:80px;padding:0 12px;height:61px;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
+        clsSpan.textContent = clsVal || '미선택';
+        clsParent.replaceChild(clsSpan, clsEl);
+        clsParent.style.setProperty('border', '2px solid #013976', 'important');
+        clsParent.style.setProperty('border-left', 'none', 'important');
     }
 
-    // 3c. 영역별 코멘트 앞 페이지 강제 분리
-    const sectionsWrapper = clone.querySelector('#sections-container')?.parentElement;
-    if (sectionsWrapper) sectionsWrapper.style.cssText = (sectionsWrapper.style.cssText || '') + ';page-break-before:always;break-before:page;';
-
-    // 3d. AI 종합 분석 섹션 앞 페이지 강제 분리
-    const aiHeader = Array.from(clone.querySelectorAll('h4')).find(h => h.textContent.includes('종합분석'));
-    if (aiHeader) {
-        const aiSection = aiHeader.closest('div[class]');
-        if (aiSection) aiSection.style.cssText += ';page-break-before:always;break-before:page;';
+    // 2. 배너 임시 삽입 (인쇄 후 제거)
+    let bannerEl = null;
+    if (globalConfig.banner) {
+        bannerEl = document.createElement('div');
+        bannerEl.id = '__print-banner__';
+        bannerEl.className = 'print-banner-footer';
+        bannerEl.innerHTML = `<img src="${getSafeImageUrl(globalConfig.banner)}" alt="Report Banner" style="width:50%;max-height:120px;object-fit:cover;object-position:center;display:block;margin-left:auto;">`;
+        document.body.appendChild(bannerEl);
     }
 
-    // 3e. 차트 컨테이너 페이지 분리 방지
-    clone.querySelectorAll('canvas, img').forEach(el => {
-        el.style.pageBreakInside = 'avoid';
-        if (el.parentElement) el.parentElement.style.pageBreakInside = 'avoid';
-    });
+    // 3. 직접 인쇄
+    window.print();
 
-    // 4. 배너 HTML
-    const bannerHtml = globalConfig.banner
-        ? `<div style="position:fixed;bottom:0;right:0;width:50%;z-index:9999;">
-               <img src="${getSafeImageUrl(globalConfig.banner)}" alt="Report Banner"
-                    style="width:100%;max-height:120px;object-fit:cover;object-position:center;display:block;">
-           </div>`
-        : '';
-
-    // 5. 팝업 열기
-    const _dispW = display.offsetWidth || 900;
-    const _popW = 794;
-    const win = window.open('', '_blank', `width=${_popW},height=1200`);
-    if (!win) { showToast('⚠️ 팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도해주세요.'); return; }
-    win.document.write(`<!DOCTYPE html>
-<html><head>
-<meta charset="UTF-8">
-<title>성적표 인쇄</title>
-<script>
-(function(){
-  const _f=a=>a[0]&&typeof a[0]==='string'&&a[0].includes('cdn.tailwindcss.com');
-  const _w=console.warn;console.warn=function(...a){if(_f(a))return;_w.apply(console,a);};
-  const _l=console.log;console.log=function(...a){if(_f(a))return;_l.apply(console,a);};
-})();
-<\/script>
-<script src="https://cdn.tailwindcss.com"><\/script>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap">
-<style>
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  body { font-family: 'Noto Sans KR', sans-serif; background:#fff; margin:0; padding:24px 12px 160px; color:#1e293b; }
-  img { max-width:100%; }
-  .no-print { display:none !important; }
-  .fs-15 { font-size: 13px !important; line-height: 1.6; }
-  table.fs-14 td, table.fs-14 th { font-size: 13px !important; }
-  @media print {
-    @page { margin:12mm; }
-    body { padding-bottom:140px; }
-    .card, section, [class*='rounded'] { page-break-inside: avoid; }
-    h4 { page-break-after: avoid; }
-  }
-  ${styles}
-</style>
-</head><body>
-${clone.innerHTML}
-${bannerHtml}
-<script>
-window.onload = function() { setTimeout(function(){ window.print(); }, 800); };
-<\/script>
-</body></html>`);
-    win.document.close();
+    // 4. 복원
+    if (clsSpan && clsParent && clsEl) {
+        clsParent.replaceChild(clsEl, clsSpan);
+        clsParent.style.removeProperty('border');
+        clsParent.style.removeProperty('border-left');
+    }
+    if (bannerEl) bannerEl.remove();
 
 }
+
 
 
 // 레이더 차트 — 정답률(%) 기준으로 정규화 (만점 다른 영역 공정 비교)
