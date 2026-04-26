@@ -5758,7 +5758,7 @@ function printReport() {
   .fs-15 { font-size: 13px !important; line-height: 1.6; }
   table.fs-14 td, table.fs-14 th { font-size: 13px !important; }
   @media print {
-    @page { margin:12mm; }
+    @page { size: A4 landscape; margin:12mm; }
     body { padding-top:0; padding-bottom:140px; }
     .card, section, [class*='rounded'] { page-break-inside: avoid; }
     h4 { page-break-after: avoid; }
