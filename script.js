@@ -2053,6 +2053,23 @@ function dateToYear(raw) {
     return s.substring(0, 4);
 }
 
+// UTC ISO 날짜를 로컬 날짜 기준 YYYY-MM-DD로 변환 (UTC→KST 1일 당김 방지)
+function parseDateStr(raw) {
+    const s = String(raw || '').trim();
+    if (!s || s === '-') return '';
+    // T 또는 Z 포함 → ISO UTC 형식 → 로컬 날짜 부분 추출
+    if (s.includes('T') || s.includes('Z')) {
+        const d = new Date(s);
+        if (isNaN(d)) return s.slice(0, 10);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const dy = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dy}`;
+    }
+    // 이미 YYYY-MM-DD 형식
+    return s.slice(0, 10);
+}
+
 function applyStudentDBFilters() {
     const year = document.getElementById('sdb-year')?.value || '전체';
     const grade = document.getElementById('sdb-grade')?.value || '전체';
@@ -3475,7 +3492,7 @@ function renderStudentNameField() {
             const sName = r['학생명'] || r.studentName;
             const sId = r['학생ID'] || r.id;
             const sDate = r['응시일'] || r.testDate;
-            const dateStr = sDate ? String(sDate).slice(0, 10) : '';
+            const dateStr = sDate ? parseDateStr(sDate) : '';
             optionsHtml += `<option value="${sId}">${sName} (${dateStr})</option>`;
         });
 
@@ -3546,7 +3563,7 @@ function fillScoreForm(studentId) {
         }
         if (testDate && document.getElementById('input-test-date')) {
             try {
-                const dStr = String(testDate).slice(0, 10);
+                const dStr = parseDateStr(testDate);
                 const tEl = document.getElementById('input-test-date');
                 if (tEl._flatpickr) {
                     tEl._flatpickr.setDate(dStr);
@@ -4651,7 +4668,7 @@ function onReportGradeChange() {
     const studentMap = new Map();
     filtered.forEach(r => {
         const id = getV(r, idKeys), name = getV(r, nameKeys);
-        const date = String(r['응시일'] || r.testDate || r.date || '').slice(0, 10);
+        const date = parseDateStr(r['응시일'] || r.testDate || r.date || '');
         if (id && name) studentMap.set(String(id), { name: String(name), date });
     });
 
@@ -5179,7 +5196,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
     const sName = getVal(record, ['이름', 'name', 'studentName']);
     const sGrade = getVal(record, ['학년', 'grade']);
     const sDateRaw = getVal(record, ['응시일', 'testDate', 'date']);
-    const sDate = sDateRaw ? String(sDateRaw).split('T')[0] : '';
+    const sDate = parseDateStr(sDateRaw);
     const sTotal = parseFloat(getVal(record, ['총점', 'totalScore', 'total']) || 0);
     const sMax = parseFloat(getVal(record, ['만점', 'maxScore', 'max']) || 100);
     let sRate = getVal(record, ['정답률(%)', '정답률', 'rate']);
