@@ -706,18 +706,10 @@ function hasUnsavedChanges() {
     if (!c) return false;
     const cid = c.getAttribute('data-canvas-id');
 
-    // 06: 성적 수동 입력 — 학생명 또는 문항 점수 입력 시 경고
-    if (cid === '06') {
-        const nameVal = document.getElementById('input-student-name')?.value?.trim();
-        if (nameVal) return true;
-        const hasQScore = Array.from(document.querySelectorAll('[id^="q-score-"]')).some(inp => inp.value !== '');
-        if (hasQScore) return true;
-        return false;
-    }
-    // 08/08-1/08-2: 별도 변경 감지 시스템(_changedItems, _editHasChanged) 있으므로 여기선 제외
-    if (cid === '08' || cid === '08-1' || cid === '08-2') {
-        return false;
-    }
+    if (cid === '06') return !!window._isDirty06;
+    if (cid === '05-1') return !!(window._dirtyClass || window._dirtyComment);
+    if (cid === '08-1') return !!(window._changedItems && window._changedItems.size > 0);
+    if (cid === '08-2') return !!(typeof _editHasChanged === 'function' && _editHasChanged());
     return false;
 }
 
@@ -2787,6 +2779,11 @@ function renderScoreInput(c) {
                         <option value="" disabled selected hidden>&#xC2DC;&#xD5D8;&#xC9C0;&#xB97C; &#xC120;&#xD0DD;&#xD558;&#xC138;&#xC694;</option>
                         ${globalConfig.categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('')}
                     </select>
+                    <!-- 탭 버튼 추가 -->
+                    <div class="flex items-center gap-2 ml-4">
+                        <button id="btn-input-new" onclick="switchScoreInputMode('new')" class="btn-ys !bg-[#013976] !text-white !border-2 !border-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center justify-center gap-2 !w-[120px]">&#x1F4DD; 신규 입력</button>
+                        <button id="btn-input-edit" onclick="switchScoreInputMode('edit')" class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center justify-center gap-2 !w-[120px]">&#x270F;&#xFE0F; 수정 입력</button>
+                    </div>
                 </div>
             </div>
 
@@ -2796,7 +2793,7 @@ function renderScoreInput(c) {
                 <!-- Student Info -->
                 <div class="card space-y-4">
                     <div class="grid grid-cols-4 gap-4">
-                        <div>
+                        <div id="student-name-container">
                             <label class="ys-label font-bold">&#x1F4DD; &#xD559;&#xC0DD;&#xBA85;</label>
                             <input type="text" id="input-student-name" class="ys-field" placeholder="&#xC774;&#xB984; &#xC785;&#xB825;" autocomplete="off">
                         </div>
@@ -2875,7 +2872,7 @@ function renderScoreInput(c) {
 
                     <!-- 버튼들 (항상 우측, 아코디언 유무와 무관) -->
                     <div class="flex gap-4 items-center ml-auto flex-none">
-                        <button onclick="clearScoreInputs()" class="px-8 py-4 rounded-2xl font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 hover:text-slate-700 transition-all">
+                        <button onclick="handleClearScoreInputs()" class="px-8 py-4 rounded-2xl font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 hover:text-slate-700 transition-all">
                             &#x1F504; &#xCD08;&#xAE30;&#xD654; (Reset)
                         </button>
                         <button onclick="saveStudentScore()" class="btn-ys !px-12 !py-4 hover:scale-[1.02] active:scale-95 transition-all text-lg">
@@ -2891,12 +2888,14 @@ function renderScoreInput(c) {
     `;
     // 등록된 학년만 학년 드롭박스에 채우기
     populateGradeSelect(document.getElementById('input-grade'), { placeholder: '학년 선택' });
+
+    // 초기 모드 세팅
+    window.scoreInputMode = 'new';
+    window.editingStudentId = null;
+    renderStudentNameField();
 }
 
 async function handleScoreCategoryChange(catId) {
-    const formArea = document.getElementById('score-form-area');
-    if (formArea) formArea.classList.remove('hidden');
-
     const category = globalConfig.categories.find(cat => cat.id === catId);
     if (!category) return;
 
@@ -2937,6 +2936,7 @@ async function handleScoreCategoryChange(catId) {
             const studentRes = await sendReliableRequest({ type: 'GET_STUDENT_LIST', parentFolderId: folderId, categoryName: category.name });
             window.cachedStudentRecords = studentRes.data || [];
             calcAndRecommendClass06(); // [Fix] 새 데이터 반영하여 재추천
+            renderStudentNameField(); // [Add] 학생 DB 갱신 후 드롭다운 렌더링
         } catch (e2) {
             console.warn('[Canvas 06] 학생 DB 로드 실패 (학급 추천 비활성화):', e2.message);
         }
@@ -3016,7 +3016,7 @@ async function handleScoreCategoryChange(catId) {
         const maxCells = chunk.map(q => `<td class="text-center text-sm font-bold text-slate-600 px-2 py-1.5">${parseInt(q.score) || 0}<span class="text-sm font-normal text-slate-400">점</span></td>`).join('') + emptyTd.repeat(padLen);
         const inputCells = chunk.map(q => {
             const maxQ = parseInt(q.score) || 0;
-            return `<td class="px-1 py-1.5"><input type="number" id="q-score-${q.id}" data-qid="${q.id}" data-max="${maxQ}" class="w-full ys-field !py-0.5 text-center font-bold !text-[#013976] !text-[15px]" placeholder="0" min="0" max="${maxQ}" value="" oninput="clampQScore(this); calculateTotalScore();"></td>`;
+            return `<td class="px-1 py-1.5"><input type="number" id="q-score-${q.id}" data-qid="${q.id}" data-no="${q.no || ''}" data-max="${maxQ}" class="w-full ys-field !py-0.5 text-center font-bold !text-[#013976] !text-[15px]" placeholder="0" min="0" max="${maxQ}" value="" oninput="clampQScore(this); calculateTotalScore();"></td>`;
         }).join('') + emptyTd.repeat(padLen);
         return `
         <div class="overflow-x-auto rounded-xl border border-slate-200 mb-2">
@@ -3307,11 +3307,42 @@ function toggleAccordion(id) {
     if (icon) icon.textContent = isHidden ? '\u25BC' : '\u25B6';
 }
 
-function toggleQScoreMode(checked) {
+function toggleQScoreMode(checked, suppressWarning = false) {
+    if (checked && !suppressWarning) {
+        // [선생님 룰] 선생님이 마우스로 클릭해서(checked=true, suppressWarning=false) 전환할 때만 띄움
+        // 방어 기준: 현재 화면에 문항 점수가 하나라도 0보다 큰지 실시간 검사
+        let hasQuestionData = false;
+        const inps = document.querySelectorAll('[id^="q-score-"]');
+        inps.forEach(inp => {
+            if (parseInt(inp.value) > 0) hasQuestionData = true;
+        });
+
+        if (hasQuestionData) {
+            const msg = "\u26A0\uFE0F \uBB38\uD56D\uBCC4 \uC810\uC218\uAC00 \uC785\uB825\uB418\uC5B4 \uC788\uB294 \uD559\uC0DD\uC785\uB2C8\uB2E4.\n\uC601\uC5ED\uBCC4 \uC810\uC218\uB85C \uB36E\uC5B4\uC50C\uC6B0\uBA74 \uAE30\uC874\uC758 \uBB38\uD56D\uBCC4 \uC810\uC218\uAC00 \uC0AD\uC81C\uB429\uB2C8\uB2E4!\n\n\uADF8\uB798\uB3C4 \uC9C4\uD589\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?";
+            if (!confirm(msg)) {
+                const chk = document.getElementById('chk-no-qscore');
+                if (chk) chk.checked = false;
+                return;
+            }
+        }
+    }
+
     const wrapper = document.getElementById('accordion-wrapper');
     const qList = document.getElementById('question-score-list');
+    const panel = document.getElementById('accordion-section');
+    const icon = document.getElementById('accordion-section-icon');
+    
     if (wrapper) wrapper.classList.toggle('hidden', !checked);
     if (qList) qList.classList.toggle('hidden', checked);
+    
+    if (checked) {
+        if (panel) panel.classList.remove('hidden');
+        if (icon) icon.textContent = '\u25BC';
+    } else {
+        if (panel) panel.classList.add('hidden');
+        if (icon) icon.textContent = '\u25B6';
+    }
+    
     calculateTotalScore();
 }
 
@@ -3362,6 +3393,208 @@ function clearScoreInputs(resetCat = true, showMsg = true) {
         updateClassBadge06();
     }
     if (showMsg) showToast('\u2728 \uC785\uB825 \uB0B4\uC6A9\uC774 \uCD08\uAE30\uD654\uB418\uC5C8\uC2B5\uB2C8\uB2E4');
+    window.editingStudentId = null;
+    window._isDirty06 = false;
+}
+
+function switchScoreInputMode(mode) {
+    const categoryId = document.getElementById('input-category')?.value;
+    if (!categoryId) {
+        showToast('\u26A0\uFE0F \uC2DC\uD5D8\uC9C0\uB97C \uBA3C\uC800 \uC120\uD0DD\uD558\uC138\uC694.');
+        return;
+    }
+
+    const formArea = document.getElementById('score-form-area');
+    if (formArea) formArea.classList.remove('hidden');
+
+    window.scoreInputMode = mode;
+    window.editingStudentId = null;
+
+    const btnNew = document.getElementById('btn-input-new');
+    const btnEdit = document.getElementById('btn-input-edit');
+    if (btnNew && btnEdit) {
+        if (mode === 'new') {
+            btnNew.className = "btn-ys !bg-[#013976] !text-white !border-2 !border-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center justify-center gap-2 !w-[120px]";
+            btnEdit.className = "btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center justify-center gap-2 !w-[120px]";
+        } else {
+            btnEdit.className = "btn-ys !bg-[#013976] !text-white !border-2 !border-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center justify-center gap-2 !w-[120px]";
+            btnNew.className = "btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center justify-center gap-2 !w-[120px]";
+        }
+    }
+
+    clearScoreInputs(true, false);
+    renderStudentNameField();
+}
+
+function renderStudentNameField() {
+    const container = document.getElementById('student-name-container');
+    if (!container) return;
+
+    if (window.scoreInputMode === 'new') {
+        container.innerHTML = `
+            <label class="ys-label font-bold">&#x1F4DD; &#xD559;&#xC0DD;&#xBA85;</label>
+            <input type="text" id="input-student-name" class="ys-field" placeholder="&#xC774;&#xB984; &#xC785;&#xB825;" autocomplete="off">
+        `;
+    } else {
+        const chk = document.getElementById('chk-recent-1m');
+        const isRecentOnly = chk ? chk.checked : true;
+
+        let records = window.cachedStudentRecords || [];
+        if (isRecentOnly) {
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+            records = records.filter(r => {
+                const td = new Date(r['응시일'] || r.testDate);
+                return !isNaN(td) && td >= oneMonthAgo;
+            });
+        }
+
+        records.sort((a, b) => new Date(b['응시일'] || b.testDate) - new Date(a['응시일'] || a.testDate));
+
+        let optionsHtml = '<option value="" disabled selected hidden>학생 선택</option>';
+        records.forEach(r => {
+            const sName = r['학생명'] || r.studentName;
+            const sId = r['학생ID'] || r.id;
+            const sDate = r['응시일'] || r.testDate;
+            const dateStr = sDate ? new Date(sDate).toISOString().split('T')[0] : '';
+            optionsHtml += `<option value="${sId}">${sName} (${dateStr})</option>`;
+        });
+
+        container.innerHTML = `
+            <div class="flex items-center justify-between mb-2">
+                <label class="ys-label font-bold !mb-0">&#x1F4DD; &#xD559;&#xC0DD;&#xBA85;</label>
+                <label class="flex items-center gap-1 cursor-pointer select-none">
+                    <input type="checkbox" id="chk-recent-1m" class="w-4 h-4 accent-[#013976]" ${isRecentOnly ? 'checked' : ''} onchange="renderStudentNameField()">
+                    <span class="text-[13px] font-bold text-slate-500">최근 1개월</span>
+                </label>
+            </div>
+            <select id="input-student-name" class="ys-field" onchange="handleStudentSelect06(this)">
+                ${optionsHtml}
+            </select>
+        `;
+    }
+}
+
+function handleStudentSelect06(selectEl) {
+    const newVal = selectEl.value;
+    if (window._isDirty06) {
+        if (!confirm("저장하지 않은 데이터가 있습니다. 무시하고 불러오시겠습니까?")) {
+            selectEl.value = window.editingStudentId || '';
+            return;
+        }
+    }
+    fillScoreForm(newVal);
+}
+
+function handleClearScoreInputs() {
+    if (window._isDirty06) {
+        if (!confirm("작업 중인 내용을 저장하지 않고 초기화하시겠습니까?")) return;
+    }
+    clearScoreInputs();
+}
+
+function fillScoreForm(studentId) {
+    if (!studentId) return;
+    const records = window.cachedStudentRecords || [];
+    const record = records.find(r => String(r['학생ID'] || r.id) === String(studentId));
+    if (!record) {
+        console.error("선택한 학생을 찾을 수 없습니다:", studentId);
+        return;
+    }
+
+    window.editingStudentId = studentId;
+
+    toggleLoading(true);
+
+    // [추가] 이전 학생 데이터 잔재를 제거하기 위해 모든 폼 입력칸 완전 초기화
+    document.querySelectorAll('[id^="q-score-"]').forEach(inp => inp.value = '');
+    ['grammar', 'writing', 'reading', 'listening', 'vocab'].forEach(sec => {
+        const el = document.getElementById(`input-${sec}`);
+        if (el) el.value = '';
+    });
+    calculateTotalScore();
+
+    setTimeout(() => {
+        const grade = record['학년'] || record.grade;
+        const testDate = record['응시일'] || record.testDate;
+        const studentClass = record['등록학급'] || record.studentClass;
+
+        if (grade && document.getElementById('input-grade')) {
+            document.getElementById('input-grade').value = grade;
+            updateClassDropdown06(grade);
+        }
+        if (testDate && document.getElementById('input-test-date')) {
+            try {
+                const dStr = new Date(testDate).toISOString().split('T')[0];
+                const tEl = document.getElementById('input-test-date');
+                if (tEl._flatpickr) {
+                    tEl._flatpickr.setDate(dStr);
+                } else {
+                    tEl.value = dStr;
+                }
+            } catch (e) { console.warn("Date parse error", e); }
+        }
+        if (studentClass && document.getElementById('input-student-class')) {
+            document.getElementById('input-student-class').value = studentClass;
+        }
+
+        // [선생님 지시 룰 적용: 데이터 유무로 1순위 문항, 2순위 영역 판단]
+        let noQScoreMode = false;
+        let hasQ = false;
+        try {
+            const qsStr = record['문항별상세(JSON)'] || record.questionScores;
+            const qs = typeof qsStr === 'string' ? JSON.parse(qsStr || '[]') : (qsStr || []);
+            if (qs && qs.length > 0) hasQ = true;
+        } catch(e) {}
+        
+        const hasSec = (parseInt(record.grammarScore || record['Grammar_점수']) > 0 ||
+                        parseInt(record.writingScore || record['Writing_점수']) > 0 ||
+                        parseInt(record.readingScore || record['Reading_점수']) > 0 ||
+                        parseInt(record.listeningScore || record['Listening_점수']) > 0 ||
+                        parseInt(record.vocabScore || record['Vocabulary_점수']) > 0);
+        
+        // 문항 데이터가 없고, 영역 데이터만 있을 때만 영역 모드(true)
+        if (!hasQ && hasSec) {
+            noQScoreMode = true;
+        }
+
+        const chkNoQScore = document.getElementById('chk-no-qscore');
+        if (chkNoQScore) {
+            chkNoQScore.checked = noQScoreMode;
+            // 학생 로딩 시에는 경고창 묵음 처리 (두 번째 인자 true)
+            toggleQScoreMode(noQScoreMode, true);
+        }
+
+        if (noQScoreMode) {
+            const setVal = (id, f1, f2) => {
+                const el = document.getElementById(id);
+                if (el) el.value = record[f1] || record[f2] || 0;
+            }
+            setVal('input-grammar', 'Grammar_점수', 'grammarScore');
+            setVal('input-writing', 'Writing_점수', 'writingScore');
+            setVal('input-reading', 'Reading_점수', 'readingScore');
+            setVal('input-listening', 'Listening_점수', 'listeningScore');
+            setVal('input-vocab', 'Vocabulary_점수', 'vocabScore');
+        } else {
+            let qsStr = record['문항별상세(JSON)'] || record.questionScores;
+            if (qsStr) {
+                try {
+                    let qs = typeof qsStr === 'string' ? JSON.parse(qsStr) : qsStr;
+                    qs.forEach(q => {
+                        let inp = document.getElementById(`q-score-${q.id}`);
+                        if (!inp && q.no) {
+                            inp = document.querySelector(`input[id^="q-score-"][data-no="${q.no}"]`);
+                        }
+                        if (inp) inp.value = q.score || q.studentScore || 0;
+                    });
+                } catch (e) { console.error('qs parse error', e); }
+            }
+        }
+        calculateTotalScore();
+        window._isDirty06 = false; // Reset dirty flag after load
+
+        toggleLoading(false);
+    }, 2000);
 }
 
 async function saveStudentScore() {
@@ -3382,7 +3615,12 @@ async function saveStudentScore() {
 
     toggleLoading(true);
     try {
-        const studentId = await generateUniqueStudentId(testDate, grade);
+        let studentId;
+        if (window.scoreInputMode === 'edit' && window.editingStudentId) {
+            studentId = window.editingStudentId;
+        } else {
+            studentId = await generateUniqueStudentId(testDate, grade);
+        }
         const idEl = document.getElementById('input-student-id');
         if (idEl) idEl.value = studentId;
 
@@ -4395,7 +4633,7 @@ function getGradeTone(grade) {
 // prefix: '전체' (전체 백분위) 또는 '권장학급 내' (학급 내 백분위)
 function _pctLabel(pct, prefix = '전체') {
     const p = parseFloat(pct);
-    if (p <= 5)  return `${prefix} 최상위권`;
+    if (p <= 5) return `${prefix} 최상위권`;
     if (p <= 10) return `${prefix} 상위권`;
     if (p <= 20) return `${prefix} 다소 상위권`;
     if (p <= 35) return `${prefix} 중상위권`;
@@ -4472,11 +4710,11 @@ async function generateOverallComment(record, averages, activeSections, sectionC
 
     let _gapRule = '';
     if (_secPcts.length >= 2) {
-        const _best  = _secPcts.reduce((a, b) => a.pct < b.pct ? a : b); // 백분위 낮을수록 우수
+        const _best = _secPcts.reduce((a, b) => a.pct < b.pct ? a : b); // 백분위 낮을수록 우수
         const _worst = _secPcts.reduce((a, b) => a.pct > b.pct ? a : b); // 백분위 높을수록 부족
         const _gap = _worst.pct - _best.pct;
         if (_gap >= 30) {
-            _gapRule = `\n5) ⚠️ 영역 간 백분위 편차 필수 언급: 최고 영역은 ${_secKR[_best.s]||_best.s}(전체 상위 ${_best.pct}% — ${_pctLabel(_best.pct)})이고, 최저 영역은 ${_secKR[_worst.s]||_worst.s}(전체 상위 ${_worst.pct}% — ${_pctLabel(_worst.pct)})으로 편차가 ${_gap}%p입니다. 이 불균형을 종합 코멘트에서 반드시 명시적으로 언급하세요.`;
+            _gapRule = `\n5) ⚠️ 영역 간 백분위 편차 필수 언급: 최고 영역은 ${_secKR[_best.s] || _best.s}(전체 상위 ${_best.pct}% — ${_pctLabel(_best.pct)})이고, 최저 영역은 ${_secKR[_worst.s] || _worst.s}(전체 상위 ${_worst.pct}% — ${_pctLabel(_worst.pct)})으로 편차가 ${_gap}%p입니다. 이 불균형을 종합 코멘트에서 반드시 명시적으로 언급하세요.`;
         }
     }
 
@@ -4772,7 +5010,7 @@ async function generateSectionComments(record, averages, activeSections) {
         const _shortfall = maxScore > 0 ? (maxScore - studentScore) : null;
         let _weaknessRule;
         if (_isPerfect) {
-            _weaknessRule = '2) 현재 수준 유지 (1문장) — 만점이므로 미흡한 점, 부족한 점을 절대 쓰지 마세요. 전체 백분위(약 ' + upperPercentile + '%)'  + (clsUpperPercentile !== null ? '·학급 내 백분위(약 ' + clsUpperPercentile + '%)' : '') + '를 활용하여 현재 실력을 유지하는 것의 중요성을 서술하세요.';
+            _weaknessRule = '2) 현재 수준 유지 (1문장) — 만점이므로 미흡한 점, 부족한 점을 절대 쓰지 마세요. 전체 백분위(약 ' + upperPercentile + '%)' + (clsUpperPercentile !== null ? '·학급 내 백분위(약 ' + clsUpperPercentile + '%)' : '') + '를 활용하여 현재 실력을 유지하는 것의 중요성을 서술하세요.';
         } else if (_aboveCls) {
             _weaknessRule = '2) 보완 포인트 (1문장) — 학급 평균보다 높으므로 "미흡하다", "부족하다", "발전할 여지가 있다" 같은 부정 표현 절대 금지. 전체 백분위(약 ' + upperPercentile + '%)' + (clsUpperPercentile !== null ? '·학급 내 백분위(약 ' + clsUpperPercentile + '%)' : '') + '를 활용하여 만점(' + maxScore + '점) 대비 ' + _shortfall + '점 부족한 부분을 서술하세요.' + (subTypeInfo ? ' 세부 영역별 데이터를 활용해 가장 취약한 세부 영역도 명시하세요.' : '');
         } else {
@@ -4974,7 +5212,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
 
         <!-- 3. 레이더 차트 -->
         <div id="radar-section">
-            <h4 style="font-size:18px;font-weight:900;color:#013976;margin-bottom:0.4rem;">🕸 영역별 균형도</h4>
+            <h4 style="font-size:18px;font-weight:900;color:#013976;margin-bottom:1.5rem;">🕸 영역별 균형도</h4>
             <!-- 차트+범례+요약표가 단일 캔버스로 중앙 배치 -->
             <div class="flex justify-center" style="width:100%;margin-bottom:4px;">
                 <div style="width:100%;height:340px;position:relative;">
@@ -5308,7 +5546,7 @@ function printReport() {
             // 1.5x 고해상도 캡처: dst 크기 직접 지정으로 잘림 방지
             const scale = 1.5;
             const tmpCvs = document.createElement('canvas');
-            tmpCvs.width  = cvs.offsetWidth  * scale;
+            tmpCvs.width = cvs.offsetWidth * scale;
             tmpCvs.height = cvs.offsetHeight * scale;
             const tmpCtx = tmpCvs.getContext('2d');
             tmpCtx.drawImage(cvs, 0, 0, tmpCvs.width, tmpCvs.height);
@@ -5357,10 +5595,11 @@ function printReport() {
     if (_clsSel) {
         const _clsParent = _clsSel.parentNode;
         const _clsSpan = document.createElement('span');
-        _clsSpan.style.cssText = 'font-size:20px;font-weight:900;color:#013976;background:white;display:inline-flex;align-items:center;justify-content:center;min-width:80px;padding:0 12px;height:61px;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
+        _clsSpan.style.cssText = 'font-size:20px;font-weight:900;color:#013976;display:flex;align-items:center;justify-content:center;padding:0 12px;width:100%;';
         _clsSpan.textContent = clsVal || '미선택';
         _clsSel.parentNode.replaceChild(_clsSpan, _clsSel);
         if (_clsParent) {
+            _clsParent.style.setProperty('background', 'white', 'important');
             _clsParent.style.setProperty('border', '2px solid #013976', 'important');
             _clsParent.style.setProperty('border-left', 'none', 'important');
             _clsParent.style.setProperty('-webkit-print-color-adjust', 'exact', 'important');
@@ -5387,9 +5626,9 @@ function printReport() {
 
     // 4. 배너 HTML
     const bannerHtml = globalConfig.banner
-        ? `<div style="position:fixed;bottom:0;right:0;width:50%;z-index:9999;">
+        ? `<div class="print-banner" style="position:fixed;bottom:0;right:0;width:45%;z-index:9999;">
                <img src="${getSafeImageUrl(globalConfig.banner)}" alt="Report Banner"
-                    style="width:100%;max-height:120px;object-fit:cover;object-position:center;display:block;">
+                    style="width:100%;max-height:108px;object-fit:cover;object-position:center;display:block;">
            </div>`
         : '';
 
@@ -5416,13 +5655,15 @@ function printReport() {
   body { font-family: 'Noto Sans KR', sans-serif; background:#fff; margin:0; padding:24px 12px 160px; color:#1e293b; }
   img { max-width:100%; }
   .no-print { display:none !important; }
+  .print-banner { display:none; }
   .fs-15 { font-size: 13px !important; line-height: 1.6; }
   table.fs-14 td, table.fs-14 th { font-size: 13px !important; }
   @media print {
-    @page { margin:0; }
-    body { padding:12mm; padding-bottom:140px; }
+    @page { margin:12mm; }
+    body { padding-top:0; padding-bottom:140px; }
     .card, section, [class*='rounded'] { page-break-inside: avoid; }
     h4 { page-break-after: avoid; }
+    .print-banner { display:block !important; }
   }
   ${styles}
 </style>
@@ -10908,6 +11149,19 @@ function fixDriveUrl(url) {
 function renderQuestionCard(q) {
     return renderSubQuestion(q);
 }
+
+document.addEventListener('input', function(e) {
+    const c = document.getElementById('dynamic-content');
+    if (c && c.getAttribute('data-canvas-id') === '06') {
+        window._isDirty06 = true;
+    }
+});
+document.addEventListener('change', function(e) {
+    const c = document.getElementById('dynamic-content');
+    if (c && c.getAttribute('data-canvas-id') === '06') {
+        window._isDirty06 = true;
+    }
+});
 
 // [Merged] renderExamResult → line 3240 참조 (중복 제거)
 
