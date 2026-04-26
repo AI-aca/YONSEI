@@ -2892,10 +2892,22 @@ function renderScoreInput(c) {
     // 초기 모드 세팅
     window.scoreInputMode = 'new';
     window.editingStudentId = null;
+    window._isDirty06 = false; // 진입 시 더티체크 초기화
+    window._lastCategory06 = ''; // 진입 시 선택된 카테고리 초기화
     renderStudentNameField();
 }
 
 async function handleScoreCategoryChange(catId) {
+    if (window._isDirty06) {
+        if (!confirm("작업 중인 내용을 저장하지 않고 시험지를 변경하시겠습니까?")) {
+            const sel = document.getElementById('input-category');
+            if (sel) sel.value = window._lastCategory06 || '';
+            return;
+        }
+    }
+    window._lastCategory06 = catId;
+    window._isDirty06 = false;
+
     const category = globalConfig.categories.find(cat => cat.id === catId);
     if (!category) return;
 
@@ -3377,6 +3389,9 @@ function calculateTotalScore() {
 }
 
 function clearScoreInputs(resetCat = true, showMsg = true) {
+    if (showMsg) {
+        if (!confirm('⚠️ 입력한 모든 점수와 학생 정보가 초기화됩니다. 계속하시겠습니까?')) return;
+    }
     ['input-student-id', 'input-student-name',
         'input-grammar', 'input-writing', 'input-reading', 'input-listening', 'input-vocab',
 
@@ -3398,6 +3413,10 @@ function clearScoreInputs(resetCat = true, showMsg = true) {
 }
 
 function switchScoreInputMode(mode) {
+    if (window._isDirty06) {
+        if (!confirm("작업 중인 내용을 저장하지 않고 모드를 변경하시겠습니까?")) return;
+    }
+
     const categoryId = document.getElementById('input-category')?.value;
     if (!categoryId) {
         showToast('\u26A0\uFE0F \uC2DC\uD5D8\uC9C0\uB97C \uBA3C\uC800 \uC120\uD0DD\uD558\uC138\uC694.');
@@ -3456,7 +3475,7 @@ function renderStudentNameField() {
             const sName = r['학생명'] || r.studentName;
             const sId = r['학생ID'] || r.id;
             const sDate = r['응시일'] || r.testDate;
-            const dateStr = sDate ? new Date(sDate).toISOString().split('T')[0] : '';
+            const dateStr = sDate ? String(sDate).slice(0, 10) : '';
             optionsHtml += `<option value="${sId}">${sName} (${dateStr})</option>`;
         });
 
@@ -3525,7 +3544,7 @@ function fillScoreForm(studentId) {
         }
         if (testDate && document.getElementById('input-test-date')) {
             try {
-                const dStr = new Date(testDate).toISOString().split('T')[0];
+                const dStr = String(testDate).slice(0, 10);
                 const tEl = document.getElementById('input-test-date');
                 if (tEl._flatpickr) {
                     tEl._flatpickr.setDate(dStr);
@@ -3604,7 +3623,16 @@ async function saveStudentScore() {
     if (!categoryId) { showToast('\u26A0\uFE0F \uCE74\uD14C\uACE0\uB9AC\uB97C \uC120\uD0DD\uD558\uC138\uC694'); return; }
     const category = globalConfig.categories.find(c => c.id === categoryId);
 
-    const studentName = document.getElementById('input-student-name').value.trim();
+    let studentName = '';
+    const nameEl = document.getElementById('input-student-name');
+    if (window.scoreInputMode === 'edit') {
+        const sId = nameEl.value;
+        const rec = (window.cachedStudentRecords || []).find(r => r['학생ID'] === sId || r.id === sId);
+        studentName = rec ? (rec['학생명'] || rec.studentName || sId) : sId;
+    } else {
+        studentName = nameEl.value.trim();
+    }
+    
     const grade = document.getElementById('input-grade').value;
     let studentClass = document.getElementById('input-student-class')?.value.trim() || '';
     if (studentClass === '__RECOMMEND__') { const sel = document.getElementById('input-student-class'); studentClass = sel?.dataset?.recommendedClass || ''; }
@@ -3724,6 +3752,24 @@ async function saveStudentScore() {
 
         await sendReliableRequest(payload);
         showToast('\u2705 \uD559\uC0DD \uC131\uC801\uC774 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4!');
+
+        // [동기화] 저장 직후 로컬 캐시 수동 업데이트
+        if (!window.cachedStudentRecords) window.cachedStudentRecords = [];
+        window.cachedStudentRecords = window.cachedStudentRecords.filter(r => r.id !== studentId && r['학생ID'] !== studentId);
+        window.cachedStudentRecords.push({
+            '학생ID': studentId,
+            '학생명': studentName,
+            '학년': grade,
+            '등록학급': studentClass,
+            '응시일': testDate,
+            'Grammar_점수': grammarScore,
+            'Writing_점수': writingScore,
+            'Reading_점수': readingScore,
+            'Listening_점수': listeningScore,
+            'Vocabulary_점수': vocabScore,
+            '문항별상세(JSON)': JSON.stringify(questionScores)
+        });
+
         clearScoreInputs(false, false);
     } catch (err) {
         console.error(err);
@@ -4594,7 +4640,8 @@ function onReportGradeChange() {
     const studentMap = new Map();
     filtered.forEach(r => {
         const id = getV(r, idKeys), name = getV(r, nameKeys);
-        if (id && name) studentMap.set(String(id), String(name));
+        const date = String(r['응시일'] || r.testDate || r.date || '').slice(0, 10);
+        if (id && name) studentMap.set(String(id), { name: String(name), date });
     });
 
     if (studentMap.size === 0) {
@@ -4602,9 +4649,9 @@ function onReportGradeChange() {
         stuSel.disabled = true;
         return;
     }
-    const sorted = Array.from(studentMap.entries()).sort((a, b) => String(a[1]).localeCompare(String(b[1]), 'ko'));
+    const sorted = Array.from(studentMap.entries()).sort((a, b) => b[1].date.localeCompare(a[1].date));
     stuSel.innerHTML = '<option value="" disabled selected hidden>학생을 선택하세요</option>' +
-        sorted.map(([id, name]) => `<option value="${id}">${name}</option>`).join('');
+        sorted.map(([id, s]) => `<option value="${id}">${s.name} (${s.date})</option>`).join('');
     stuSel.disabled = false;
     const rpt = document.getElementById('report-display');
     if (rpt) rpt.innerHTML = '';
@@ -11153,6 +11200,7 @@ function renderQuestionCard(q) {
 document.addEventListener('input', function(e) {
     if (e.target.id === 'chk-recent-1m') return;
     if (e.target.id === 'input-student-name' && window.scoreInputMode === 'edit') return;
+    if (e.target.id === 'input-category') return;
     
     const c = document.getElementById('dynamic-content');
     if (c && c.getAttribute('data-canvas-id') === '06') {
@@ -11162,6 +11210,7 @@ document.addEventListener('input', function(e) {
 document.addEventListener('change', function(e) {
     if (e.target.id === 'chk-recent-1m') return;
     if (e.target.id === 'input-student-name' && window.scoreInputMode === 'edit') return;
+    if (e.target.id === 'input-category') return;
     
     const c = document.getElementById('dynamic-content');
     if (c && c.getAttribute('data-canvas-id') === '06') {
