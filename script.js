@@ -5740,7 +5740,13 @@ function printReport(orientation = 'portrait') {
             }
         });
 
-        // L2. 레이더 차트 앞 페이지 분리 (2페이지 시작) — DOM 재배치는 팝업 JS에서 처리
+        // L2. 레이더 차트 컨테이너 height 고정값 제거 (이미지 80% 축소 후 빈 공백 방지)
+        clone.querySelectorAll('#radar-section div[style]').forEach(d => {
+            d.style.height = 'auto';
+            d.style.minHeight = '0';
+        });
+
+        // L3. 레이더 차트 앞 페이지 분리 (2페이지 시작)
         const _radarSec = clone.querySelector('#radar-section');
         if (_radarSec) _radarSec.style.cssText = (_radarSec.style.cssText || '') + ';page-break-before:always;break-before:page;margin-top:0;';
     }
