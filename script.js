@@ -5373,6 +5373,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
         </div>
 
         <!-- 5. 종합분석 코멘트 -->
+        <hr class="border-slate-200 my-6">
         <div class="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-3xl border-2 border-blue-200">
             <div class="flex items-center justify-between mb-3">
                 <h4 class="ys-label text-blue-700 !mb-0">🤖 종합분석 코멘트</h4>
@@ -5410,7 +5411,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
         </div>
 
         <!-- Logo -->
-        <div class="mt-8 border-t pt-8 text-center">
+        <div class="mt-4 pt-4 text-center">
             <img src="${globalConfig.logoUrl || ''}" alt="Logo" class="inline-block max-h-16 object-contain" onerror="this.style.display='none'">
         </div>
     </div>`;
