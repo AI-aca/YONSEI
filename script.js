@@ -5338,7 +5338,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
                 <label for="chk-notes-toggle" class="cursor-pointer font-bold text-amber-700 fs-16 select-none">기타사항 추가</label>
             </div>
         </div>
-        <div class="space-y-4 w-full !mt-4">
+        <div id="sc-wrapper" class="space-y-4 w-full !mt-4">
             <div class="space-y-4" id="sections-container">
             ${activeSections.map(section => {
         const sScore = parseFloat(record[section + '_점수'] || record[secMap[section]] || 0);
@@ -5789,7 +5789,7 @@ function printReport(orientation = 'portrait') {
   @media print {
     @page { size: A4 ${orientation}; margin:12mm; }
     body { padding-top:0 !important; padding-bottom:0 !important; }
-    body > *:first-child { margin-top: 16px !important; }
+    body > *:first-child { margin-top: 0 !important; }
     .card, section, [class*='rounded'] { page-break-inside: avoid; }
     h4 { page-break-after: avoid; }
     .print-banner { display:block !important; }
@@ -5797,8 +5797,10 @@ function printReport(orientation = 'portrait') {
   ${styles}
   .ys-label { font-size: 17px !important; font-weight: 700 !important; }
   @media print {
-    .card > * + * { margin-top: 16px !important; }
-    #sections-container > * + * { margin-top: 16px !important; }
+    .card > * + * { margin-top: 0 !important; }
+    #sc-wrapper { margin-top: 0 !important; }
+    #radar-section { margin-bottom: 16px !important; }
+    #sections-container > * + * { margin-top: 0 !important; }
   }
 </style>
 </head><body>
@@ -5819,6 +5821,27 @@ window.onload = function() {
     }
     var aic = document.getElementById('ai-comment-section');
     if(aic) aic.style.marginTop = '16px';
+  }
+  // spacer 삽입: card 직접 자식(sc-wrapper 제외) 앞
+  var cardEl = document.querySelector('.card');
+  if(cardEl) {
+    var scWrapper = document.getElementById('sc-wrapper');
+    Array.from(cardEl.children).forEach(function(child) {
+      if(child !== scWrapper) {
+        var sp = document.createElement('div');
+        sp.style.cssText = 'height:16px;display:block;line-height:0;font-size:0;overflow:hidden;';
+        cardEl.insertBefore(sp, child);
+      }
+    });
+  }
+  // spacer 삽입: sections-container 모든 카드 앞
+  var scEl = document.getElementById('sections-container');
+  if(scEl) {
+    Array.from(scEl.children).forEach(function(child) {
+      var sp = document.createElement('div');
+      sp.style.cssText = 'height:16px;display:block;line-height:0;font-size:0;overflow:hidden;';
+      scEl.insertBefore(sp, child);
+    });
   }
   setTimeout(function(){ window.print(); }, 800);
 };
