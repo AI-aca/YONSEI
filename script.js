@@ -3508,8 +3508,10 @@ function handleStudentSelect06(selectEl) {
 function handleClearScoreInputs() {
     if (window._isDirty06) {
         if (!confirm("작업 중인 내용을 저장하지 않고 초기화하시겠습니까?")) return;
+        clearScoreInputs(true, false); // dirty 확인은 위에서 완료 → 중복 팝업 제거
+    } else {
+        clearScoreInputs(); // dirty 아닐 때는 기존대로 confirm 표시
     }
-    clearScoreInputs();
 }
 
 function fillScoreForm(studentId) {
@@ -3756,18 +3758,23 @@ async function saveStudentScore() {
         // [동기화] 저장 직후 로컬 캐시 수동 업데이트
         if (!window.cachedStudentRecords) window.cachedStudentRecords = [];
         window.cachedStudentRecords = window.cachedStudentRecords.filter(r => r.id !== studentId && r['학생ID'] !== studentId);
+        const _percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 10000) / 100 : 0;
         window.cachedStudentRecords.push({
-            '학생ID': studentId,
-            '학생명': studentName,
-            '학년': grade,
-            '등록학급': studentClass,
-            '응시일': testDate,
-            'Grammar_점수': grammarScore,
-            'Writing_점수': writingScore,
-            'Reading_점수': readingScore,
+            'id':            studentId,
+            '학생ID':         studentId,
+            '학생명':         studentName,
+            '학년':           grade,
+            '등록학급':       studentClass,
+            '응시일':         testDate,
+            'Grammar_점수':   grammarScore,
+            'Writing_점수':   writingScore,
+            'Reading_점수':   readingScore,
             'Listening_점수': listeningScore,
             'Vocabulary_점수': vocabScore,
-            '문항별상세(JSON)': JSON.stringify(questionScores)
+            '문항별상세(JSON)': JSON.stringify(questionScores),
+            '총점':           totalScore,
+            '만점':           maxScore,
+            '정답률(%)':      _percentage
         });
 
         clearScoreInputs(false, false);
