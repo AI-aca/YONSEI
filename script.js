@@ -4531,7 +4531,7 @@ function renderRecords(c) {
                         <div class="flex items-center justify-between">
                             <label class="ys-label !mb-0 !text-[#013976] font-bold">👤 학생 선택</label>
                             <label class="flex items-center gap-1 cursor-pointer select-none">
-                                <input type="checkbox" id="chk-report-recent-1m" class="w-4 h-4 accent-[#013976]" onchange="onReportGradeChange();">
+                                <input type="checkbox" id="chk-report-recent-1m" class="w-4 h-4 accent-[#013976]" checked onchange="onReportGradeChange();">
                                 <span class="text-sm font-bold text-slate-500">최근 1개월</span>
                             </label>
                         </div>
