@@ -3360,10 +3360,10 @@ function toggleQScoreMode(checked, suppressWarning = false) {
     const qList = document.getElementById('question-score-list');
     const panel = document.getElementById('accordion-section');
     const icon = document.getElementById('accordion-section-icon');
-    
+
     if (wrapper) wrapper.classList.toggle('hidden', !checked);
     if (qList) qList.classList.toggle('hidden', checked);
-    
+
     if (checked) {
         if (panel) panel.classList.remove('hidden');
         if (icon) icon.textContent = '\u25BC';
@@ -3371,7 +3371,7 @@ function toggleQScoreMode(checked, suppressWarning = false) {
         if (panel) panel.classList.add('hidden');
         if (icon) icon.textContent = '\u25B6';
     }
-    
+
     calculateTotalScore();
 }
 
@@ -3583,14 +3583,14 @@ function fillScoreForm(studentId) {
             const qsStr = record['문항별상세(JSON)'] || record.questionScores;
             const qs = typeof qsStr === 'string' ? JSON.parse(qsStr || '[]') : (qsStr || []);
             if (qs && qs.length > 0) hasQ = true;
-        } catch(e) {}
-        
+        } catch (e) { }
+
         const hasSec = (parseInt(record.grammarScore || record['Grammar_점수']) > 0 ||
-                        parseInt(record.writingScore || record['Writing_점수']) > 0 ||
-                        parseInt(record.readingScore || record['Reading_점수']) > 0 ||
-                        parseInt(record.listeningScore || record['Listening_점수']) > 0 ||
-                        parseInt(record.vocabScore || record['Vocabulary_점수']) > 0);
-        
+            parseInt(record.writingScore || record['Writing_점수']) > 0 ||
+            parseInt(record.readingScore || record['Reading_점수']) > 0 ||
+            parseInt(record.listeningScore || record['Listening_점수']) > 0 ||
+            parseInt(record.vocabScore || record['Vocabulary_점수']) > 0);
+
         // 문항 데이터가 없고, 영역 데이터만 있을 때만 영역 모드(true)
         if (!hasQ && hasSec) {
             noQScoreMode = true;
@@ -3651,7 +3651,7 @@ async function saveStudentScore() {
     } else {
         studentName = nameEl.value.trim();
     }
-    
+
     const grade = document.getElementById('input-grade').value;
     let studentClass = document.getElementById('input-student-class')?.value.trim() || '';
     if (studentClass === '__RECOMMEND__') { const sel = document.getElementById('input-student-class'); studentClass = sel?.dataset?.recommendedClass || ''; }
@@ -3777,21 +3777,21 @@ async function saveStudentScore() {
         window.cachedStudentRecords = window.cachedStudentRecords.filter(r => r.id !== studentId && r['학생ID'] !== studentId);
         const _percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 10000) / 100 : 0;
         window.cachedStudentRecords.push({
-            'id':            studentId,
-            '학생ID':         studentId,
-            '학생명':         studentName,
-            '학년':           grade,
-            '등록학급':       studentClass,
-            '응시일':         testDate,
-            'Grammar_점수':   grammarScore,
-            'Writing_점수':   writingScore,
-            'Reading_점수':   readingScore,
+            'id': studentId,
+            '학생ID': studentId,
+            '학생명': studentName,
+            '학년': grade,
+            '등록학급': studentClass,
+            '응시일': testDate,
+            'Grammar_점수': grammarScore,
+            'Writing_점수': writingScore,
+            'Reading_점수': readingScore,
             'Listening_점수': listeningScore,
             'Vocabulary_점수': vocabScore,
             '문항별상세(JSON)': JSON.stringify(questionScores),
-            '총점':           totalScore,
-            '만점':           maxScore,
-            '정답률(%)':      _percentage
+            '총점': totalScore,
+            '만점': maxScore,
+            '정답률(%)': _percentage
         });
 
         clearScoreInputs(false, false);
@@ -5763,6 +5763,7 @@ function printReport(orientation = 'portrait') {
   @media print {
     @page { size: A4 ${orientation}; margin:12mm; }
     body { padding-top:0 !important; padding-bottom:140px; }
+    body > *:first-child { margin-top: 0 !important; }
     .card, section, [class*='rounded'] { page-break-inside: avoid; }
     h4 { page-break-after: avoid; }
     .print-banner { display:block !important; }
@@ -10613,10 +10614,10 @@ function renderExamInstructions() {
                 // 이어보기
                 window._resumeDraft = _draft;
                 window._examPending = {
-                    name:      _draft.studentName,
-                    grade:     _draft.grade,
-                    catId:     _draft.categoryId,
-                    date:      _draft.date,
+                    name: _draft.studentName,
+                    grade: _draft.grade,
+                    catId: _draft.categoryId,
+                    date: _draft.date,
                     timeLimit: _draft.timeLimit
                 };
                 window._audioTestDone = true;
@@ -10809,13 +10810,13 @@ async function startExamSequence() {
         // [ExamDraft] 이어보기 복원 처리
         if (window._resumeDraft) {
             const _rd = window._resumeDraft;
-            examSession.answers        = _rd.answers        || {};
-            examSession.startTime      = _rd.startTime      || examSession.startTime;
-            examSession.studentId      = _rd.studentId      || examSession.studentId;
-            examSession.date           = _rd.date           || examSession.date;
-            examSession.timeLimit      = _rd.timeLimit != null ? _rd.timeLimit : examSession.timeLimit;
-            window._audioPlaysUsed     = _rd.audioPlaysUsed || {};
-            window._resumeDraft        = null; // 사용 완료 후 즉시 정리
+            examSession.answers = _rd.answers || {};
+            examSession.startTime = _rd.startTime || examSession.startTime;
+            examSession.studentId = _rd.studentId || examSession.studentId;
+            examSession.date = _rd.date || examSession.date;
+            examSession.timeLimit = _rd.timeLimit != null ? _rd.timeLimit : examSession.timeLimit;
+            window._audioPlaysUsed = _rd.audioPlaysUsed || {};
+            window._resumeDraft = null; // 사용 완료 후 즉시 정리
         }
 
         // Filter Questions
@@ -11228,16 +11229,16 @@ function saveExamDraft() {
     const key = 'EXAM_DRAFT_' + examSession.categoryId + '_' + examSession.studentName;
     try {
         localStorage.setItem(key, JSON.stringify({
-            studentName:    examSession.studentName,
-            studentId:      examSession.studentId,
-            grade:          examSession.grade,
-            categoryId:     examSession.categoryId,
-            date:           examSession.date,
-            timeLimit:      examSession.timeLimit,
-            answers:        examSession.answers || {},
-            startTime:      examSession.startTime,
+            studentName: examSession.studentName,
+            studentId: examSession.studentId,
+            grade: examSession.grade,
+            categoryId: examSession.categoryId,
+            date: examSession.date,
+            timeLimit: examSession.timeLimit,
+            answers: examSession.answers || {},
+            startTime: examSession.startTime,
             audioPlaysUsed: window._audioPlaysUsed || {},
-            savedAt:        Date.now()
+            savedAt: Date.now()
         }));
     } catch (e) {
         console.warn('[ExamDraft] 저장 실패:', e.message);
@@ -11326,21 +11327,21 @@ function renderQuestionCard(q) {
     return renderSubQuestion(q);
 }
 
-document.addEventListener('input', function(e) {
+document.addEventListener('input', function (e) {
     if (e.target.id === 'chk-recent-1m') return;
     if (e.target.id === 'input-student-name' && window.scoreInputMode === 'edit') return;
     if (e.target.id === 'input-category') return;
-    
+
     const c = document.getElementById('dynamic-content');
     if (c && c.getAttribute('data-canvas-id') === '06') {
         window._isDirty06 = true;
     }
 });
-document.addEventListener('change', function(e) {
+document.addEventListener('change', function (e) {
     if (e.target.id === 'chk-recent-1m') return;
     if (e.target.id === 'input-student-name' && window.scoreInputMode === 'edit') return;
     if (e.target.id === 'input-category') return;
-    
+
     const c = document.getElementById('dynamic-content');
     if (c && c.getAttribute('data-canvas-id') === '06') {
         window._isDirty06 = true;
