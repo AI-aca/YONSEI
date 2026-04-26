@@ -4484,7 +4484,8 @@ function renderRecords(c) {
                 <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">Individual Reports</h2>
                 <div class="absolute right-0 flex items-center gap-2" style="top:50%; transform:translateY(-50%);">
                     <button onclick="saveReportData()" id="btn-save-report" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-[#013976] text-white font-bold fs-15 hover:bg-[#012456] transition-all active:scale-95 shadow">💾 저장</button>
-                    <button onclick="printReport()" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-700 text-white font-bold fs-15 hover:bg-slate-900 transition-all active:scale-95 shadow">🖨️ 인쇄</button>
+                    <button onclick="printReport('portrait')" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-700 text-white font-bold fs-15 hover:bg-slate-900 transition-all active:scale-95 shadow">🖨️ 세로</button>
+                    <button onclick="printReport('landscape')" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-600 text-white font-bold fs-15 hover:bg-slate-800 transition-all active:scale-95 shadow">🖨️ 가로</button>
                 </div>
             </div>
 
@@ -5597,7 +5598,7 @@ function saveReportData() {
         .finally(() => { if (btn) { btn.disabled = false; btn.textContent = '💾 저장'; } });
 }
 
-function printReport() {
+function printReport(orientation = 'portrait') {
     const catVal = document.getElementById('report-category')?.value;
     const stuVal = document.getElementById('report-student')?.value;
     if (!catVal || !stuVal) {
@@ -5760,7 +5761,7 @@ function printReport() {
   .fs-15 { font-size: 13px !important; line-height: 1.6; }
   table.fs-14 td, table.fs-14 th { font-size: 13px !important; }
   @media print {
-    @page { size: A4 landscape; margin:12mm; }
+    @page { size: A4 ${orientation}; margin:12mm; }
     body { padding-top:0 !important; padding-bottom:140px; }
     .card, section, [class*='rounded'] { page-break-inside: avoid; }
     h4 { page-break-after: avoid; }
