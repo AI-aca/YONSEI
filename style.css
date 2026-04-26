@@ -902,33 +902,23 @@
    레포트(#report-display)용 전용
 ======================================== */
 @media print {
-    /* 배경색/이미지 강제 인쇄 */
-    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-
     /* 헤더/사이드바/푸터/버튼 숨김 */
     #app-header, #app-sidebar, #app-footer,
     #loading-overlay, #toast,
     .no-print { display: none !important; }
 
-    /* 레이아웃 높이/오버플로 완전 해제 */
-    body {
-        background: white !important;
-        height: auto !important;
-        overflow: visible !important;
-    }
+    /* 레이아웃 초기화 */
+    body { background: white !important; }
     #main-container {
         display: block !important;
         padding: 0 !important;
         margin: 0 !important;
-        height: auto !important;
-        overflow: visible !important;
     }
     #app-canvas {
         width: 100% !important;
         max-width: 100% !important;
         padding: 0 !important;
         margin: 0 !important;
-        height: auto !important;
         overflow: visible !important;
     }
     #dynamic-content {
@@ -942,15 +932,10 @@
         page-break-inside: auto;
     }
 
-    /* 차트 canvas — height auto 강제 제거, 화면 크기 그대로 */
+    /* 차트 인쇄 대응 */
     canvas {
         max-width: 100% !important;
-    }
-
-    /* 영역별 코멘트 앞 페이지 강제 분리 */
-    #sections-container {
-        page-break-before: always !important;
-        break-before: page !important;
+        height: auto !important;
     }
 
     /* Card 인쇄 스타일 */
