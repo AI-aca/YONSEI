@@ -5374,7 +5374,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
 
         <!-- 5. 종합분석 코멘트 -->
 
-        <div class="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-3xl border-2 border-blue-200 mt-4">
+        <div class="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-3xl border-2 border-blue-200 mt-3">
             <div class="flex items-center justify-between mb-3">
                 <h4 class="ys-label text-blue-700 !mb-0">🤖 종합분석 코멘트</h4>
                 <div class="flex items-center gap-2 no-print">
@@ -5394,7 +5394,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
         </div>
 
         <!-- 6. 기타사항 -->
-        <div id="notes-section" class="mt-4">
+        <div id="notes-section" class="mt-3">
             <div id="notes-box" class="${notes ? '' : 'hidden '}bg-amber-50 border-2 border-amber-200 rounded-2xl p-5">
                 <div class="flex items-center justify-between mb-2">
                     <h4 class="ys-label text-amber-700 !mb-0">📝 기타사항</h4>
