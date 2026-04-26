@@ -5412,7 +5412,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
 
         <!-- Logo -->
         <div class="mt-4 pt-4 text-center">
-            <img src="${globalConfig.logoUrl || ''}" alt="Logo" class="inline-block max-h-16 object-contain" onerror="this.style.display='none'">
+            <img src="${globalConfig.logoUrl || ''}" alt="Logo" class="inline-block max-h-16 object-contain" onerror="this.parentElement.style.display='none'">
         </div>
     </div>`;
 
@@ -5746,7 +5746,7 @@ function printReport(orientation = 'portrait') {
 
         // L3. 레이더 차트 앞 페이지 분리 (2페이지 시작)
         const _radarSec = clone.querySelector('#radar-section');
-        if (_radarSec) _radarSec.style.cssText = (_radarSec.style.cssText || '') + ';page-break-before:always;break-before:page;margin-top:0;';
+        if (_radarSec) _radarSec.style.cssText = (_radarSec.style.cssText || '') + ';page-break-before:always;break-before:page;margin-top:24px;';
     }
 
     // 4. 배너 HTML (가로: 22%, 세로: 45%)
@@ -5806,7 +5806,7 @@ window.onload = function() {
       if(sw) {
         // sw page-break 제거, sections-container에 page-break 추가 후 sw 맨 끝으로 이동
         sw.style.cssText = (sw.style.cssText||'').replace(/page-break-before:[^;]+;?/g,'').replace(/break-before:[^;]+;?/g,'');
-        sc.style.cssText = (sc.style.cssText||'') + ';page-break-before:always;break-before:page;margin-top:0;';
+        sc.style.cssText = (sc.style.cssText||'') + ';page-break-before:always;break-before:page;margin-top:24px;';
         sw.appendChild(sc);
       }
     }
