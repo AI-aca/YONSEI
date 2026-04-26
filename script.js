@@ -5791,7 +5791,7 @@ function printReport(orientation = 'portrait') {
     body { padding-top:0 !important; padding-bottom:0 !important; }
     body > *:first-child { margin-top: 0 !important; }
     .card, section, [class*='rounded'] { page-break-inside: avoid; }
-    [class*='space-y'] > * + * { margin-top: 0 !important; }
+    .card > * + *, #sections-container > * + * { margin-top: 0 !important; }
     h4 { page-break-after: avoid; }
     .print-banner { display:block !important; }
   }
