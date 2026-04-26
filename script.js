@@ -5730,11 +5730,13 @@ function printReport(orientation = 'portrait') {
 
     // [가로 인쇄 전용] 레이아웃 재구성
     if (orientation === 'landscape') {
-        // L1. 차트 이미지 3개 → 80% 크기 중앙 정렬
+        // L1. 차트 이미지 3개 → 80% 크기 중앙 정렬 (maxHeight/objectFit 제거로 상단 공백 방지)
         clone.querySelectorAll('img').forEach(img => {
             if (img.src && img.src.startsWith('data:')) {
                 img.style.width = '80%';
                 img.style.height = 'auto';
+                img.style.maxHeight = 'none';
+                img.style.objectFit = 'fill';
                 img.style.margin = '0 auto';
                 img.style.display = 'block';
             }
