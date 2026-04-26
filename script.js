@@ -5363,6 +5363,8 @@ function printReport() {
         if (_clsParent) {
             _clsParent.style.setProperty('border', '2px solid #013976', 'important');
             _clsParent.style.setProperty('border-left', 'none', 'important');
+            _clsParent.style.setProperty('-webkit-print-color-adjust', 'exact', 'important');
+            _clsParent.style.setProperty('print-color-adjust', 'exact', 'important');
         }
     }
 
@@ -5417,8 +5419,8 @@ function printReport() {
   .fs-15 { font-size: 13px !important; line-height: 1.6; }
   table.fs-14 td, table.fs-14 th { font-size: 13px !important; }
   @media print {
-    @page { margin:12mm; }
-    body { padding-bottom:140px; }
+    @page { margin:0; }
+    body { padding:12mm; padding-bottom:140px; }
     .card, section, [class*='rounded'] { page-break-inside: avoid; }
     h4 { page-break-after: avoid; }
   }
