@@ -5373,7 +5373,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
         </div>
 
         <!-- 5. 종합분석 코멘트 -->
-        <hr class="border-slate-200 my-6">
+
         <div class="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-3xl border-2 border-blue-200">
             <div class="flex items-center justify-between mb-3">
                 <h4 class="ys-label text-blue-700 !mb-0">🤖 종합분석 코멘트</h4>
@@ -5778,7 +5778,7 @@ function printReport(orientation = 'portrait') {
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap">
 <style>
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  body { font-family: 'Noto Sans KR', sans-serif; background:#fff; margin:0; padding:24px 12px 160px; color:#1e293b; }
+  body { font-family: 'Noto Sans KR', sans-serif; background:#fff; margin:0; padding:24px 12px 0; color:#1e293b; }
   img { max-width:100%; }
   .no-print { display:none !important; }
   .print-banner { display:none; }
@@ -5787,7 +5787,7 @@ function printReport(orientation = 'portrait') {
 
   @media print {
     @page { size: A4 ${orientation}; margin:12mm; }
-    body { padding-top:0 !important; padding-bottom:140px; }
+    body { padding-top:0 !important; padding-bottom:0 !important; }
     body > *:first-child { margin-top: 0 !important; }
     .card, section, [class*='rounded'] { page-break-inside: avoid; }
     h4 { page-break-after: avoid; }
