@@ -902,6 +902,9 @@
    레포트(#report-display)용 전용
 ======================================== */
 @media print {
+    /* 배경색/이미지 강제 인쇄 */
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
     /* 헤더/사이드바/푸터/버튼 숨김 */
     #app-header, #app-sidebar, #app-footer,
     #loading-overlay, #toast,
@@ -931,9 +934,6 @@
     #dynamic-content {
         padding: 0 !important;
     }
-
-    /* report-display 외 dynamic-content 자식 숨김 */
-    #dynamic-content > *:not(#report-display) { display: none !important; }
 
     /* 레포트 전용 인쇄 */
     #report-display {
