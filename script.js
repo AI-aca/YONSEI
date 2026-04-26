@@ -5517,7 +5517,7 @@ function renderTotalChart(record, averages, sTotal, sMax, classAvg, mode) {
         options: {
             responsive: true, maintainAspectRatio: false,
             clip: false,
-            layout: { padding: { top: 50 } },
+            layout: { padding: { top: 2 } },
             scales: { y: { beginAtZero: true, max: sMax, ticks: { font: { size: 16 }, callback: v => Number.isInteger(v) ? v : parseFloat(v).toFixed(1) } }, x: { ticks: { font: { size: 16 } } } },
             plugins: {
                 legend: { position: 'right', labels: { font: { size: 16 }, padding: 15 } },
@@ -5549,7 +5549,7 @@ function renderSectionsBarChart(record, averages, activeSections, secMap, maxMap
         options: {
             responsive: true, maintainAspectRatio: false,
             clip: false,
-            layout: { padding: { top: 50 } },
+            layout: { padding: { top: 2 } },
             scales: { y: { beginAtZero: true, ticks: { font: { size: 16 }, callback: v => Number.isInteger(v) ? v : parseFloat(v).toFixed(1) } }, x: { ticks: { font: { size: 16 } } } },
             plugins: {
                 legend: { position: 'right', labels: { font: { size: 16 }, padding: 15 } },
@@ -5733,7 +5733,7 @@ function printReport(orientation = 'portrait') {
         // L1. 차트 이미지 3개 → 80% 크기 중앙 정렬
         clone.querySelectorAll('img').forEach(img => {
             if (img.src && img.src.startsWith('data:')) {
-                img.style.width = '80%';
+                img.style.width = '85%';
                 img.style.height = 'auto';
                 img.style.margin = '0 auto';
                 img.style.display = 'block';
