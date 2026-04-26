@@ -5761,7 +5761,7 @@ function printReport() {
   table.fs-14 td, table.fs-14 th { font-size: 13px !important; }
   @media print {
     @page { size: A4 landscape; margin:12mm; }
-    body { padding-top:0; padding-bottom:140px; }
+    body { padding-top:0 !important; padding-bottom:140px; }
     .card, section, [class*='rounded'] { page-break-inside: avoid; }
     h4 { page-break-after: avoid; }
     .print-banner { display:block !important; }
