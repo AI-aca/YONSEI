@@ -5241,6 +5241,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
     const _recClsForHdr = record.studentClass || record['등록학급'] || recCls05 || '';
     const _clsAvgHdr = (_recClsForHdr && sGrade) ? computeClassAvg(_recClsForHdr, sGrade, secMap) : null;
     const _secKRHdr = { Grammar: '문법', Writing: '영작', Reading: '독해', Listening: '듣기', Vocabulary: '어휘' };
+    const _secEmoji = { Grammar: '✏️', Writing: '✍️', Reading: '📖', Listening: '🎧', Vocabulary: '📚' };
 
     display.innerHTML = `
     <div class="card space-y-8 animate-fade-in mt-5">
@@ -5347,7 +5348,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
         return `<div class="bg-slate-50 rounded-2xl border overflow-hidden">
                     <div class="px-6 py-2.5 flex items-center justify-between">
                         <div class="flex items-center gap-3 flex-wrap">
-                            <h5 class="font-black text-[#013976] fs-18">${_secKRHdr[section] || section} 영역</h5>
+                            <h5 class="font-black text-[#013976] fs-18">${_secEmoji[section] || ''} ${_secKRHdr[section] || section} 영역</h5>
                             <span id="sec-hdr-avg-${section}"
                               data-personal="${sScore}"
                               data-overall="${aScore.toFixed(1)}"
