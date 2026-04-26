@@ -3498,10 +3498,10 @@ function renderStudentNameField() {
 
         container.innerHTML = `
             <div class="flex items-center justify-between mb-2">
-                <label class="ys-label font-bold !mb-0">&#x1F4DD; &#xD559;&#xC0DD;&#xBA85;</label>
+                <label class="ys-label font-bold !mb-0">&#x1F4DD; 학생 선택</label>
                 <label class="flex items-center gap-1 cursor-pointer select-none">
                     <input type="checkbox" id="chk-recent-1m" class="w-4 h-4 accent-[#013976]" ${isRecentOnly ? 'checked' : ''} onchange="renderStudentNameField()">
-                    <span class="text-[13px] font-bold text-slate-500">최근 1개월</span>
+                    <span class="text-sm font-bold text-slate-500">최근 1개월</span>
                 </label>
             </div>
             <select id="input-student-name" class="ys-field" onchange="handleStudentSelect06(this)">
@@ -4524,11 +4524,17 @@ function renderRecords(c) {
                     </div>
                 </div>
 
-                <!-- Box 4: 학생 -->
+                                <!-- Box 4: 학생 -->
                 <div class="card !p-6 flex flex-col justify-center shadow-lg relative overflow-hidden" style="${boxStyle}">
                     ${topBar}
                     <div class="space-y-3">
-                        <label class="ys-label !mb-0 !text-[#013976] font-bold">👤 학생 선택</label>
+                        <div class="flex items-center justify-between">
+                            <label class="ys-label !mb-0 !text-[#013976] font-bold">👤 학생 선택</label>
+                            <label class="flex items-center gap-1 cursor-pointer select-none">
+                                <input type="checkbox" id="chk-report-recent-1m" class="w-4 h-4 accent-[#013976]" onchange="onReportGradeChange();">
+                                <span class="text-sm font-bold text-slate-500">최근 1개월</span>
+                            </label>
+                        </div>
                         <select id="report-student" onchange="loadStudentReport();" class="ys-field w-full !font-normal !text-[#013976] !bg-white !text-[16px]" disabled>
                             <option value="" disabled selected hidden>학생을 선택하세요</option>
                         </select>
@@ -4657,6 +4663,17 @@ function onReportGradeChange() {
     let filtered = records;
     if (year && year !== '전체') filtered = filtered.filter(r => dateToYear(r['응시일'] || r.date || '') === year);
     if (grade && grade !== '전체') filtered = filtered.filter(r => String(r['학년'] || r.grade || '') === grade);
+
+    // 최근 1개월 필터
+    const _recentChk = document.getElementById('chk-report-recent-1m');
+    if (_recentChk && _recentChk.checked) {
+        const _oneMonthAgo = new Date();
+        _oneMonthAgo.setMonth(_oneMonthAgo.getMonth() - 1);
+        filtered = filtered.filter(r => {
+            const _td = new Date(r['응시일'] || r.date || '');
+            return !isNaN(_td) && _td >= _oneMonthAgo;
+        });
+    }
 
     const stuSel = document.getElementById('report-student');
     if (!stuSel) return;
