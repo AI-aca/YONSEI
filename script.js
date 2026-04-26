@@ -5789,14 +5789,17 @@ function printReport(orientation = 'portrait') {
   @media print {
     @page { size: A4 ${orientation}; margin:12mm; }
     body { padding-top:0 !important; padding-bottom:0 !important; }
-    body > *:first-child { margin-top: 0 !important; }
+    body > *:first-child { margin-top: 16px !important; }
     .card, section, [class*='rounded'] { page-break-inside: avoid; }
-    .card > * + *, #sections-container > * + * { margin-top: 0 !important; }
     h4 { page-break-after: avoid; }
     .print-banner { display:block !important; }
   }
   ${styles}
   .ys-label { font-size: 17px !important; font-weight: 700 !important; }
+  @media print {
+    .card > * + * { margin-top: 16px !important; }
+    #sections-container > * + * { margin-top: 16px !important; }
+  }
 </style>
 </head><body>
 ${clone.innerHTML}
