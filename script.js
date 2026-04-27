@@ -5645,11 +5645,8 @@ function printReport(orientation = 'portrait') {
     const display = document.getElementById('report-display');
     if (!display) return;
 
-    // 1. 현재 페이지의 CSS 수집
-    const styles = Array.from(document.styleSheets).map(ss => {
-        try { return Array.from(ss.cssRules).map(r => r.cssText).join('\n'); }
-        catch (e) { return ''; }
-    }).join('\n');
+    // 1. print-popup.css URL 결정 (로컬/배포 공통)
+    const _cssHref = (()=>{ const l=document.querySelector('link[href*="style.css"]'); return l ? l.href.replace('style.css','print-popup.css') : 'print-popup.css'; })();
 
     // 2. 모든 chart canvas를 PNG 이미지 데이터로 변환
     const canvasIds = ['chart-total', 'chart-sections-bar', 'chart-radar'];
@@ -5790,29 +5787,13 @@ function printReport(orientation = 'portrait') {
 <\/script>
 <script src="https://cdn.tailwindcss.com"><\/script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap">
+<link rel="stylesheet" href="${_cssHref}">
 <style>
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   body { font-family: 'Noto Sans KR', sans-serif; background:#fff; margin:0; padding:24px 12px 0; color:#1e293b; }
   img { max-width:100%; }
-  .no-print { display:none !important; }
-  .print-banner { display:none; }
-  .fs-15 { font-size: 13px !important; line-height: 1.6; }
-  table.fs-14 td, table.fs-14 th { font-size: 13px !important; }
-
   @media print {
     @page { size: A4 ${orientation}; margin:12mm; }
-    body { padding-top:0 !important; padding-bottom:0 !important; }
-    body > *:first-child { margin-top: 16px !important; }
-    .card, section, [class*='rounded'] { page-break-inside: avoid; }
-    h4 { page-break-after: avoid; }
-    .print-banner { display:block !important; }
-  }
-  ${styles}
-  .ys-label { font-size: 17px !important; font-weight: 700 !important; }
-  @media print {
-    body { display: block !important; height: auto !important; overflow: visible !important; }
-    .card > * + * { margin-top: 16px !important; }
-    #sections-container > * + * { margin-top: 16px !important; }
   }
 </style>
 </head><body>
