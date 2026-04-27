@@ -650,7 +650,7 @@ async function verifyAuth(mode) {
         return; // 진입 차단
     }
 
-    toggleLoading(false);
+    // [Fix] 로딩을 끄지 않고 VERIFY_CODE fetch까지 유지 (2초 멈춤 느낌 방지)
 
     // 2. GAS 서버에서 코드 검증 (비밀번호를 프론트엔드에서 비교하지 않음)
     try {
@@ -668,6 +668,7 @@ async function verifyAuth(mode) {
         const verifyData = JSON.parse(verifyText);
 
         if (verifyData.status === 'Success' && verifyData.verified) {
+            toggleLoading(false);
             if (mode === 'admin') {
                 changeMode('admin_dashboard');
             } else if (mode === 'master') {
@@ -675,11 +676,13 @@ async function verifyAuth(mode) {
                 renderMainConfig(c);
             }
         } else {
+            toggleLoading(false);
             showToast("⛔ 비밀번호가 올바르지 않습니다.");
             const el = document.getElementById('ac');
             if (el) { el.value = ''; el.focus(); }
         }
     } catch (e) {
+        toggleLoading(false);
         showToast("⛔ 서버 인증 오류: " + e.message);
     }
 }
@@ -10386,6 +10389,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     // 1. 클라우드 설정 동기화 시도 (silent mode)
     if (globalConfig.masterUrl) {
         console.log('☁️ Attempting cloud sync from:', globalConfig.masterUrl);
+        toggleLoading(true); // [Fix] 접속 시 GAS 동기화 동안 로딩 표시
         try {
             const syncSuccess = await loadConfigFromCloud(true);
             if (syncSuccess) {
@@ -10396,6 +10400,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
         } catch (error) {
             console.error('❌ Cloud sync error:', error);
+        } finally {
+            toggleLoading(false); // [Fix] 동기화 완료(성공/실패 무관) 후 로딩 종료
         }
     } else {
         console.log('⚠️ Master URL not set, skipping cloud sync');
