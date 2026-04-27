@@ -10652,27 +10652,34 @@ function renderExamInstructions() {
     if (_draftRaw) {
         try {
             const _draft = JSON.parse(_draftRaw);
-            const _savedMins = Math.round((Date.now() - (_draft.savedAt || 0)) / 60000);
-            const _resumeMsg = '⚠️ 이전에 진행하던 시험이 있습니다.\n\n'
-                + '저장 시각: ' + _savedMins + '분 전\n'
-                + '답변 완료: ' + Object.keys(_draft.answers || {}).length + '문항\n\n'
-                + '[확인] 이어보기   [취소] 새로 시작';
-            if (confirm(_resumeMsg)) {
-                // 이어보기
-                window._resumeDraft = _draft;
-                window._examPending = {
-                    name: _draft.studentName,
-                    grade: _draft.grade,
-                    catId: _draft.categoryId,
-                    date: _draft.date,
-                    timeLimit: _draft.timeLimit
-                };
-                window._audioTestDone = true;
-                startExamSequence();
-                return; // Canvas 02-3 렌더 건너릇
-            } else {
-                // 새로 시작
+            const _elapsedMs = Date.now() - (_draft.savedAt || 0);
+            const DRAFT_LIMIT_MS = 5 * 60 * 60 * 1000; // [Fix] 5시간 유효기간
+            if (_elapsedMs > DRAFT_LIMIT_MS) {
+                // 유효기간 초과 → 자동 삭제 후 새로 시작
                 clearExamDraft(catId, name);
+            } else {
+                const _savedMins = Math.round(_elapsedMs / 60000);
+                const _resumeMsg = '⚠️ 이전에 진행하던 시험이 있습니다.\n\n'
+                    + '저장 시각: ' + _savedMins + '분 전\n'
+                    + '답변 완료: ' + Object.keys(_draft.answers || {}).length + '문항\n\n'
+                    + '[확인] 이어보기   [취소] 새로 시작';
+                if (confirm(_resumeMsg)) {
+                    // 이어보기
+                    window._resumeDraft = _draft;
+                    window._examPending = {
+                        name: _draft.studentName,
+                        grade: _draft.grade,
+                        catId: _draft.categoryId,
+                        date: _draft.date,
+                        timeLimit: _draft.timeLimit
+                    };
+                    window._audioTestDone = true;
+                    startExamSequence();
+                    return; // Canvas 02-3 렌더 건너릇
+                } else {
+                    // 새로 시작
+                    clearExamDraft(catId, name);
+                }
             }
         } catch (e) {
             // JSON 파싱 실패 → 손상된 draft 삭제 후 새로 시작
