@@ -10615,7 +10615,7 @@ function playAudioTest() {
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const gain = ctx.createGain(); gain.gain.setValueAtTime(0.4, ctx.currentTime); gain.connect(ctx.destination);
-        const freqs = [261, 293, 329, 349, 392, 440, 494, 523, 440, 392, 349, 329, 293];
+        const freqs = [261, 293, 329, 349, 392, 440, 494, 523]; // 도레미파솔라시도
         let t = ctx.currentTime;
         freqs.forEach(function (f) {
             const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(f, t);
@@ -10624,7 +10624,7 @@ function playAudioTest() {
         setTimeout(function () {
             ctx.close();
             if (btn) { btn.disabled = false; btn.textContent = '✅ 오디오 정상 확인됨'; btn.style.background = '#16a34a'; btn.style.color = '#fff'; }
-        }, 6800);
+        }, 4500);
     } catch (e) {
         if (btn) { btn.disabled = false; btn.textContent = '⚠️ 오디오 오류'; }
         showToast('오디오 API 오류: ' + e.message);
@@ -10725,12 +10725,15 @@ function renderExamInstructions() {
                 <ol class="space-y-3 mb-7">
                     <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-8 h-8 rounded-full bg-[#013976] text-white text-[14px] font-bold flex items-center justify-center">1</span><span class="text-[16px] text-slate-700 pt-1"><b>START EXAM</b> 버튼을 누르면 <b class="text-[#013976]">${catName}</b> (<b>${name}</b>, <b>${grade}</b>) 시험이 시작됩니다.</span></li>
                     <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-8 h-8 rounded-full bg-[#013976] text-white text-[14px] font-bold flex items-center justify-center">2</span><span class="text-[16px] text-slate-700 pt-1">시작과 동시에 <b>${timeTxt}</b>의 카운트다운이 진행되며, 시간이 종료되면 자동으로 제출됩니다.</span></li>
-                    <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-8 h-8 rounded-full bg-[#013976] text-white text-[14px] font-bold flex items-center justify-center">3</span><span class="text-[16px] text-slate-700 pt-1">듣기 평가는 재생 가능 횟수가 각 문제에 표시되어 있으며, 해당 횟수 내에서만 재생이 가능합니다.</span></li>
-                    <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-8 h-8 rounded-full bg-[#013976] text-white text-[14px] font-bold flex items-center justify-center">4</span><span class="text-[16px] text-slate-700 pt-1">듣기 평가 재생 시 일시정지, 빨리감기, 뒤로감기 등의 기능은 없습니다.</span></li>
-                    <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-8 h-8 rounded-full bg-[#013976] text-white text-[14px] font-bold flex items-center justify-center">5</span><span class="text-[16px] text-slate-700 pt-1">아래 <b>🔊 오디오 테스트</b> 버튼으로 소리가 정상 출력되는지 확인한 후 START EXAM을 눌러 주세요.</span></li>
-                    <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-8 h-8 rounded-full bg-red-500 text-white text-[14px] font-bold flex items-center justify-center">6</span><span class="text-[16px] text-slate-700 pt-1">소리가 들리지 않는다면, 즉시 <b>선생님께 도움을 요청</b>하세요.</span></li>
+                    <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-8 h-8 rounded-full bg-[#013976] text-white text-[14px] font-bold flex items-center justify-center">3</span><span class="text-[16px] text-slate-700 pt-1">듣기 평가는 재생 가능 횟수가 각 문제에 표시되어 있으며, 해당 횟수 내에서만 재생이 가능합니다. 또한 일시정지·빨리감기·뒤로감기 기능은 없습니다.</span></li>
+                    <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-8 h-8 rounded-full bg-[#013976] text-white text-[14px] font-bold flex items-center justify-center">4</span><span class="text-[16px] text-slate-700 pt-1">아래 <b>🔊 오디오 테스트</b> 버튼으로 소리가 정상 출력되는지 확인한 후 START EXAM을 눌러 주세요.</span></li>
+                    <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-8 h-8 rounded-full bg-red-500 text-white text-[14px] font-bold flex items-center justify-center">5</span><span class="text-[16px] text-slate-700 pt-1">소리가 들리지 않는다면, 즉시 <b>선생님께 도움을 요청</b>하세요.</span></li>
+                    <li class="flex gap-3 items-start"><span class="flex-shrink-0 w-8 h-8 rounded-full bg-red-500 text-white text-[14px] font-bold flex items-center justify-center">6</span><span class="text-[16px] text-slate-700 pt-1">😱 시험 중 화면 오류가 발생하거나 창이 닫히더라도 <b>당황하지 말고</b> 즉시 <b>선생님께 도움을 요청</b>하세요. 이전 답안은 자동 저장됩니다.</span></li>
                 </ol>
                 <div class="flex gap-3 justify-center">
+                    <button onclick="renderStudentLogin()" class="flex items-center gap-2 px-5 py-3 rounded-xl border-2 border-slate-300 bg-white text-slate-500 font-bold text-[14px] hover:border-slate-400 hover:bg-slate-50 transition-all">
+                        ← 뒤로가기
+                    </button>
                     <button id="audio-test-btn" onclick="playAudioTest()" class="flex items-center gap-2 px-5 py-3 rounded-xl border-2 border-slate-300 bg-white text-slate-700 font-bold text-[14px] hover:border-blue-400 hover:bg-blue-50 transition-all">
                         🔊 오디오 테스트
                     </button>
