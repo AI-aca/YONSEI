@@ -5645,8 +5645,7 @@ function printReport(orientation = 'portrait') {
     const display = document.getElementById('report-display');
     if (!display) return;
 
-    // 1. print-popup.css URL 결정 (로컬/배포 공통)
-    const _cssHref = (()=>{ const l=document.querySelector('link[href*="style.css"]'); return l ? l.href.replace('style.css','print-popup.css') : 'print-popup.css'; })();
+    // 1. 인쇄 팝업 전용 CSS (print-popup.css와 동기화 유지 — 로컬/배포 100% 동일 보장을 위해 인라인 하드코딩)
 
     // 2. 모든 chart canvas를 PNG 이미지 데이터로 변환
     const canvasIds = ['chart-total', 'chart-sections-bar', 'chart-radar'];
@@ -5723,6 +5722,10 @@ function printReport(orientation = 'portrait') {
     const _radarSec = clone.querySelector('#radar-section');
     const _aiSection = clone.querySelector('#ai-comment-section');
 
+    // 1페이지 상단 여백 균일화: .card의 mt-5(margin) 제거 (padding-top은 @media print CSS에서 처리)
+    const _cardEl = clone.querySelector('.card');
+    if (_cardEl) _cardEl.style.marginTop = '0';
+
     // 차트/이미지 페이지 중간 분리 방지
     clone.querySelectorAll('canvas, img').forEach(el => {
         el.style.pageBreakInside = 'avoid';
@@ -5753,8 +5756,17 @@ function printReport(orientation = 'portrait') {
         });
         // L3. 레이더 → 2페이지
         if (_radarSec) _radarSec.style.cssText = (_radarSec.style.cssText || '') + ';page-break-before:always;break-before:page;margin-top:24px;';
-        // L4. 영역별코멘트 → 3페이지
-        if (_sectionsWrapper) _sectionsWrapper.style.cssText = (_sectionsWrapper.style.cssText || '') + ';page-break-before:always;break-before:page;';
+        // L4. 영역별코멘트 → 3페이지 (DOM 이동: notes-section 뒤로)
+        const _sc = clone.querySelector('#sections-container');
+        const _notesSection = clone.querySelector('#notes-section') || clone.querySelector('#notes-box')?.parentElement;
+        if (_sc) {
+            const _insertTarget = _notesSection || _aiSection;
+            if (_insertTarget && _insertTarget.parentNode) {
+                _insertTarget.parentNode.insertBefore(_sc, _insertTarget.nextSibling);
+            }
+            _sc.style.cssText = (_sc.style.cssText || '') + ';page-break-before:always;break-before:page;';
+            if (_sectionsWrapper && _sectionsWrapper.children.length === 0) _sectionsWrapper.style.display = 'none';
+        }
     }
 
     // 4. 배너 HTML (가로: 22%, 세로: 45%)
@@ -5784,12 +5796,34 @@ function printReport(orientation = 'portrait') {
 <\/script>
 <script src="https://cdn.tailwindcss.com"><\/script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap">
-<link rel="stylesheet" href="${_cssHref}">
 <style>
+  /* === 인쇄 팝업 전용 CSS (print-popup.css 동기화) === */
+  :root { --ys-navy: #013976; }
+  .fs-14 { font-size: 14px !important; line-height: 1.4; font-weight: 400 !important; color: inherit; }
+  .fs-15 { font-size: 13px !important; line-height: 1.6; }
+  .fs-17-reg { font-size: 17px !important; line-height: 1.5; font-weight: 400 !important; color: inherit; }
+  .fs-18 { font-size: 17px !important; line-height: 1.4; font-weight: 700 !important; color: inherit; }
+  .fs-24 { font-size: 18px !important; line-height: 1.3; font-weight: 700; color: inherit; }
+  .ys-label { font-size: 17px !important; font-weight: 700 !important; color: #013976; display: block; margin-bottom: 8px; }
+  .card { background: #ffffff; border-radius: 16px; padding: 32px 40px; border: none !important; box-shadow: none !important; }
+  table.fs-14 td, table.fs-14 th { font-size: 13px !important; }
+  .print-banner { display: none; }
+  .no-print { display: none !important; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   body { font-family: 'Noto Sans KR', sans-serif; background:#fff; margin:0; padding:24px 12px 0; color:#1e293b; }
   img { max-width:100%; }
   @page { size: A4 ${orientation}; margin: 12mm; }
+  @media print {
+    body { display: block !important; height: auto !important; overflow: visible !important; padding: 0 !important; background: white !important; }
+    .card { padding-top: 0 !important; }
+    .card { page-break-inside: avoid; border: none !important; box-shadow: none !important; }
+    section, [class*='rounded'] { page-break-inside: avoid; }
+    h4 { page-break-after: avoid; }
+    canvas { max-width: 100% !important; height: auto !important; }
+    .print-banner { display: block !important; }
+    .card > * + * { margin-top: 16px !important; }
+    #sections-container > * + * { margin-top: 16px !important; }
+  }
 </style>
 </head><body>
 ${clone.innerHTML}
