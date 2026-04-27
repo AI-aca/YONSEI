@@ -5718,28 +5718,26 @@ function printReport(orientation = 'portrait') {
         }
     }
 
-    // 3c. 영역별 코멘트 앞 페이지 강제 분리
-    const sectionsWrapper = clone.querySelector('#sections-container')?.parentElement;
-    if (sectionsWrapper) sectionsWrapper.style.cssText = (sectionsWrapper.style.cssText || '') + ';page-break-before:always;break-before:page;';
+    // [페이지 분리] 섹션 참조
+    const _sectionsWrapper = clone.querySelector('#sections-container')?.parentElement;
+    const _radarSec = clone.querySelector('#radar-section');
+    const _aiSection = clone.querySelector('#ai-comment-section');
 
-    // 3d. AI 종합 분석 섹션 앞 페이지 강제 분리 (세로 전용)
-    if (orientation === 'portrait') {
-        const aiHeader = Array.from(clone.querySelectorAll('h4')).find(h => h.textContent.includes('종합분석'));
-        if (aiHeader) {
-            const aiSection = aiHeader.closest('div[class]');
-            if (aiSection) aiSection.style.cssText += ';page-break-before:always;break-before:page;';
-        }
-    }
-
-    // 3e. 차트 컨테이너 페이지 분리 방지
+    // 차트/이미지 페이지 중간 분리 방지
     clone.querySelectorAll('canvas, img').forEach(el => {
         el.style.pageBreakInside = 'avoid';
         if (el.parentElement) el.parentElement.style.pageBreakInside = 'avoid';
     });
 
-    // [가로 인쇄 전용] 레이아웃 재구성
+    if (orientation === 'portrait') {
+        // 세로: 1p=헤더+총점+영역별+레이더 / 2p=영역별코멘트 / 3p=AI종합+기타
+        if (_sectionsWrapper) _sectionsWrapper.style.cssText = (_sectionsWrapper.style.cssText || '') + ';page-break-before:always;break-before:page;';
+        if (_aiSection) _aiSection.style.cssText = (_aiSection.style.cssText || '') + ';page-break-before:always;break-before:page;';
+    }
+
     if (orientation === 'landscape') {
-        // L1. 차트 이미지 3개 → 80% 크기 중앙 정렬
+        // 가로: 1p=헤더+총점+영역별 / 2p=레이더+AI종합+기타 / 3p=영역별코멘트
+        // L1. 차트 이미지 85% 중앙 정렬
         clone.querySelectorAll('img').forEach(img => {
             if (img.src && img.src.startsWith('data:')) {
                 img.style.width = '85%';
@@ -5748,16 +5746,15 @@ function printReport(orientation = 'portrait') {
                 img.style.display = 'block';
             }
         });
-
-        // L2. 레이더 차트 컨테이너 height 고정값 제거 (이미지 80% 축소 후 빈 공백 방지)
+        // L2. 레이더 컨테이너 height 고정값 제거
         clone.querySelectorAll('#radar-section div[style]').forEach(d => {
             d.style.height = 'auto';
             d.style.minHeight = '0';
         });
-
-        // L3. 레이더 차트 앞 페이지 분리 (2페이지 시작)
-        const _radarSec = clone.querySelector('#radar-section');
+        // L3. 레이더 → 2페이지
         if (_radarSec) _radarSec.style.cssText = (_radarSec.style.cssText || '') + ';page-break-before:always;break-before:page;margin-top:24px;';
+        // L4. 영역별코멘트 → 3페이지
+        if (_sectionsWrapper) _sectionsWrapper.style.cssText = (_sectionsWrapper.style.cssText || '') + ';page-break-before:always;break-before:page;';
     }
 
     // 4. 배너 HTML (가로: 22%, 세로: 45%)
@@ -5792,9 +5789,7 @@ function printReport(orientation = 'portrait') {
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   body { font-family: 'Noto Sans KR', sans-serif; background:#fff; margin:0; padding:24px 12px 0; color:#1e293b; }
   img { max-width:100%; }
-  @media print {
-    @page { size: A4 ${orientation}; margin:12mm; }
-  }
+  @page { size: A4 ${orientation}; margin: 12mm; }
 </style>
 </head><body>
 ${clone.innerHTML}
@@ -5802,16 +5797,6 @@ ${bannerHtml}
 <script>
 window.onload = function() {
   if ('${orientation}' === 'landscape') {
-    var sc = document.getElementById('sections-container');
-    if(sc) {
-      var sw = sc.parentElement;
-      if(sw) {
-        // sw page-break 제거, sections-container에 page-break 추가 후 sw 맨 끝으로 이동
-        sw.style.cssText = (sw.style.cssText||'').replace(/page-break-before:[^;]+;?/g,'').replace(/break-before:[^;]+;?/g,'');
-        sc.style.cssText = (sc.style.cssText||'') + ';page-break-before:always;break-before:page;';
-        sw.appendChild(sc);
-      }
-    }
     var aic = document.getElementById('ai-comment-section');
     if(aic) aic.style.marginTop = '16px';
   }
