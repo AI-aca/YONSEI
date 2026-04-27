@@ -5808,6 +5808,8 @@ function printReport(orientation = 'portrait') {
     .print-banner { display:block !important; }
   }
   ${styles}
+  /* 팝업 레이아웃 리셋 (배포환경 style.css 오버라이드) */
+  body { display: block !important; height: auto !important; overflow: auto !important; background: #fff !important; padding: 24px 12px 0 !important; }
   .card { border: none !important; box-shadow: none !important; }
   .ys-label { font-size: 17px !important; font-weight: 700 !important; }
   @media print {
