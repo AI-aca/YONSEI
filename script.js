@@ -10864,9 +10864,6 @@ async function startExamSequence() {
             examSession.timeLimit = _rd.timeLimit != null ? _rd.timeLimit : examSession.timeLimit;
             window._audioPlaysUsed = _rd.audioPlaysUsed || {};
             window._resumeDraft = null; // 사용 완료 후 즉시 정리
-            // [DEBUG] 복원 확인
-            console.log('[DRAFT DEBUG] answers 복원:', JSON.stringify(examSession.answers));
-            console.log('[DRAFT DEBUG] answers 키 목록:', Object.keys(examSession.answers));
         }
 
         // Filter Questions
@@ -11200,8 +11197,6 @@ function getInputHtml(q) {
 // [Refactor] Render Choices (원문자 버튼, 2-Col Grid) — [Fix] labelType(alpha/number) 분기 지원
 function renderChoices(q, choices) {
     const savedAns = examSession.answers ? examSession.answers[String(q.id)] : undefined;
-    // [DEBUG] 첫 문항만 로그
-    if (!window._debugChoiceLogged) { window._debugChoiceLogged = true; console.log('[CHOICE DEBUG] q.id:', q.id, 'String(q.id):', String(q.id), 'savedAns:', savedAns, 'answers keys:', Object.keys(examSession.answers || {})); }
     // [Fix] labelType에 따라 원문자 및 선택값 분기
     const _lType = q.labelType || 'number';
     const _alphaCircled = ['Ⓐ', 'Ⓑ', 'Ⓒ', 'Ⓓ', 'Ⓔ'];
