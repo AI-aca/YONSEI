@@ -10887,7 +10887,7 @@ async function startExamSequence() {
             examSession.studentId = _rd.studentId || examSession.studentId;
             examSession.date = _rd.date || examSession.date;
             examSession.timeLimit = _rd.timeLimit != null ? _rd.timeLimit : examSession.timeLimit;
-            window._audioPlaysUsed = _rd.audioPlaysUsed || {};
+            window._audioPlaysUsed = {}; // [ExamDraft] 듣기 클릭 상태는 저장/복원 제외 → 팅겨도 재청취 가능
             window._resumeDraft = null; // 사용 완료 후 즉시 정리
         }
 
@@ -11308,7 +11308,7 @@ function saveExamDraft() {
             timeLimit: examSession.timeLimit,
             answers: examSession.answers || {},
             startTime: examSession.startTime,
-            audioPlaysUsed: window._audioPlaysUsed || {},
+            // audioPlaysUsed 저장 제외 — 팅겼다 복원 시 듣기 재청취 보장
             savedAt: Date.now()
         }));
     } catch (e) {
