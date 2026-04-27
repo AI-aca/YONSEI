@@ -11056,8 +11056,7 @@ function renderExamPaper(list) {
         </div>
     `;
 
-    updateExamGrid(2); // Default to 2 columns
-    renderExamContent();
+    updateExamGrid(2); // Default to 2 columns (calls renderExamContent internally)
 }
 
 // [Restored Feature] renderStudentSidebar - omitted for brevity (unchanged)
@@ -11182,7 +11181,7 @@ function getInputHtml(q) {
         return renderChoices(q, choices);
     } else {
         // Subjective
-        const saved = examSession.answers[q.id] || "";
+        const saved = (examSession.answers && examSession.answers[String(q.id)]) || "";
         return `
             <div class="mt-1">
                 <textarea 
@@ -11197,7 +11196,7 @@ function getInputHtml(q) {
 
 // [Refactor] Render Choices (원문자 버튼, 2-Col Grid) — [Fix] labelType(alpha/number) 분기 지원
 function renderChoices(q, choices) {
-    const savedAns = examSession.answers[q.id];
+    const savedAns = examSession.answers ? examSession.answers[String(q.id)] : undefined;
     // [Fix] labelType에 따라 원문자 및 선택값 분기
     const _lType = q.labelType || 'number';
     const _alphaCircled = ['Ⓐ', 'Ⓑ', 'Ⓒ', 'Ⓓ', 'Ⓔ'];
