@@ -5810,6 +5810,7 @@ function printReport(orientation = 'portrait') {
   ${styles}
   .ys-label { font-size: 17px !important; font-weight: 700 !important; }
   @media print {
+    body { display: block !important; height: auto !important; overflow: visible !important; }
     .card > * + * { margin-top: 16px !important; }
     #sections-container > * + * { margin-top: 16px !important; }
   }
