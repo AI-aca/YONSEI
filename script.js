@@ -4850,7 +4850,7 @@ ${sectionSummary}
 - ⛔ "수업을 잘 따라오고 있습니다", "수업에 적응하고 있습니다", "학원 생활" 등 재원생 대상 표현 절대 금지. (이 시험은 입학 전 레벨테스트임)
 - ⛔ 줄바꿈(\n, 개행) 절대 금지. 전체 코멘트를 하나의 연속된 문단으로 작성하세요.`;
 
-    return await callGeminiAPI(prompt);
+    return await callGeminiAPI(prompt, true);
 }
 
 // 학생 성적표 로드 및 표시
@@ -5023,7 +5023,8 @@ async function generateSectionComments(record, averages, activeSections) {
     } catch (e) { questionScores = []; }
     const catQs = globalConfig.questions || [];
 
-    for (let section of activeSections) {
+    await Promise.allSettled(
+        activeSections.map(async (section) => {
         const studentScore = parseFloat(record[section + '_점수'] || record[secMap[section]] || 0);
         const overallAvgScore = parseFloat(averages[section + '_점수'] || averages[secMap[section]] || 0);
         const maxScore = parseFloat(record[section + '_만점'] || record[maxMap[section]] || averages[maxMap[section]] || 0);
@@ -5161,8 +5162,17 @@ ${_weaknessRule}
 - ⛔ "수업을 잘 따라오고 있습니다", "수업에 적응하고 있습니다", "학원 생활" 등 재원생 대상 표현 절대 금지. (이 시험은 입학 전 레벨테스트임)
 - ⛔ 줄바꿈(\n, 개행) 절대 금지. 전체 코멘트를 하나의 연속된 문단으로 작성하세요.`;
 
-        comments[section] = await callGeminiAPI(prompt);
-    }
+            return { section, result: await callGeminiAPI(prompt, true) };
+        })
+    ).then(results => {
+        results.forEach(r => {
+            if (r.status === 'fulfilled') {
+                comments[r.value.section] = r.value.result;
+            } else {
+                console.warn('[AI] 영역 코멘트 생성 실패:', r.reason);
+            }
+        });
+    });
     return comments;
 }
 
@@ -5185,7 +5195,7 @@ async function callGeminiAPI(prompt, silent = false, imageUrls = []) {
             imageUrls: imageUrls.length > 0 ? imageUrls : undefined
         };
 
-        const result = await sendReliableRequest(payload);
+        const result = await sendReliableRequest(payload, silent);
 
         if (!silent) toggleLoading(false);
 
@@ -5967,6 +5977,7 @@ async function regenerateSectionComment(section) {
     // 버튼 로딩 표시
     const btn = document.querySelector(`button[onclick="regenerateSectionComment('${section}')"]`);
     if (btn) { btn.disabled = true; btn.textContent = '⏳ 생성 중...'; }
+    toggleLoading(true);
 
     try {
         // 해당 섹션만 재생성
@@ -5976,14 +5987,14 @@ async function regenerateSectionComment(section) {
         // currentReportData 업데이트
         window.currentReportData.sectionComments = updated;
 
-        // 카드 코멘트 영역만 직접 업데이트 (전체 리렌더 없이)
-        const secItems = activeSections.map(s => [s, updated[s]]);
         renderReportCard(record, averages, updated, overallComment, activeSections);
         window._dirtyComment = true;
         showToast(`✅ ${section} 코멘트 재생성 완료!`);
     } catch (e) {
         showToast('❌ 재생성 실패: ' + e.message);
         if (btn) { btn.disabled = false; btn.textContent = '🔄 재생성'; }
+    } finally {
+        toggleLoading(false);
     }
 }
 
@@ -6105,6 +6116,7 @@ async function regenerateOverallComment() {
     const { record, averages, activeSections, sectionComments } = window.currentReportData;
     const btn = document.querySelector('button[onclick="regenerateOverallComment()"]');
     if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+    toggleLoading(true);
     try {
         const newComment = await generateOverallComment(record, averages, activeSections, sectionComments || {});
         window.currentReportData.overallComment = newComment;
@@ -6113,7 +6125,10 @@ async function regenerateOverallComment() {
         window._dirtyComment = true;
         showToast('✅ 종합 코멘트가 재생성되었습니다.');
     } catch (e) { showToast('❌ 재생성 실패: ' + e.message); }
-    finally { if (btn) { btn.disabled = false; btn.textContent = '🔄'; } }
+    finally {
+        toggleLoading(false);
+        if (btn) { btn.disabled = false; btn.textContent = '🔄'; }
+    }
 }
 
 // 영역별 + 종합 코멘트 전체 재생성
@@ -6124,39 +6139,32 @@ async function regenerateAllComments() {
     const oaBtn = document.querySelector('button[onclick="regenerateOverallComment()"]');
     if (allBtn) { allBtn.disabled = true; allBtn.textContent = '⏳ 생성중...'; }
     if (oaBtn) { oaBtn.disabled = true; }
+    // 영역별 버튼 일괄 비활성화
+    const secBtns = activeSections.map(s => document.querySelector(`button[onclick="regenerateSectionComment('${s}')"]`));
+    secBtns.forEach(b => { if (b) { b.disabled = true; b.textContent = '⏳'; } });
+    toggleLoading(true);
     try {
-        // 1단계: 영역별 코멘트 순차 재생성
-        showToast('🤖 영역별 코멘트 재생성 중...');
-        const newSectionComments = {};
-        for (const section of activeSections) {
-            const secBtn = document.querySelector(`button[onclick="regenerateSectionComment('${section}')"]`);
-            if (secBtn) { secBtn.disabled = true; secBtn.textContent = '⏳'; }
-            try {
-                const sectionKR = { Grammar: '문법', Writing: '영작', Reading: '독해', Listening: '듣기', Vocabulary: '어휘' }[section] || section;
-                showToast(`🤖 ${sectionKR} 코멘트 재생성 중...`);
-                const result = await generateSectionComments(record, averages, [section]);
-                const newComment = result[section] || '';
-                newSectionComments[section] = newComment;
-                window.currentReportData.sectionComments = { ...(window.currentReportData.sectionComments || {}), ...newSectionComments };
-                const el = document.getElementById(`section-comment-text-${section}`);
-                if (el) el.innerHTML = (newComment).split(/\n+/).map(l => l.trim()).filter(l => l).join('<br>');
-            } finally {
-                if (secBtn) { secBtn.disabled = false; secBtn.textContent = '🔄'; }
-            }
-        }
-        // 2단계: 종합 코멘트 재생성 (반드시 새로 생성된 코멘트만 사용)
+        // 1단계: 전체 영역 병렬 생성 (for 루프 제거 → Race Condition 해결)
+        showToast('🤖 영역별 코멘트 병렬 생성 중...');
+        const newSectionComments = await generateSectionComments(record, averages, activeSections);
+        // 완료 후 일괄 업데이트
+        window.currentReportData.sectionComments = { ...(window.currentReportData.sectionComments || {}), ...newSectionComments };
+        // 2단계: 종합 코멘트 재생성 (새로 생성된 섹션 코멘트만 사용)
         showToast('🤖 종합 코멘트 재생성 중...');
-        // ⚠️ 기존 sectionComments 참조 금지 — 새로 생성된 것만 사용
         const newOverall = await generateOverallComment(record, averages, activeSections, newSectionComments);
         window.currentReportData.overallComment = newOverall;
         const wrap = document.getElementById('overall-comment-wrap');
         if (wrap) wrap.innerHTML = `<p class="text-slate-700 leading-relaxed fs-15" id="overall-comment-text" style="cursor:pointer;" onclick="editComment('overall')" title="클릭하여 수정">${(newOverall || '').split(/\n+/).map(l => l.trim()).filter(l => l).join('<br>')}</p>`;
+        // 전체 카드 리렌더 (섹션 코멘트 반영)
+        renderReportCard(record, averages, window.currentReportData.sectionComments, newOverall, activeSections);
         window._dirtyComment = true;
         showToast('✅ 영역별 + 종합 코멘트 전체 재생성 완료!');
     } catch (e) { showToast('❌ 재생성 실패: ' + e.message); }
     finally {
+        toggleLoading(false);
         if (allBtn) { allBtn.disabled = false; allBtn.textContent = '🔄 전체'; }
         if (oaBtn) { oaBtn.disabled = false; }
+        secBtns.forEach(b => { if (b) { b.disabled = false; b.textContent = '🔄'; } });
     }
 }
 
