@@ -4335,6 +4335,25 @@ function selectObjAnswer(qId, val, isMultiple, maxCount) {
             const txt = btn.querySelector('span:last-child');
             if (txt) txt.style.color = isSel ? '#3730a3' : '#374151';
         });
+    } else {
+        // 단일 정답 모드: 이미 선택된 것 다시 클릭 시 해제 (toggle)
+        const cur = (examSession.answers && examSession.answers[qId]) || '';
+        const newVal = cur === val ? '' : val;
+        updateAnswer(qId, newVal);
+        document.querySelectorAll('.exam-choice-btn').forEach(function (btn) {
+            if (btn.dataset.qid !== qId) return;
+            const isSel = btn.dataset.val === newVal && newVal !== '';
+            btn.style.borderColor = isSel ? '#4f46e5' : '#e2e8f0';
+            btn.style.background = isSel ? '#eef2ff' : '#ffffff';
+            const circle = btn.querySelector('.exam-circle-num');
+            if (circle) {
+                circle.style.background = isSel ? '#4f46e5' : '#ffffff';
+                circle.style.color = isSel ? '#ffffff' : '#4f46e5';
+                circle.style.borderColor = isSel ? '#4f46e5' : '#c7d2fe';
+            }
+            const txt = btn.querySelector('span:last-child');
+            if (txt) txt.style.color = isSel ? '#3730a3' : '#374151';
+        });
     }
 }
 
