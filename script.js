@@ -2227,7 +2227,7 @@ function renderCatManage(c) {
     setCanvasId('09');
     c.innerHTML = `
         <div class="animate-fade-in-safe flex flex-col h-full space-y-6">
-            <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">Exam Paper Management</h2>
+            <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">📂 Exam Paper Management</h2>
 
             <!-- 상단 헤더 바 (캔버스08 스타일) -->
             <div class="card !p-6 flex flex-row items-center justify-between shadow-lg relative overflow-hidden flex-none gap-4 flex-nowrap" style="background: linear-gradient(135deg, #ffffff 0%, #eef4ff 100%); border: 2px solid rgba(1,57,118,0.15);">
@@ -2783,14 +2783,14 @@ window.onload = () => {
 // 학생 성적 입력 UI 렌더링
 function renderScoreInput(c) {
     if (!globalConfig.categories || globalConfig.categories.length === 0) {
-        renderEmptyState(c, 'Student Score Input');
+        renderEmptyState(c, '✏️ Student Score Input');
         return;
     }
 
     setCanvasId('06');
     c.innerHTML = `
         <div class="animate-fade-in-safe space-y-6 pb-10">
-            <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">Student Score Input</h2>
+            <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">✏️ Student Score Input</h2>
 
             <!-- 1. Category Selection -->
             <div class="card !py-3.5 !px-6 flex items-center justify-between shadow-lg relative overflow-hidden" style="background: linear-gradient(135deg, #ffffff 0%, #eef4ff 100%); border: 2px solid rgba(1,57,118,0.15);">
@@ -4710,7 +4710,7 @@ async function confirmAIGrade(studentId, catId) {
 // 학생 성적표 UI 렌더링 (시험지→년도→학년→학생 계단식 필터)
 function renderRecords(c) {
     if (!globalConfig.categories || globalConfig.categories.length === 0) {
-        renderEmptyState(c, 'Individual Reports');
+        renderEmptyState(c, '📊 Individual Reports');
         return;
     }
 
@@ -4720,7 +4720,7 @@ function renderRecords(c) {
     c.innerHTML = `
         <div class="animate-fade-in-safe space-y-6">
             <div class="relative no-print">
-                <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">Individual Reports</h2>
+                <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">📊 Individual Reports</h2>
                 <div class="absolute right-0 flex items-center gap-2" style="top:50%; transform:translateY(-50%);">
                     <button onclick="saveReportData()" id="btn-save-report" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-[#013976] text-white font-bold fs-15 hover:bg-[#012456] transition-all active:scale-95 shadow">💾 저장</button>
                     <button onclick="printReport('portrait')" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-700 text-white font-bold fs-15 hover:bg-slate-900 transition-all active:scale-95 shadow">🖨️ 세로</button>
@@ -6492,14 +6492,14 @@ async function triggerAIAnalysis() {
 // 문항 통계 대시보드 UI 렌더링
 function renderStats(c) {
     if (!globalConfig.categories || globalConfig.categories.length === 0) {
-        renderEmptyState(c, 'Question Statistics');
+        renderEmptyState(c, '📈 Question Statistics');
         return;
     }
 
     setCanvasId('07');
     c.innerHTML = `
                 <div class="animate-fade-in-safe space-y-6 pb-10">
-                    <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">Statistics</h2>
+                    <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">📈 Statistics</h2>
 
                     <!-- 헤더의 요소 선택 + 통계 모드 버튼 -->
                     <div class="card !py-3.5 !px-6 !flex-row !flex-nowrap items-center justify-between shadow-lg relative overflow-hidden flex-none gap-4" style="background: linear-gradient(135deg, #ffffff 0%, #eef4ff 100%); border: 2px solid rgba(1,57,118,0.15);">
@@ -7277,7 +7277,7 @@ function renderBank(c) {
     c.innerHTML = `
         <div class="animate-fade-in-safe flex flex-col h-full space-y-6">
             <div class="flex justify-between items-center">
-                <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">Question List</h2>
+                <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">📋 Question List</h2>
             </div>
 
             <!-- 카테고리 선택 -->
