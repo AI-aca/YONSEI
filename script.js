@@ -4295,7 +4295,7 @@ async function submitExam() {
 
     try {
         // [답안 저장] 채점 없이 학생 답안만 수집
-        const rawQuestions = globalConfig.questions.filter(q => String(q.catId) === String(examSession.categoryId));
+        const rawQuestions = globalConfig.questions.filter(q => String(q.catId) === String(examSession.categoryId)).sort((a, b) => (parseInt(a.no) || 0) - (parseInt(b.no) || 0)); // [Fix] 제출 시 문항번호 오름차순 정렬 통일
         let maxScore = 0;
         const sections = { 'Grammar': { max: 0 }, 'Writing': { max: 0 }, 'Reading': { max: 0 }, 'Listening': { max: 0 }, 'Vocabulary': { max: 0 } };
         const difficulties = { '최상': { max: 0 }, '상': { max: 0 }, '중': { max: 0 }, '하': { max: 0 }, '기초': { max: 0 } };
@@ -11159,7 +11159,7 @@ async function startExamSequence() {
         }
 
         // Filter Questions
-        const filteredQuestions = globalConfig.questions.filter(q => String(q.catId) === String(catId));
+        const filteredQuestions = globalConfig.questions.filter(q => String(q.catId) === String(catId)).sort((a, b) => (parseInt(a.no) || 0) - (parseInt(b.no) || 0)); // [Fix] 시트 행 순서 무관 — 항상 문항번호 오름차순 정렬
 
         // [Fix] Data Mapping & Bundle Injection
         // Join Bundle Data (Passage/Title) and Normalize Choices
