@@ -4502,8 +4502,10 @@ async function loadAIGradeList(silentLoad = false) {
             const hasUngraded = qs.some(q => q._graded === false || q._graded === 'false');
             const allGraded = qs.length > 0 && qs.every(q => q._graded === true || q._graded === 'true');
             const isVerified = qs.some(q => q._verified === true);
-            const isPending = hasUngraded || (allGraded && !isVerified);
-            const isGraded = allGraded && isVerified;
+            // 기존 데이터 호환: _verified 없어도 allGraded && 실제 점수(숫자) 있으면 완료 처리
+            const hasLegacyScores = allGraded && qs.every(q => typeof q.score === 'number' && q.score !== null);
+            const isPending = hasUngraded || (allGraded && !isVerified && !hasLegacyScores);
+            const isGraded = allGraded && (isVerified || hasLegacyScores);
             return { ...r, _qs: qs, _isPending: isPending, _isGraded: isGraded };
         });
         const filtered = parsed.filter(r => {
@@ -4902,6 +4904,20 @@ function onReportGradeChange() {
             return !isNaN(_td) && _td >= _oneMonthAgo;
         });
     }
+
+    // 성적표 노출 필터: 수동입력 학생 OR AI 채점+검증 완료 학생만 표시
+    filtered = filtered.filter(r => {
+        let qs = [];
+        try { qs = JSON.parse(r['문항별상세(JSON)'] || '[]'); } catch(e) {}
+        // 수동 입력: questionScores 없거나 _graded 플래그 자체가 없음 → 항상 표시
+        const isOnlineExam = qs.length > 0 && qs.some(q => q._graded === true || q._graded === 'true' || q._graded === false || q._graded === 'false');
+        if (!isOnlineExam) return true;
+        // 온라인 제출 학생: allGraded + (verified or legacy 점수) 확인
+        const allGraded = qs.every(q => q._graded === true || q._graded === 'true');
+        const isVerified = qs.some(q => q._verified === true);
+        const hasLegacyScores = allGraded && qs.every(q => typeof q.score === 'number' && q.score !== null);
+        return allGraded && (isVerified || hasLegacyScores);
+    });
 
     const stuSel = document.getElementById('report-student');
     if (!stuSel) return;
