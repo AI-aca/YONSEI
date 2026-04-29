@@ -4247,25 +4247,6 @@ function selectObjAnswer(qId, val, isMultiple, maxCount) {
             const txt = btn.querySelector('span:last-child');
             if (txt) txt.style.color = isSel ? '#3730a3' : '#374151';
         });
-    } else {
-        // 단일 정답 모드: 이미 선택된 것 다시 클릭 시 해제 (toggle)
-        const cur = (examSession.answers && examSession.answers[qId]) || '';
-        const newVal = cur === val ? '' : val;
-        updateAnswer(qId, newVal);
-        document.querySelectorAll('.exam-choice-btn').forEach(function (btn) {
-            if (btn.dataset.qid !== qId) return;
-            const isSel = btn.dataset.val === newVal && newVal !== '';
-            btn.style.borderColor = isSel ? '#4f46e5' : '#e2e8f0';
-            btn.style.background = isSel ? '#eef2ff' : '#ffffff';
-            const circle = btn.querySelector('.exam-circle-num');
-            if (circle) {
-                circle.style.background = isSel ? '#4f46e5' : '#ffffff';
-                circle.style.color = isSel ? '#ffffff' : '#4f46e5';
-                circle.style.borderColor = isSel ? '#4f46e5' : '#c7d2fe';
-            }
-            const txt = btn.querySelector('span:last-child');
-            if (txt) txt.style.color = isSel ? '#3730a3' : '#374151';
-        });
     }
 }
 
@@ -4518,14 +4499,16 @@ async function loadAIGradeList(silentLoad = false) {
         const parsed = records.map(r => {
             let qs = [];
             try { qs = JSON.parse(r['문항별상세(JSON)'] || '[]'); } catch (e) { qs = []; }
-            // _graded:false 플래그가 있는 항목이 있어야 온라인 제출 (새 방식)
             const hasUngraded = qs.some(q => q._graded === false || q._graded === 'false');
-            const isGraded = qs.length > 0 && qs.every(q => q._graded === true || q._graded === 'true');
-            return { ...r, _qs: qs, _hasUngraded: hasUngraded, _isGraded: isGraded };
+            const allGraded = qs.length > 0 && qs.every(q => q._graded === true || q._graded === 'true');
+            const isVerified = qs.some(q => q._verified === true);
+            const isPending = hasUngraded || (allGraded && !isVerified);
+            const isGraded = allGraded && isVerified;
+            return { ...r, _qs: qs, _isPending: isPending, _isGraded: isGraded };
         });
         const filtered = parsed.filter(r => {
             const y = String(r['응시일'] || '').substring(0, 4);
-            return y === year && (mode === 'pending' ? r._hasUngraded : r._isGraded);
+            return y === year && (mode === 'pending' ? r._isPending : r._isGraded);
         });
         if (!filtered.length) {
             if (!silentLoad) toggleLoading(false);
@@ -4542,13 +4525,14 @@ async function loadAIGradeList(silentLoad = false) {
             const answered = r._qs.filter(q => (q.studentAnswer || '').trim()).length;
             const total = r._qs.length;
             const actionBtn = mode === 'pending'
-                ? `<button id="ai-btn-${sid}" onclick="runAIGradeForStudent('${sid}','${catId}')" class="px-3 py-1.5 rounded-xl bg-[#013976] text-white font-bold hover:bg-[#012456] transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:14px;">🤖 AI 채점</button>`
-                : `<span class="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 font-bold whitespace-nowrap flex-none" style="font-size:14px;">✅ 완료 (${r['총점'] || 0}/${r['만점'] || 0}점)</span>
-                   <button id="ai-btn-${sid}" onclick="runAIGradeForStudent('${sid}','${catId}')" class="px-3 py-1.5 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:14px;">🔄 다시 채점</button>`;
+                ? `<button id="ai-btn-${sid}" onclick="runAIGradeAndVerify('${sid}','${catId}')" class="px-3 py-1.5 rounded-xl bg-[#013976] text-white font-bold hover:bg-[#012456] transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:15px;">🤖 AI 채점 및 검증</button>
+                   <button id="ai-confirm-btn-${sid}" onclick="confirmAIGrade('${sid}','${catId}')" class="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:15px;">✅ 확인</button>`
+                : `<span class="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 font-bold whitespace-nowrap flex-none" style="font-size:15px;">✅ 완료 (${r['총점'] || 0}/${r['만점'] || 0}점)</span>
+                   <button id="ai-btn-${sid}" onclick="if(!confirm('다시 채점하면 기존 채점 결과가 초기화됩니다.\n계속하시겠습니까?')) return; runAIGradeAndVerify('${sid}','${catId}',true)" class="px-3 py-1.5 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:15px;">🔄 다시 채점</button>`;
             return `<div class="card !px-5 !py-3.5 shadow-md relative overflow-hidden" style="flex-direction:row; display:flex; align-items:center; gap:12px; ${boxStyle}">
                 <div style="position:absolute; top:0; left:0; right:0; height:2px; background: linear-gradient(90deg, #60a5fa, #6366f1, #a855f7);"></div>
                 <span style="font-size:16px; font-weight:800; color:#013976; white-space:nowrap;">👤 ${name}</span>
-                <span class="text-slate-500 flex-1" style="font-size:15px;">🎓 ${grade}&nbsp;|&nbsp;📅 ${date}&nbsp;|&nbsp;📝 답안 ${answered}/${total}개</span>
+                <span class="text-slate-500 flex-1" style="font-size:16px;">🎓 ${grade}&nbsp;|&nbsp;📅 ${date}&nbsp;|&nbsp;📝 답안 ${answered}/${total}개</span>
                 ${actionBtn}
             </div>`;
         }).join('');
@@ -4560,9 +4544,11 @@ async function loadAIGradeList(silentLoad = false) {
     }
 }
 
-async function runAIGradeForStudent(studentId, catId) {
+async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
     const btn = document.getElementById('ai-btn-' + studentId);
+    const confirmBtn = document.getElementById('ai-confirm-btn-' + studentId);
     if (btn) { btn.disabled = true; btn.textContent = '⏳ 채점 중...'; }
+    if (confirmBtn) confirmBtn.disabled = true;
     const category = globalConfig.categories.find(c => String(c.id) === String(catId));
     if (!category) { showToast('시험지 정보 없음'); return; }
     const folderId = extractFolderId(category.targetFolderUrl);
@@ -4600,19 +4586,13 @@ async function runAIGradeForStudent(studentId, catId) {
             }
         });
 
-        // 2단계: AI 병렬 채점
+        // 2단계: AI 채점
         if (aiNeeded.length > 0 && globalConfig.masterUrl) {
-            if (btn) btn.textContent = `⏳ AI 채점 중 (${aiNeeded.length}개)...`;
+            if (btn) btn.textContent = '⏳ AI 채점 중...';
             const withTimeout = (p, ms) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
             const aiResults = await Promise.allSettled(aiNeeded.map(q => {
                 const matchedQ = catQs.find(cq => String(cq.no) === String(q.no));
-                const gradeQ = matchedQ ? matchedQ : {
-                    type: q.type, questionType: q.type,
-                    section: q.section,
-                    answer: q.correctAnswer,
-                    modelAnswer: null,
-                    score: q.maxScore
-                };
+                const gradeQ = matchedQ ? matchedQ : { type: q.type, questionType: q.type, section: q.section, answer: q.correctAnswer, modelAnswer: null, score: q.maxScore };
                 return withTimeout(gradeWithAI(gradeQ, q.studentAnswer), 10000).then(r => ({ q, r })).catch(() => ({ q, r: null }));
             }));
             aiResults.forEach(res => {
@@ -4625,6 +4605,36 @@ async function runAIGradeForStudent(studentId, catId) {
         }
         questionScores.forEach(q => { if (!q._graded) { q.score = 0; q.correct = false; q._graded = true; } });
 
+        showToast('채점 완료! 곧 점수 검증을 진행합니다.');
+        if (btn) btn.textContent = '⏳ 점수 검증 중...';
+
+        // 3단계: AI 검증
+        const toVerify = questionScores.filter(q => q.type !== '객관형');
+        const withTimeout2 = (p, ms) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
+        if (toVerify.length > 0 && globalConfig.masterUrl) {
+            const verifyResults = await Promise.allSettled(toVerify.map(q => {
+                const matchedQ = catQs.find(cq => String(cq.no) === String(q.no));
+                const gradeQ = matchedQ ? matchedQ : { section: q.section, answer: q.correctAnswer };
+                const vPrompt = `[AI 채점 검증]\n문항영역: ${gradeQ.section || q.section}\n정답/키워드: ${gradeQ.answer || q.correctAnswer}\n학생 답안: ${q.studentAnswer || '(미입력)'}\n1차 채점: ${q.score} / ${q.maxScore}점\n[원칙] 의미상 동일=정답, 고유명사 음역 허용, 조사 차이 허용, 오타=오답\n반드시 JSON만: {"score": 숫자}`;
+                return withTimeout2(
+                    sendReliableRequest({ type: 'CALL_GEMINI', prompt: vPrompt, systemInstruction: '' }, true)
+                        .then(r => {
+                            if (!r || !r.text) return { q, score: null };
+                            const parsed = JSON.parse(r.text.replace(/```json|```/g, '').trim());
+                            return { q, score: parsed.score };
+                        }),
+                    12000
+                ).catch(() => ({ q, score: null }));
+            }));
+            verifyResults.forEach(res => {
+                if (res.status !== 'fulfilled') return;
+                const { q, score } = res.value;
+                if (score !== null && score !== undefined) { q.score = Math.min(Math.max(0, Math.round(score)), q.maxScore || 0); q.correct = q.score >= (q.maxScore || 0); }
+                q._verified = true;
+            });
+        }
+        questionScores.forEach(q => { if (q.type === '객관형') q._verified = true; });
+
         // 집계
         let total = 0, max = 0;
         questionScores.forEach(q => {
@@ -4634,10 +4644,33 @@ async function runAIGradeForStudent(studentId, catId) {
             if (difficulties[diff]) { difficulties[diff].s += s; difficulties[diff].m += m; }
         });
 
-        // 저장
+        // 로컬 임시 저장
+        window._aiGradeTemp = window._aiGradeTemp || {};
+        window._aiGradeTemp[studentId] = { questionScores, sections, difficulties, total, max, catId, category, folderId, record };
+
+        showToast('✅ 검증이 완료되었습니다. 확인 버튼을 눌러주세요.');
+        if (btn) { btn.disabled = false; btn.textContent = '🔄 재채점'; }
+        if (confirmBtn) { confirmBtn.disabled = false; }
+
+        if (autoConfirm) { await confirmAIGrade(studentId, catId); }
+    } catch (e) {
+        console.error('AI 채점 실패:', e);
+        showToast('❌ AI 채점 실패: ' + e.message);
+        if (btn) { btn.disabled = false; btn.textContent = '🤖 AI 채점 및 검증'; }
+        if (confirmBtn) { confirmBtn.disabled = false; }
+    }
+}
+
+async function confirmAIGrade(studentId, catId) {
+    const temp = window._aiGradeTemp && window._aiGradeTemp[studentId];
+    if (!temp) { showToast('⚠️ AI 채점 및 검증을 먼저 진행해주세요!'); return; }
+    const confirmBtn = document.getElementById('ai-confirm-btn-' + studentId);
+    if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.textContent = '⏳ 저장 중...'; }
+    try {
+        const { questionScores, sections, difficulties, total, max, catId: tCatId, category, folderId, record } = temp;
         await sendReliableRequest({
             type: 'STUDENT_SAVE', timeout: 20000,
-            categoryId: catId, categoryName: category.name, parentFolderId: folderId,
+            categoryId: tCatId || catId, categoryName: category.name, parentFolderId: folderId,
             testDate: parseDateStr(record['응시일'] || ''), studentId: record['학생ID'] || '',
             studentName: record['학생명'] || '', grade: record['학년'] || '',
             questionScores: JSON.stringify(questionScores),
@@ -4653,12 +4686,12 @@ async function runAIGradeForStudent(studentId, catId) {
             difficulty_basic: difficulties['기초'].s, difficulty_basic_max: difficulties['기초'].m,
             totalScore: total, maxScore: max, studentClass: record['등록학급'] || ''
         }, true);
-        showToast(`✅ ${record['학생명']} AI 채점 완료! (${total}/${max}점)`);
+        delete window._aiGradeTemp[studentId];
+        showToast(`✅ ${record['학생명']} 채점 완료! (${total}/${max}점)`);
         await loadAIGradeList(true);
     } catch (e) {
-        console.error('AI 채점 실패:', e);
-        showToast('❌ AI 채점 실패: ' + e.message);
-        if (btn) { btn.disabled = false; btn.textContent = '🤖 AI 채점'; }
+        showToast('❌ 저장 실패: ' + e.message);
+        if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.textContent = '✅ 확인'; }
     }
 }
 
