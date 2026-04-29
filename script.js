@@ -4494,8 +4494,10 @@ function renderExamAnswerSaved() {
                 <div class="text-6xl mb-6">✅</div>
                 <h2 class="fs-32 font-black text-[#013976] mb-3">답안 저장 완료</h2>
                 <p class="fs-18 text-slate-600 mb-2">시험 답안이 정상적으로 저장되었습니다.</p>
-                <p class="fs-14 text-slate-400 mb-8">채점 결과는 선생님이 확인 후 안내드립니다.</p>
-                <div class="bg-[#eef4ff] rounded-xl p-4 text-left space-y-1">
+                <p class="fs-16 text-slate-400 mb-6">채점 결과는 선생님이 확인 후 안내드립니다.</p>
+                <button onclick="window.location.href = window.location.origin + window.location.pathname"
+                    class="btn-ys w-full mb-6" style="font-size:16px; padding:14px;">✅ 확인</button>
+                <div class="bg-[#eef4ff] rounded-xl p-4 flex items-center justify-center gap-6 flex-wrap">
                     <div class="fs-14 text-slate-500">👤 이름: <span class="font-bold text-[#013976]">${examSession.studentName || ''}</span></div>
                     <div class="fs-14 text-slate-500">🎓 학년: <span class="font-bold text-[#013976]">${examSession.grade || ''}</span></div>
                     <div class="fs-14 text-slate-500">📅 응시일: <span class="font-bold text-[#013976]">${examSession.date || ''}</span></div>
