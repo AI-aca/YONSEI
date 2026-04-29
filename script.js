@@ -4643,17 +4643,17 @@ async function loadAIGradeList(silentLoad = false) {
                    <button id="ai-confirm-btn-${sid}" onclick="confirmAIGrade('${sid}','${catId}')" class="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:16px;">✅ 확인</button>`
                 : `<span class="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 font-bold whitespace-nowrap flex-none" style="font-size:16px;">✅ 완료 (${r['총점'] || 0}/${r['만점'] || 0}점)</span>
                    <button id="ai-btn-${sid}" onclick="if(!confirm('다시 채점하면 기존 채점 결과가 초기화됩니다.\n계속하시겠습니까?')) return; runAIGradeAndVerify('${sid}','${catId}',true)" class="px-3 py-1.5 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:16px;">🔄 다시 채점</button>`;
-            return `<div class="flex justify-between items-center bg-slate-50 px-6 py-4 rounded-xl border-2 border-slate-200 hover:shadow-md hover:bg-white hover:border-blue-300 transition-all">
+            return `<div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:16px 24px; border-radius:12px; border:2px solid #e2e8f0; transition:all 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';this.style.background='#fff';this.style.borderColor='#93c5fd';" onmouseout="this.style.boxShadow='';this.style.background='#f8fafc';this.style.borderColor='#e2e8f0';">
                 <span style="font-size:16px; font-weight:800; color:#013976; white-space:nowrap;">👤 ${name}</span>
-                <span class="text-slate-500 flex-1" style="font-size:16px;">🎓 ${grade}&nbsp;|&nbsp;📅 ${date}&nbsp;|&nbsp;📝 답안 ${answered}/${total}개</span>
-                <div class="flex items-center gap-2">${actionBtn}</div>
+                <span style="color:#64748b; flex:1; font-size:16px;">🎓 ${grade}&nbsp;|&nbsp;📅 ${date}&nbsp;|&nbsp;📝 답안 ${answered}/${total}개</span>
+                <div style="display:flex; align-items:center; gap:8px;">${actionBtn}</div>
             </div>`;
         }).join('');
         if (!silentLoad) toggleLoading(false);
         const headerText = mode === 'pending'
             ? `🔴 AI 미채점 명단 : ${filtered.length}명`
             : `✅ AI 채점 완료 명단 : ${filtered.length}명`;
-        listEl.innerHTML = `<div class="space-y-3"><div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;"><p style="font-size:17px;font-weight:800;color:#013976;margin-bottom:0;">${headerText}</p><label style="display:flex;align-items:center;gap:5px;font-size:15px;font-weight:700;color:#013976;cursor:pointer;"><input type="checkbox" id="ai-recent-1month" ${recentOnly ? 'checked' : ''} onchange="loadAIGradeList()" style="width:16px;height:16px;cursor:pointer;"> 최근 1개월</label></div>${rows}</div>`;
+        listEl.innerHTML = `<div style="display:flex; flex-direction:column; gap:12px;"><div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;"><p style="font-size:17px;font-weight:800;color:#013976;margin-bottom:0;">${headerText}</p><label style="display:flex;align-items:center;gap:5px;font-size:15px;font-weight:700;color:#013976;cursor:pointer;"><input type="checkbox" id="ai-recent-1month" ${recentOnly ? 'checked' : ''} onchange="loadAIGradeList()" style="width:16px;height:16px;cursor:pointer;"> 최근 1개월</label></div>${rows}</div>`;
         window._hasLoadedData = true;
     } catch (e) {
         if (!silentLoad) toggleLoading(false);
