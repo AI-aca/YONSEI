@@ -732,7 +732,87 @@ function checkUnsavedChanges(callback) {
     }
 }
 
+// [보안] 마스터 코드 잠금 탭
+const _MASTER_LOCKED_TABS = ['bank', 'cat_manage'];
+
+// [보안] 마스터 코드 인증 모달 표시
+function showMasterCodeModal(tab) {
+    // 기존 모달 제거
+    const existing = document.getElementById('master-code-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'master-code-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);backdrop-filter:blur(4px);';
+    overlay.innerHTML = `
+        <div style="background:#fff;border-radius:24px;overflow:hidden;width:520px;max-width:90vw;box-shadow:0 24px 60px rgba(0,0,0,0.18);position:relative;">
+            <div style="height:4px;background:linear-gradient(90deg,#60a5fa,#6366f1,#a855f7);"></div>
+            <div style="padding:40px 40px 36px;">
+                <div style="display:flex;flex-direction:row;align-items:center;gap:32px;">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:12px;flex-shrink:0;width:120px;border-right:1px solid #e2e8f0;padding-right:32px;">
+                        <div style="width:72px;height:72px;background:#f8fafc;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:36px;box-shadow:inset 0 2px 8px rgba(0,0,0,0.06);">🔐</div>
+                        <h2 style="font-size:17px;color:#0ea5e9;font-weight:900;text-align:center;letter-spacing:0.05em;line-height:1.3;margin:0;">MASTER<br>CONSOLE</h2>
+                    </div>
+                    <div style="flex:1;display:flex;flex-direction:column;gap:14px;">
+                        <input type="password" id="master-code-input" class="ys-field" style="text-align:center;font-weight:900;letter-spacing:0.15em;" placeholder="Enter Access Code" autocomplete="off">
+                        <button id="master-code-btn" onclick="verifyMasterCodeModal('${tab}')" class="btn-ys w-full" style="padding:16px;font-size:17px;font-weight:700;">🔑 ACCESS NOW</button>
+                        <button onclick="document.getElementById('master-code-overlay').remove()" style="background:none;border:none;color:#94a3b8;font-size:13px;text-decoration:underline;cursor:pointer;font-weight:500;">CANCEL &amp; RETURN</button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    document.body.appendChild(overlay);
+    setTimeout(() => document.getElementById('master-code-input')?.focus(), 80);
+    // Enter 키 지원
+    document.getElementById('master-code-input').addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') verifyMasterCodeModal(tab);
+    });
+}
+
+// [보안] 마스터 코드 검증 처리
+async function verifyMasterCodeModal(tab) {
+    const inp = document.getElementById('master-code-input');
+    if (!inp) return;
+    const code = inp.value.trim();
+    if (!code) return showToast('코드를 입력하세요.');
+    const btn = document.getElementById('master-code-btn');
+    if (btn) { btn.disabled = true; btn.textContent = '🔄 확인 중...'; }
+    toggleLoading(true);
+    try {
+        const folderId = extractFolderId(globalConfig.mainServerLink);
+        const res = await fetch(globalConfig.masterUrl, {
+            method: 'POST',
+            body: JSON.stringify({ type: 'VERIFY_CODE', parentFolderId: folderId, code: code, mode: 'master' })
+        });
+        const d = JSON.parse(await res.text());
+        if (d.status === 'Success' && d.verified) {
+            window._masterUnlocked = true;
+            document.getElementById('master-code-overlay')?.remove();
+            _doChangeTab(tab);
+        } else {
+            showToast('⛔ 마스터 코드가 올바르지 않습니다.');
+            inp.value = ''; inp.focus();
+            if (btn) { btn.disabled = false; btn.innerHTML = '🔑 ACCESS NOW'; }
+        }
+    } catch(e) {
+        showToast('⛔ 인증 오류: ' + e.message);
+        if (btn) { btn.disabled = false; btn.innerHTML = '🔑 ACCESS NOW'; }
+    } finally {
+        toggleLoading(false);
+    }
+}
+
 function changeTab(tab) {
+    // [보안] 마스터 코드 필요 탭 — 미인증 시 모달 표시
+    if (_MASTER_LOCKED_TABS.includes(tab) && !window._masterUnlocked) {
+        showMasterCodeModal(tab);
+        return;
+    }
+    _doChangeTab(tab);
+}
+
+function _doChangeTab(tab) {
+
     checkUnsavedChanges(() => {
         window._hasLoadedData = false;
         // [Fix] 탭 전환 시 레이아웃 완전 복원 (어느 탭에서 와도 정상화)
@@ -4927,7 +5007,7 @@ function onReportGradeChange() {
     // 성적표 노출 필터: 수동입력 학생 OR AI 채점+검증 완료 학생만 표시
     filtered = filtered.filter(r => {
         let qs = [];
-        try { qs = JSON.parse(r['문항별상세(JSON)'] || '[]'); } catch(e) {}
+        try { qs = JSON.parse(r['문항별상세(JSON)'] || '[]'); } catch (e) { }
         // 수동 입력: questionScores 없거나 _graded 플래그 자체가 없음 → 항상 표시
         const isOnlineExam = qs.length > 0 && qs.some(q => q._graded === true || q._graded === 'true' || q._graded === false || q._graded === 'false');
         if (!isOnlineExam) return true;
