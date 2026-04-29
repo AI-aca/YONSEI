@@ -4538,6 +4538,9 @@ function renderAIGradeManager(c) {
                             class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">🔴 AI 미채점</button>
                         <button id="ai-tab-done" onclick="switchAIGradeTab('done')"
                             class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">✅ AI 채점 완료</button>
+                        <label class="flex items-center gap-1.5 cursor-pointer whitespace-nowrap" style="font-size:15px; font-weight:700; color:#013976;">
+                            <input type="checkbox" id="ai-recent-1month" checked onchange="loadAIGradeList()" style="width:16px;height:16px;cursor:pointer;"> 최근 1개월
+                        </label>
                     </div>
                 </div>
             </div>
@@ -4619,9 +4622,17 @@ async function loadAIGradeList(silentLoad = false) {
             const isGraded = allGraded && (isVerified || hasLegacyScores);
             return { ...r, _qs: qs, _isPending: isPending, _isGraded: isGraded };
         });
+        const recentOnly = document.getElementById('ai-recent-1month')?.checked ?? true;
+        const oneMonthAgo = new Date(); oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
         const filtered = parsed.filter(r => {
             const y = String(r['응시일'] || '').substring(0, 4);
-            return y === year && (mode === 'pending' ? r._isPending : r._isGraded);
+            if (y !== year) return false;
+            if (!(mode === 'pending' ? r._isPending : r._isGraded)) return false;
+            if (recentOnly) {
+                const examDate = new Date(r['응시일'] || '');
+                if (isNaN(examDate) || examDate < oneMonthAgo) return false;
+            }
+            return true;
         });
         if (!filtered.length) {
             if (!silentLoad) toggleLoading(false);
