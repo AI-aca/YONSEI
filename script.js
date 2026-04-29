@@ -697,7 +697,7 @@ function startStudentMode() {
 
 
 function renderSidebarNav() {
-    let b = `<button onclick="changeTab('records')" id="btn-records" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📊 학생 성적표 확인</button><button onclick="changeTab('score_input')" id="btn-score_input" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">✏️ 학생 성적 수동 입력</button><button onclick="changeTab('stats')" id="btn-stats" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📈 문항 및 학생 통계</button><button onclick="changeTab('bank')" id="btn-bank" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📋 문항 리스트 등록·수정</button>`;
+    let b = `<button onclick="changeTab('ai_grade')" id="btn-ai_grade" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">🤖 AI 채점 관리</button><button onclick="changeTab('records')" id="btn-records" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📊 학생 성적표 확인</button><button onclick="changeTab('score_input')" id="btn-score_input" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">✏️ 학생 성적 수동 입력</button><button onclick="changeTab('stats')" id="btn-stats" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📈 문항 및 학생 통계</button><button onclick="changeTab('bank')" id="btn-bank" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📋 문항 리스트 등록·수정</button>`;
     b += `<button onclick="changeTab('cat_manage')" id="btn-cat_manage" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📂 시험지 관리</button>`;
     document.getElementById('sidebar-nav').innerHTML = b;
     applyBranding();
@@ -749,6 +749,7 @@ function changeTab(tab) {
         const active = document.getElementById('btn-' + tab); if (active) active.className = "w-full p-4 rounded-xl font-black text-white bg-white/10 flex items-center gap-4 fs-18 text-left transition-all";
         const c = document.getElementById('dynamic-content');
         if (tab === 'records') renderRecords(c);
+        if (tab === 'ai_grade') renderAIGradeManager(c);
         if (tab === 'score_input') renderScoreInput(c);
         if (tab === 'bank') { curCatId = ''; renderBank(c); }
         if (tab === 'reg') renderRegForm();
@@ -4302,117 +4303,32 @@ async function submitExam() {
     toggleLoading(true);
 
     try {
-        // Calculate Scores
-        let totalScore = 0;
-        let maxScore = 0;
-
-        // Define Sections
-        const sections = {
-            'Grammar': { score: 0, max: 0 },
-            'Writing': { score: 0, max: 0 },
-            'Reading': { score: 0, max: 0 },
-            'Listening': { score: 0, max: 0 },
-            'Vocabulary': { score: 0, max: 0 }
-        };
-
-        // Define Difficulties
-        const difficulties = {
-            '최상': { score: 0, max: 0 },
-            '상': { score: 0, max: 0 },
-            '중': { score: 0, max: 0 },
-            '하': { score: 0, max: 0 },
-            '기초': { score: 0, max: 0 }
-        };
-
-        const questionScores = [];
+        // [답안 저장] 채점 없이 학생 답안만 수집
         const rawQuestions = globalConfig.questions.filter(q => String(q.catId) === String(examSession.categoryId));
+        let maxScore = 0;
+        const sections = { 'Grammar': { max: 0 }, 'Writing': { max: 0 }, 'Reading': { max: 0 }, 'Listening': { max: 0 }, 'Vocabulary': { max: 0 } };
+        const difficulties = { '최상': { max: 0 }, '상': { max: 0 }, '중': { max: 0 }, '하': { max: 0 }, '기초': { max: 0 } };
 
-        // [Fix] 묶음 지문 데이터 주입 (AI 채점 시 지문 문맥 전달)
-        const questions = rawQuestions.map(q => {
-            const copy = { ...q };
-            if (copy.setId) {
-                const bundle = globalConfig.bundles ? globalConfig.bundles.find(b => b.id === copy.setId) : null;
-                if (bundle) {
-                    copy.bundlePassageText = bundle.text;
-                    copy.commonTitle = bundle.title;
-                    copy.bundleImgUrl = bundle.imgUrl || ''; // [Fix] 번들 이미지 URL 주입
-                }
-            }
-            return copy;
-        });
-
-        for (const q of questions) {
-            const studentAns = examSession.answers[q.id] || "";
-            let earnedScore = 0;
-            let isCorrect = false;
+        const questionScores = rawQuestions.map(q => {
             const maxQ = parseInt(q.score) || 0;
-            const correctAns = String(q.answer || '').trim();
-
-            if (q.type === '객관형') {
-                // 객관형: 쉼표 기준 정렬 후 비교 (복수 정답 지원)
-                const normAns = function (s) { return String(s || '').split(',').map(function (a) { return a.trim(); }).filter(Boolean).sort().join(','); };
-                isCorrect = normAns(studentAns) === normAns(q.answer);
-                earnedScore = isCorrect ? maxQ : 0;
-            } else {
-                // 주관형 1단계: 키워드 매칭 (대소문자·띄어쓰기·구두점·en dash 무시)
-                if (!studentAns.trim()) {
-                    isCorrect = false;
-                    earnedScore = 0;
-                } else if (correctAns) {
-                    const normalize = s => s.toLowerCase().replace(/[\s,.\-_'"!?;:()`\u2013\u2014\u2018\u2019\u201C\u201D]/g, '').trim();
-                    const acceptableAnswers = correctAns.split(',').map(a => normalize(a));
-                    const normalizedStudentAns = normalize(String(studentAns));
-                    isCorrect = acceptableAnswers.some(a => a && normalizedStudentAns.includes(a)) || acceptableAnswers.includes(normalizedStudentAns);
-                    earnedScore = isCorrect ? maxQ : 0;
-                }
-
-                // 주관형 2단계: 키워드 매칭 실패 시 AI 채점
-                if (!isCorrect && studentAns.trim() && globalConfig.masterUrl) {
-                    try {
-                        const aiResult = await gradeWithAI(q, studentAns);
-                        if (aiResult && aiResult.score !== undefined) {
-                            earnedScore = Math.min(Math.max(0, Math.round(aiResult.score)), maxQ);
-                            isCorrect = earnedScore >= maxQ;
-                            console.log(`✅ AI 채점 [문항 ${q.no}]: ${earnedScore}/${maxQ} (${aiResult.feedback})`);
-                        }
-                    } catch (aiErr) {
-                        console.warn(`⚠️ AI 채점 실패 [문항 ${q.no}]:`, aiErr.message);
-                    }
-                }
-            }
-
-            totalScore += earnedScore;
-            maxScore += maxQ;
-
-            // 영역별 집계
             const sec = q.section || 'Reading';
-            if (sections[sec]) {
-                sections[sec].score += earnedScore;
-                sections[sec].max += maxQ;
-            }
-
-            // 난이도별 집계
             const diff = q.difficulty || '중';
-            if (difficulties[diff]) {
-                difficulties[diff].score += earnedScore;
-                difficulties[diff].max += maxQ;
-            }
-
-            questionScores.push({
+            maxScore += maxQ;
+            if (sections[sec]) sections[sec].max += maxQ;
+            if (difficulties[diff]) difficulties[diff].max += maxQ;
+            return {
                 no: q.no,
                 id: q.id,
                 type: q.type,
                 section: sec,
                 difficulty: diff,
-                correct: isCorrect,
-                studentAnswer: studentAns,
-                correctAnswer: q.answer,
-                score: earnedScore,
+                studentAnswer: examSession.answers[q.id] || "",
+                correctAnswer: q.answer || "",
+                score: null,
                 maxScore: maxQ,
-                _gradingV2: true
-            });
-        }
-
+                _graded: false
+            };
+        });
 
         // Prepare Payload
         const category = globalConfig.categories.find(c => String(c.id) === String(examSession.categoryId));
@@ -4420,38 +4336,31 @@ async function submitExam() {
 
         const apiPayload = {
             type: 'STUDENT_SAVE',
+            timeout: 20000,
             categoryId: examSession.categoryId,
             categoryName: category?.name || "Unknown",
             parentFolderId: targetFolderId,
-            testDate: examSession.date,
+            testDate: (examSession.date || '').substring(0, 10),
             studentId: examSession.studentId,
             studentName: examSession.studentName,
             grade: examSession.grade,
-
             questionScores: JSON.stringify(questionScores),
-
-            grammarScore: sections['Grammar'].score, grammarMax: sections['Grammar'].max,
-            writingScore: sections['Writing'].score, writingMax: sections['Writing'].max,
-            readingScore: sections['Reading'].score, readingMax: sections['Reading'].max,
-            listeningScore: sections['Listening'].score, listeningMax: sections['Listening'].max,
-            vocabScore: sections['Vocabulary'].score, vocabMax: sections['Vocabulary'].max,
-
-            difficulty_highest: difficulties['최상'].score, difficulty_highest_max: difficulties['최상'].max,
-            difficulty_high: difficulties['상'].score, difficulty_high_max: difficulties['상'].max,
-            difficulty_mid: difficulties['중'].score, difficulty_mid_max: difficulties['중'].max,
-            difficulty_low: difficulties['하'].score, difficulty_low_max: difficulties['하'].max,
-            difficulty_basic: difficulties['기초'].score, difficulty_basic_max: difficulties['기초'].max,
-
-            totalScore: totalScore,
+            grammarScore: 0, grammarMax: sections['Grammar'].max,
+            writingScore: 0, writingMax: sections['Writing'].max,
+            readingScore: 0, readingMax: sections['Reading'].max,
+            listeningScore: 0, listeningMax: sections['Listening'].max,
+            vocabScore: 0, vocabMax: sections['Vocabulary'].max,
+            difficulty_highest: 0, difficulty_highest_max: difficulties['최상'].max,
+            difficulty_high: 0, difficulty_high_max: difficulties['상'].max,
+            difficulty_mid: 0, difficulty_mid_max: difficulties['중'].max,
+            difficulty_low: 0, difficulty_low_max: difficulties['하'].max,
+            difficulty_basic: 0, difficulty_basic_max: difficulties['기초'].max,
+            totalScore: 0,
             maxScore: maxScore
         };
 
-        // ── 진단용 로그 (F12 콘솔에서 확인) ──
-        console.log("=== SUBMIT PAYLOAD 점검 ===");
-        console.log("Fields:", Object.keys(apiPayload).join(', '));
-        console.log("totalScore:", apiPayload.totalScore, "| maxScore:", apiPayload.maxScore);
-        console.log("studentClass 존재여부:", 'studentClass' in apiPayload, "| inputMode 존재여부:", 'inputMode' in apiPayload);
-        console.log("Full payload:", JSON.stringify(apiPayload, null, 2));
+        console.log("=== SUBMIT (답안 저장 - 미채점) ===");
+        console.log("studentId:", examSession.studentId, "| 문항 수:", questionScores.length);
 
         // Send to Backend
         await sendReliableRequest(apiPayload);
@@ -4459,8 +4368,8 @@ async function submitExam() {
         // [ExamDraft] 제출 완료 → 임시저장 삭제
         clearExamDraft(examSession.categoryId, examSession.studentName);
 
-        // Success UI
-        renderExamResult(questionScores, totalScore, maxScore);
+        // 완료 화면 (채점 전 저장 완료 메시지)
+        renderExamAnswerSaved();
 
     } catch (e) {
         console.error(e);
@@ -4468,6 +4377,240 @@ async function submitExam() {
         alert("제출 중 오류가 발생했습니다: " + e.message);
     } finally {
         toggleLoading(false);
+    }
+}
+
+// ─────────────────────────────────────────────
+// [Canvas 02-2] 답안 저장 완료 화면 (채점 전)
+// ─────────────────────────────────────────────
+function renderExamAnswerSaved() {
+    const examContainer = document.getElementById('dynamic-content');
+    if (!examContainer) return;
+    const _header = document.getElementById('app-header');
+    const _footer = document.getElementById('app-footer');
+    const _mc = document.getElementById('main-container');
+    const _ac = document.getElementById('app-canvas');
+    if (_header) _header.style.display = '';
+    if (_footer) _footer.style.display = '';
+    if (_mc) { _mc.style.marginTop = ''; _mc.style.height = ''; }
+    if (_ac) { _ac.style.padding = ''; _ac.style.overflow = ''; _ac.style.overflowY = ''; _ac.classList.remove('!p-0', '!overflow-hidden'); }
+    setCanvasId('02-2');
+    examContainer.className = 'w-full h-full';
+    examContainer.innerHTML = `
+        <div class="flex flex-col items-center justify-center min-h-[70vh] animate-fade-in-safe">
+            <div class="card !p-10 text-center max-w-lg w-full shadow-2xl relative overflow-hidden"
+                 style="background: linear-gradient(135deg, #ffffff 0%, #eef4ff 100%); border: 2px solid rgba(1,57,118,0.15);">
+                <div style="position:absolute; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg, #60a5fa, #6366f1, #a855f7);"></div>
+                <div class="text-6xl mb-6">✅</div>
+                <h2 class="fs-32 font-black text-[#013976] mb-3">답안 저장 완료</h2>
+                <p class="fs-18 text-slate-600 mb-2">시험 답안이 정상적으로 저장되었습니다.</p>
+                <p class="fs-14 text-slate-400 mb-8">채점 결과는 선생님이 확인 후 안내드립니다.</p>
+                <div class="bg-[#eef4ff] rounded-xl p-4 text-left space-y-1">
+                    <div class="fs-14 text-slate-500">👤 이름: <span class="font-bold text-[#013976]">${examSession.studentName || ''}</span></div>
+                    <div class="fs-14 text-slate-500">🎓 학년: <span class="font-bold text-[#013976]">${examSession.grade || ''}</span></div>
+                    <div class="fs-14 text-slate-500">📅 응시일: <span class="font-bold text-[#013976]">${examSession.date || ''}</span></div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// ─────────────────────────────────────────────
+// [Canvas 05-2] AI 채점 관리
+// ─────────────────────────────────────────────
+function renderAIGradeManager(c) {
+    if (!globalConfig.categories || globalConfig.categories.length === 0) {
+        renderEmptyState(c, 'AI 채점 관리'); return;
+    }
+    setCanvasId('05-2');
+    c.innerHTML = `
+        <div class="animate-fade-in-safe space-y-6">
+            <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">🤖 AI 채점 관리</h2>
+
+            <!-- 시험지 선택 + 탭 버튼 한 줄 (Canvas 06 스타일) -->
+            <div class="card !py-3.5 !px-6 flex items-center justify-between shadow-lg relative overflow-hidden"
+                 style="background: linear-gradient(135deg, #ffffff 0%, #eef4ff 100%); border: 2px solid rgba(1,57,118,0.15);">
+                <div style="position:absolute; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg, #60a5fa, #6366f1, #a855f7);"></div>
+                <div class="flex items-center gap-4 w-full">
+                    <label class="ys-label !mb-0 whitespace-nowrap !text-[#013976] font-bold">📂 시험지 선택</label>
+                    <select id="ai-grade-category" class="ys-field flex-grow !font-normal !text-[#013976] !bg-white !text-[16px]">
+                        <option value="" disabled selected hidden>시험지를 선택하세요</option>
+                        ${globalConfig.categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('')}
+                    </select>
+                    <div class="flex items-center gap-2 ml-4">
+                        <button id="ai-tab-pending" onclick="switchAIGradeTab('pending')"
+                            class="btn-ys !bg-[#013976] !text-white !border-2 !border-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">🔴 AI 미채점</button>
+                        <button id="ai-tab-done" onclick="switchAIGradeTab('done')"
+                            class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">✅ AI 채점 완료</button>
+                    </div>
+                </div>
+            </div>
+
+            <p class="text-slate-400" style="padding-left:2px; font-size:16px;">
+                👆 온라인 시험으로 제출한 학생만 표시됩니다. 수동으로 점수만 입력된 학생은 답안 내용이 없어 AI 채점 대상에서 제외됩니다.
+            </p>
+
+            <div id="ai-grade-list"></div>
+        </div>
+    `;
+    window._aiGradeMode = 'pending';
+}
+
+function switchAIGradeTab(mode) {
+    const catId = document.getElementById('ai-grade-category')?.value;
+    if (!catId) { showToast('⚠️ 시험지를 먼저 선택하세요.'); return; }
+    window._aiGradeMode = mode;
+    const p = document.getElementById('ai-tab-pending');
+    const d = document.getElementById('ai-tab-done');
+    const on = 'btn-ys !bg-[#013976] !text-white !border-2 !border-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2';
+    const off = 'btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2';
+    if (p) p.className = mode === 'pending' ? on : off;
+    if (d) d.className = mode === 'done' ? on : off;
+    loadAIGradeList();
+}
+
+async function loadAIGradeList() {
+    const catId = document.getElementById('ai-grade-category')?.value;
+    const listEl = document.getElementById('ai-grade-list');
+    if (!catId || !listEl) return;
+    const mode = window._aiGradeMode || 'pending';
+    listEl.innerHTML = `<div class="flex justify-center items-center py-10"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#013976]"></div></div>`;
+    const category = globalConfig.categories.find(c => String(c.id) === String(catId));
+    if (!category) return;
+    const folderId = extractFolderId(category.targetFolderUrl);
+    try {
+        const result = await sendReliableRequest({ type: 'GET_STUDENT_LIST', parentFolderId: folderId, categoryName: category.name });
+        const records = result.data || result.records || [];
+        const parsed = records.map(r => {
+            let qs = [];
+            try { qs = JSON.parse(r['문항별상세(JSON)'] || '[]'); } catch (e) { qs = []; }
+            // _graded:false 플래그가 있는 항목이 있어야 온라인 제출 (새 방식)
+            const hasUngraded = qs.some(q => q._graded === false || q._graded === 'false');
+            const isGraded = qs.length > 0 && qs.every(q => q._graded === true || q._graded === 'true');
+            return { ...r, _qs: qs, _hasUngraded: hasUngraded, _isGraded: isGraded };
+        });
+        const filtered = parsed.filter(r => mode === 'pending' ? r._hasUngraded : r._isGraded);
+        if (!filtered.length) {
+            listEl.innerHTML = `<p class="text-slate-400 text-center py-10" style="font-size:16px;">${mode === 'pending' ? '😕 AI 미채점 학생이 없습니다.' : '✅ AI 채점 완료된 학생이 없습니다.'}</p>`;
+            return;
+        }
+        const boxStyle = `background: linear-gradient(135deg, #ffffff 0%, #eef4ff 100%); border: 2px solid rgba(1,57,118,0.15);`;
+        const rows = filtered.map(r => {
+            const sid = r['학생ID'] || '';
+            const name = r['학생명'] || '';
+            const grade = r['학년'] || '';
+            const rawDate = r['응시일'] || '';
+            const date = rawDate.length > 10 ? rawDate.substring(0, 10) : rawDate;
+            const answered = r._qs.filter(q => (q.studentAnswer || '').trim()).length;
+            const total = r._qs.length;
+            const actionBtn = mode === 'pending'
+                ? `<button id="ai-btn-${sid}" onclick="runAIGradeForStudent('${sid}','${catId}')" class="px-3 py-1.5 rounded-xl bg-[#013976] text-white font-bold hover:bg-[#012456] transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:14px;">🤖 AI 채점</button>`
+                : `<span class="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 font-bold whitespace-nowrap flex-none" style="font-size:14px;">✅ 완료 (${r['총점'] || 0}/${r['만점'] || 0}점)</span>`;
+            return `<div class="card !px-5 !py-3.5 flex items-center gap-3 shadow-md relative overflow-hidden" style="${boxStyle}">
+                <div style="position:absolute; top:0; left:0; right:0; height:2px; background: linear-gradient(90deg, #60a5fa, #6366f1, #a855f7);"></div>
+                <span style="font-size:16px; font-weight:800; color:#013976; white-space:nowrap;">👤 ${name}</span>
+                <span class="text-slate-500 flex-1" style="font-size:15px;">🎓 ${grade}&nbsp;|&nbsp;📅 ${date}&nbsp;|&nbsp;📝 답안 ${answered}/${total}개</span>
+                ${actionBtn}
+            </div>`;
+        }).join('');
+        listEl.innerHTML = `<div class="space-y-3"><p style="font-size:17px; font-weight:800; color:#013976; margin-bottom:8px;">${mode === 'pending' ? `AI 미채점 (${filtered.length}명)` : `AI 채점 완료 (${filtered.length}명)`}</p>${rows}</div>`;
+    } catch (e) {
+        listEl.innerHTML = `<p class="fs-14 text-red-400 text-center py-10">로딩 실패: ${e.message}</p>`;
+    }
+}
+
+async function runAIGradeForStudent(studentId, catId) {
+    const btn = document.getElementById('ai-btn-' + studentId);
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ 채점 중...'; }
+    const category = globalConfig.categories.find(c => String(c.id) === String(catId));
+    if (!category) { showToast('시험지 정보 없음'); return; }
+    const folderId = extractFolderId(category.targetFolderUrl);
+    try {
+        const result = await sendReliableRequest({ type: 'GET_STUDENT_LIST', parentFolderId: folderId, categoryName: category.name });
+        const record = (result.data || result.records || []).find(r => String(r['학생ID']) === String(studentId));
+        if (!record) { showToast('학생 데이터를 찾을 수 없습니다.'); return; }
+        let questionScores;
+        try { questionScores = JSON.parse(record['문항별상세(JSON)'] || '[]'); } catch (e) { questionScores = []; }
+        if (!questionScores.length) { showToast('채점할 답안 없음'); return; }
+
+        const sections = { 'Grammar': { s: 0, m: 0 }, 'Writing': { s: 0, m: 0 }, 'Reading': { s: 0, m: 0 }, 'Listening': { s: 0, m: 0 }, 'Vocabulary': { s: 0, m: 0 } };
+        const difficulties = { '최상': { s: 0, m: 0 }, '상': { s: 0, m: 0 }, '중': { s: 0, m: 0 }, '하': { s: 0, m: 0 }, '기초': { s: 0, m: 0 } };
+        const normalize = s => s.toLowerCase().replace(/[\s,.\-_'"!?;:()`\u2013\u2014\u2018\u2019\u201C\u201D]/g, '').trim();
+        const catQs = (globalConfig.questions || []).filter(q => String(q.catId) === String(catId));
+
+        // 1단계: 키워드 매칭
+        const aiNeeded = [];
+        questionScores.forEach(q => {
+            const maxQ = q.maxScore || 0;
+            const ans = q.studentAnswer || '';
+            const correct = String(q.correctAnswer || '').trim();
+            if (q.type === '객관형') {
+                const norm = s => String(s || '').split(',').map(a => a.trim()).filter(Boolean).sort().join(',');
+                q.correct = norm(ans) === norm(correct);
+                q.score = q.correct ? maxQ : 0; q._graded = true;
+            } else {
+                if (!ans.trim()) { q.score = 0; q.correct = false; q._graded = true; }
+                else if (correct) {
+                    const acc = correct.split(',').map(a => normalize(a));
+                    const ns = normalize(ans);
+                    q.correct = acc.some(a => a && ns.includes(a)) || acc.includes(ns);
+                    if (q.correct) { q.score = maxQ; q._graded = true; } else { aiNeeded.push(q); }
+                } else { q.score = 0; q.correct = false; q._graded = true; }
+            }
+        });
+
+        // 2단계: AI 병렬 채점
+        if (aiNeeded.length > 0 && globalConfig.masterUrl) {
+            if (btn) btn.textContent = `⏳ AI 채점 중 (${aiNeeded.length}개)...`;
+            const withTimeout = (p, ms) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
+            const aiResults = await Promise.allSettled(aiNeeded.map(q => {
+                const fullQ = catQs.find(cq => cq.id === q.id) || q;
+                return withTimeout(gradeWithAI(fullQ, q.studentAnswer), 10000).then(r => ({ q, r })).catch(() => ({ q, r: null }));
+            }));
+            aiResults.forEach(res => {
+                if (res.status !== 'fulfilled') return;
+                const { q, r } = res.value; const maxQ = q.maxScore || 0;
+                if (r && r.score !== undefined) { q.score = Math.min(Math.max(0, Math.round(r.score)), maxQ); q.correct = q.score >= maxQ; q._aiGraded = true; }
+                else { q.score = 0; q.correct = false; }
+                q._graded = true;
+            });
+        }
+        questionScores.forEach(q => { if (!q._graded) { q.score = 0; q.correct = false; q._graded = true; } });
+
+        // 집계
+        let total = 0, max = 0;
+        questionScores.forEach(q => {
+            const s = q.score || 0, m = q.maxScore || 0, sec = q.section || 'Reading', diff = q.difficulty || '중';
+            total += s; max += m;
+            if (sections[sec]) { sections[sec].s += s; sections[sec].m += m; }
+            if (difficulties[diff]) { difficulties[diff].s += s; difficulties[diff].m += m; }
+        });
+
+        // 저장
+        await sendReliableRequest({
+            type: 'STUDENT_SAVE', timeout: 20000,
+            categoryId: catId, categoryName: category.name, parentFolderId: folderId,
+            testDate: record['응시일'] || '', studentId: record['학생ID'] || '',
+            studentName: record['학생명'] || '', grade: record['학년'] || '',
+            questionScores: JSON.stringify(questionScores),
+            grammarScore: sections['Grammar'].s, grammarMax: sections['Grammar'].m,
+            writingScore: sections['Writing'].s, writingMax: sections['Writing'].m,
+            readingScore: sections['Reading'].s, readingMax: sections['Reading'].m,
+            listeningScore: sections['Listening'].s, listeningMax: sections['Listening'].m,
+            vocabScore: sections['Vocabulary'].s, vocabMax: sections['Vocabulary'].m,
+            difficulty_highest: difficulties['최상'].s, difficulty_highest_max: difficulties['최상'].m,
+            difficulty_high: difficulties['상'].s, difficulty_high_max: difficulties['상'].m,
+            difficulty_mid: difficulties['중'].s, difficulty_mid_max: difficulties['중'].m,
+            difficulty_low: difficulties['하'].s, difficulty_low_max: difficulties['하'].m,
+            difficulty_basic: difficulties['기초'].s, difficulty_basic_max: difficulties['기초'].m,
+            totalScore: total, maxScore: max, studentClass: record['등록학급'] || ''
+        });
+        showToast(`✅ ${record['학생명']} AI 채점 완료! (${total}/${max}점)`);
+        await loadAIGradeList();
+    } catch (e) {
+        console.error('AI 채점 실패:', e);
+        showToast('❌ AI 채점 실패: ' + e.message);
+        if (btn) { btn.disabled = false; btn.textContent = '🤖 AI 채점'; }
     }
 }
 
@@ -5025,108 +5168,108 @@ async function generateSectionComments(record, averages, activeSections) {
 
     await Promise.allSettled(
         activeSections.map(async (section) => {
-        const studentScore = parseFloat(record[section + '_점수'] || record[secMap[section]] || 0);
-        const overallAvgScore = parseFloat(averages[section + '_점수'] || averages[secMap[section]] || 0);
-        const maxScore = parseFloat(record[section + '_만점'] || record[maxMap[section]] || averages[maxMap[section]] || 0);
+            const studentScore = parseFloat(record[section + '_점수'] || record[secMap[section]] || 0);
+            const overallAvgScore = parseFloat(averages[section + '_점수'] || averages[secMap[section]] || 0);
+            const maxScore = parseFloat(record[section + '_만점'] || record[maxMap[section]] || averages[maxMap[section]] || 0);
 
-        // 전체 학생 백분위 계산 (해당 영역 기준)
-        const _allRecords = window.cachedStudentRecords || [];
-        const _allSectionScores = _allRecords
-            .map(r => parseFloat(r[section + '_점수'] || r[secMap[section]] || 0))
-            .filter(v => !isNaN(v) && v > 0);
-        const _aboveCount = _allSectionScores.filter(s => s > studentScore).length;
-        const _totalCount = _allSectionScores.length;
-        const upperPercentile = _totalCount > 0 ? Math.min(100, Math.round((_aboveCount / _totalCount) * 100) + 1) : 50;
+            // 전체 학생 백분위 계산 (해당 영역 기준)
+            const _allRecords = window.cachedStudentRecords || [];
+            const _allSectionScores = _allRecords
+                .map(r => parseFloat(r[section + '_점수'] || r[secMap[section]] || 0))
+                .filter(v => !isNaN(v) && v > 0);
+            const _aboveCount = _allSectionScores.filter(s => s > studentScore).length;
+            const _totalCount = _allSectionScores.length;
+            const upperPercentile = _totalCount > 0 ? Math.min(100, Math.round((_aboveCount / _totalCount) * 100) + 1) : 50;
 
-        // 백분위 기반 성취레벨 (7단계) + 전체 평균 대비 보정
-        const diff = overallAvgScore > 0 ? (studentScore - overallAvgScore) : 0;
-        let level;
-        if (upperPercentile <= 10) level = '매우 우수';
-        else if (upperPercentile <= 20) level = '우수';
-        else if (upperPercentile <= 35) level = '다소 우수';
-        else if (upperPercentile <= 55) level = '보통';
-        else if (upperPercentile <= 70) level = '다소 부진';
-        else if (upperPercentile <= 85) level = '부진';
-        else level = '매우 부진';
-        const rate = maxScore > 0 ? (studentScore / maxScore * 100) : 0;
+            // 백분위 기반 성취레벨 (7단계) + 전체 평균 대비 보정
+            const diff = overallAvgScore > 0 ? (studentScore - overallAvgScore) : 0;
+            let level;
+            if (upperPercentile <= 10) level = '매우 우수';
+            else if (upperPercentile <= 20) level = '우수';
+            else if (upperPercentile <= 35) level = '다소 우수';
+            else if (upperPercentile <= 55) level = '보통';
+            else if (upperPercentile <= 70) level = '다소 부진';
+            else if (upperPercentile <= 85) level = '부진';
+            else level = '매우 부진';
+            const rate = maxScore > 0 ? (studentScore / maxScore * 100) : 0;
 
-        // 권장학급 평균 + 학급 내 백분위 계산
-        const _sGrd = record.grade || record['학년'] || '';
-        const _recCls = record.studentClass || record['등록학급'] || '';
-        const _clsData = (_recCls && _sGrd) ? computeClassAvg(_recCls, _sGrd, secMap) : null;
-        const clsAvgScore = _clsData ? parseFloat(_clsData[section + '_점수'] || 0) : null;
-        // 권장학급 내 백분위
-        const _clsRecordsAll = (_recCls && _sGrd) ? _allRecords.filter(r => {
-            const rG = r['학년'] || r.grade || '';
-            const rC = r.studentClass || r['등록학급'] || '';
-            return rG === _sGrd && rC === _recCls;
-        }) : [];
-        const _clsSectionScores = _clsRecordsAll.map(r => parseFloat(r[section + '_점수'] || r[secMap[section]] || 0)).filter(v => !isNaN(v) && v > 0);
-        const _clsAbove = _clsSectionScores.filter(s => s > studentScore).length;
-        const clsUpperPercentile = _clsSectionScores.length > 0 ? Math.min(100, Math.round((_clsAbove / _clsSectionScores.length) * 100) + 1) : null;
+            // 권장학급 평균 + 학급 내 백분위 계산
+            const _sGrd = record.grade || record['학년'] || '';
+            const _recCls = record.studentClass || record['등록학급'] || '';
+            const _clsData = (_recCls && _sGrd) ? computeClassAvg(_recCls, _sGrd, secMap) : null;
+            const clsAvgScore = _clsData ? parseFloat(_clsData[section + '_점수'] || 0) : null;
+            // 권장학급 내 백분위
+            const _clsRecordsAll = (_recCls && _sGrd) ? _allRecords.filter(r => {
+                const rG = r['학년'] || r.grade || '';
+                const rC = r.studentClass || r['등록학급'] || '';
+                return rG === _sGrd && rC === _recCls;
+            }) : [];
+            const _clsSectionScores = _clsRecordsAll.map(r => parseFloat(r[section + '_점수'] || r[secMap[section]] || 0)).filter(v => !isNaN(v) && v > 0);
+            const _clsAbove = _clsSectionScores.filter(s => s > studentScore).length;
+            const clsUpperPercentile = _clsSectionScores.length > 0 ? Math.min(100, Math.round((_clsAbove / _clsSectionScores.length) * 100) + 1) : null;
 
-        // 세부영역(subType) + 정오답 문항 파싱
-        let subTypeInfo = '';
-        let wrongInfo = '';
-        if (questionScores.length > 0) {
-            const secItems = questionScores.filter(q => {
-                const cq = catQs.find(cq => String(cq.id) === String(q.id));
-                return cq?.section === section;
-            });
-            if (secItems.length > 0) {
-                const subMap = {};
-                const wrongItems = [];
-                secItems.forEach(q => {
+            // 세부영역(subType) + 정오답 문항 파싱
+            let subTypeInfo = '';
+            let wrongInfo = '';
+            if (questionScores.length > 0) {
+                const secItems = questionScores.filter(q => {
                     const cq = catQs.find(cq => String(cq.id) === String(q.id));
-                    const sub = cq?.subType || '기타';
-                    if (!subMap[sub]) subMap[sub] = { score: 0, max: 0 };
-                    subMap[sub].score += parseFloat(q.score || 0);
-                    subMap[sub].max += parseFloat(q.maxScore || 0);
-                    // 오답 문항 수집
-                    const isWrong = (q.correct === false || q.correct === 'X') ||
-                        (parseFloat(q.score || 0) < parseFloat(q.maxScore || 0));
-                    if (isWrong) wrongItems.push(`${q.no || '?'}번(${sub})`);
+                    return cq?.section === section;
                 });
-                const subLines = Object.entries(subMap)
-                    .map(([sub, v]) => `  - ${sub}: ${v.score}/${v.max}점`)
-                    .join('\n');
-                subTypeInfo = `\n세부 영역별 점수:\n${subLines}`;
-                if (wrongItems.length > 0)
-                    wrongInfo = `\n오답/감점 문항: ${wrongItems.join(', ')}`;
+                if (secItems.length > 0) {
+                    const subMap = {};
+                    const wrongItems = [];
+                    secItems.forEach(q => {
+                        const cq = catQs.find(cq => String(cq.id) === String(q.id));
+                        const sub = cq?.subType || '기타';
+                        if (!subMap[sub]) subMap[sub] = { score: 0, max: 0 };
+                        subMap[sub].score += parseFloat(q.score || 0);
+                        subMap[sub].max += parseFloat(q.maxScore || 0);
+                        // 오답 문항 수집
+                        const isWrong = (q.correct === false || q.correct === 'X') ||
+                            (parseFloat(q.score || 0) < parseFloat(q.maxScore || 0));
+                        if (isWrong) wrongItems.push(`${q.no || '?'}번(${sub})`);
+                    });
+                    const subLines = Object.entries(subMap)
+                        .map(([sub, v]) => `  - ${sub}: ${v.score}/${v.max}점`)
+                        .join('\n');
+                    subTypeInfo = `\n세부 영역별 점수:\n${subLines}`;
+                    if (wrongItems.length > 0)
+                        wrongInfo = `\n오답/감점 문항: ${wrongItems.join(', ')}`;
+                }
             }
-        }
 
-        const gradeTone = getGradeTone(record.grade || record['학년']);
+            const gradeTone = getGradeTone(record.grade || record['학년']);
 
-        const sName = record['이름'] || record.name || record.studentName || '';
+            const sName = record['이름'] || record.name || record.studentName || '';
 
-        // 영역명 한국어 변환
-        const _sectionKR = { Grammar: '문법', Writing: '영작', Reading: '독해', Listening: '듣기', Vocabulary: '어휘' }[section] || section;
+            // 영역명 한국어 변환
+            const _sectionKR = { Grammar: '문법', Writing: '영작', Reading: '독해', Listening: '듣기', Vocabulary: '어휘' }[section] || section;
 
-        // 미흡한 점 지시 — JS가 3단계로 직접 판단
-        const _isPerfect = maxScore > 0 && studentScore >= maxScore;
-        const _aboveCls = clsAvgScore !== null ? studentScore > clsAvgScore : studentScore > overallAvgScore;
-        const _shortfall = maxScore > 0 ? (maxScore - studentScore) : null;
-        let _weaknessRule;
-        if (_isPerfect) {
-            _weaknessRule = '2) 현재 수준 유지 (1문장) — 만점이므로 미흡한 점, 부족한 점을 절대 쓰지 마세요. 전체 백분위(약 ' + upperPercentile + '%)' + (clsUpperPercentile !== null ? '·학급 내 백분위(약 ' + clsUpperPercentile + '%)' : '') + '를 활용하여 현재 실력을 유지하는 것의 중요성을 서술하세요.';
-        } else if (_aboveCls) {
-            _weaknessRule = '2) 보완 포인트 (1문장) — 학급 평균보다 높으므로 "미흡하다", "부족하다", "발전할 여지가 있다" 같은 부정 표현 절대 금지. 전체 백분위(약 ' + upperPercentile + '%)' + (clsUpperPercentile !== null ? '·학급 내 백분위(약 ' + clsUpperPercentile + '%)' : '') + '를 활용하여 만점(' + maxScore + '점) 대비 ' + _shortfall + '점 부족한 부분을 서술하세요.' + (subTypeInfo ? ' 세부 영역별 데이터를 활용해 가장 취약한 세부 영역도 명시하세요.' : '');
-        } else {
-            _weaknessRule = '2) 미흡한 점 또는 약점 (1문장) — ' + (subTypeInfo ? '✅ 세부 영역별 점수 데이터 제공됨. 가장 취약한 세부 영역을 명시하고 전체 백분위(약 ' + upperPercentile + '%)와 학급 내 백분위(약 ' + clsUpperPercentile + '%)를 활용하세요.' : '⚠️ 세부 영역 데이터 없음. 전체 백분위(약 ' + upperPercentile + '%)와 학급 평균보다 낮은 점에 근거해 서술하세요. 세부 유형·문법 항목을 절대 추측하지 마세요.');
-        }
+            // 미흡한 점 지시 — JS가 3단계로 직접 판단
+            const _isPerfect = maxScore > 0 && studentScore >= maxScore;
+            const _aboveCls = clsAvgScore !== null ? studentScore > clsAvgScore : studentScore > overallAvgScore;
+            const _shortfall = maxScore > 0 ? (maxScore - studentScore) : null;
+            let _weaknessRule;
+            if (_isPerfect) {
+                _weaknessRule = '2) 현재 수준 유지 (1문장) — 만점이므로 미흡한 점, 부족한 점을 절대 쓰지 마세요. 전체 백분위(약 ' + upperPercentile + '%)' + (clsUpperPercentile !== null ? '·학급 내 백분위(약 ' + clsUpperPercentile + '%)' : '') + '를 활용하여 현재 실력을 유지하는 것의 중요성을 서술하세요.';
+            } else if (_aboveCls) {
+                _weaknessRule = '2) 보완 포인트 (1문장) — 학급 평균보다 높으므로 "미흡하다", "부족하다", "발전할 여지가 있다" 같은 부정 표현 절대 금지. 전체 백분위(약 ' + upperPercentile + '%)' + (clsUpperPercentile !== null ? '·학급 내 백분위(약 ' + clsUpperPercentile + '%)' : '') + '를 활용하여 만점(' + maxScore + '점) 대비 ' + _shortfall + '점 부족한 부분을 서술하세요.' + (subTypeInfo ? ' 세부 영역별 데이터를 활용해 가장 취약한 세부 영역도 명시하세요.' : '');
+            } else {
+                _weaknessRule = '2) 미흡한 점 또는 약점 (1문장) — ' + (subTypeInfo ? '✅ 세부 영역별 점수 데이터 제공됨. 가장 취약한 세부 영역을 명시하고 전체 백분위(약 ' + upperPercentile + '%)와 학급 내 백분위(약 ' + clsUpperPercentile + '%)를 활용하세요.' : '⚠️ 세부 영역 데이터 없음. 전체 백분위(약 ' + upperPercentile + '%)와 학급 평균보다 낮은 점에 근거해 서술하세요. 세부 유형·문법 항목을 절대 추측하지 마세요.');
+            }
 
-        // 잘한 점 지시 — 성취레벨에 따라 분기 (핵심: 부진권에서 억지 긍정 표현 방지)
-        let _goodPointRule;
-        if (upperPercentile <= 55) {
-            // 중위권 이상: 잘한 점 서술
-            _goodPointRule = '1) 잘한 점 (2문장) — 전체 백분위(약 ' + upperPercentile + '% = ' + _pctLabel(upperPercentile) + ')' + (clsUpperPercentile !== null ? '와 권장학급 내 백분위(약 ' + clsUpperPercentile + '%)' : '') + '를 활용하여 구체적으로 서술하세요. 성취레벨 ' + level + '에 맞는 적절한 수준의 표현을 사용하세요.';
-        } else {
-            // 중하위권 이하: 현재 수준 정직하게 기술 (잘했다/높다/우수하다 절대 금지)
-            _goodPointRule = '1) 현재 성취 수준 기술 (2문장) — 성취레벨 ' + level + ' / 전체 백분위 약 ' + upperPercentile + '%(= 전체 학생 중 ' + upperPercentile + '%가 이 학생보다 높은 점수 → ' + _pctLabel(upperPercentile) + ')' + (clsUpperPercentile !== null ? ' / 권장학급 내 백분위 약 ' + clsUpperPercentile + '%(' + _pctLabel(clsUpperPercentile, '권장학급 내') + ')' : '') + ' — ⛔ "잘했다", "높다", "우수하다", "높은 백분위" 같은 표현 절대 금지. 현재 수준을 정직하게 기술하되, 노력과 가능성에 초점을 맞추세요.';
-        }
+            // 잘한 점 지시 — 성취레벨에 따라 분기 (핵심: 부진권에서 억지 긍정 표현 방지)
+            let _goodPointRule;
+            if (upperPercentile <= 55) {
+                // 중위권 이상: 잘한 점 서술
+                _goodPointRule = '1) 잘한 점 (2문장) — 전체 백분위(약 ' + upperPercentile + '% = ' + _pctLabel(upperPercentile) + ')' + (clsUpperPercentile !== null ? '와 권장학급 내 백분위(약 ' + clsUpperPercentile + '%)' : '') + '를 활용하여 구체적으로 서술하세요. 성취레벨 ' + level + '에 맞는 적절한 수준의 표현을 사용하세요.';
+            } else {
+                // 중하위권 이하: 현재 수준 정직하게 기술 (잘했다/높다/우수하다 절대 금지)
+                _goodPointRule = '1) 현재 성취 수준 기술 (2문장) — 성취레벨 ' + level + ' / 전체 백분위 약 ' + upperPercentile + '%(= 전체 학생 중 ' + upperPercentile + '%가 이 학생보다 높은 점수 → ' + _pctLabel(upperPercentile) + ')' + (clsUpperPercentile !== null ? ' / 권장학급 내 백분위 약 ' + clsUpperPercentile + '%(' + _pctLabel(clsUpperPercentile, '권장학급 내') + ')' : '') + ' — ⛔ "잘했다", "높다", "우수하다", "높은 백분위" 같은 표현 절대 금지. 현재 수준을 정직하게 기술하되, 노력과 가능성에 초점을 맞추세요.';
+            }
 
-        const prompt = `${gradeTone}
+            const prompt = `${gradeTone}
 
 [시험 맥락 — 필수 숙지]
 이 시험은 입학 전 레벨테스트입니다. 학생은 아직 수업을 받지 않은 상태입니다.
@@ -6269,7 +6412,7 @@ function renderStats(c) {
 
     // 기본 상태: 아무것도 로드 안 함 (버튼 클릭 시 로드)
     window._statsMode = null;
-    document.getElementById('stats-display').innerHTML = '<p class="text-slate-400 text-center py-10" style="font-size:15px;">📊 버튼을 눌러 통계를 확인하세요</p>';
+    document.getElementById('stats-display').innerHTML = '<p class="text-slate-400 text-center py-10" style="font-size:16px;">📊 버튼을 눌러 통계를 확인하세요</p>';
 }
 
 // ===================== 통계 모드 전환 =====================
@@ -6289,7 +6432,7 @@ function switchStatsMode(mode) {
 
 function onStatsCategoryChange() {
     // 시험지 변경 시 화면 초기화만 — 버튼 클릭 시 로드
-    document.getElementById('stats-display').innerHTML = '<p class="text-slate-400 text-center py-10" style="font-size:15px;">📊 버튼을 눌러 통계를 확인하세요</p>';
+    document.getElementById('stats-display').innerHTML = '<p class="text-slate-400 text-center py-10" style="font-size:16px;">📊 버튼을 눌러 통계를 확인하세요</p>';
 }
 
 // ===================== 학생 통계 =====================
@@ -7060,7 +7203,7 @@ function renderBank(c) {
                         <div>수정</div>
                     </div>
                     <div class="p-2 space-y-2">
-                        <div class="p-20 text-center text-slate-400">👈 시험지를 선택 후 문항 수정 버튼을 클릭하세요.</div>
+                        <div class="p-20 text-center text-slate-400" style="font-size:16px;">👈 시험지를 선택 후 문항 수정 버튼을 클릭하세요.</div>
                     </div>
                 </div>
             </div>
