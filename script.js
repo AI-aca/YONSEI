@@ -8172,7 +8172,7 @@ function renderNavigator(questions) {
 
     // zoneC.style.border = "2px solid red"; // DEBUG (Removed)
 
-    questions.forEach(q => {
+    questions.forEach(function(q) {
         const id = q.id;
         const num = q.getAttribute('data-q-num');
         const type = q.getAttribute('data-type');
@@ -8182,22 +8182,19 @@ function renderNavigator(questions) {
         const typeColor = type === 'obj' ? 'bg-blue-100 text-blue-600' : 'bg-rose-100 text-rose-600';
 
         // Retrieve Section & Score
-        // Since 'q' is the DOM element, we query inputs
         const secInput = q.querySelector('[data-field="section"]');
         const scoreInput = q.querySelector('[data-field="score"]');
         const secVal = secInput ? secInput.value : '';
         const scoreVal = scoreInput ? scoreInput.value : '';
-        const shortSec = secVal ? secVal[0] : ''; // '독', '문' ...
+        const shortSec = secVal ? secVal[0] : '';
 
         // Check Linked Bundle
         const linkedBundleId = q.getAttribute('data-bundle-id');
 
         const navItem = document.createElement('div');
-        navItem.className = 'bg-white border border-slate-200 rounded p-1.5 text-[14px] flex items-center justify-between cursor-move hover:border-blue-400 select-none shadow-sm gap-2';
-        navItem.setAttribute('draggable', 'true');
-        navItem.setAttribute('data-target-id', id); // Link back to Zone B item
+        navItem.className = 'bg-white border border-slate-200 rounded p-1.5 text-[14px] flex items-center justify-between select-none shadow-sm gap-2';
+        navItem.setAttribute('data-target-id', id);
 
-        // Layout: [Num] [Type] [Sec] [Score] [SetBadge]
         navItem.innerHTML = `
             <div class="flex items-center gap-1.5 overflow-hidden">
                 <span class="font-bold text-slate-700 w-5 text-center shrink-0 text-[14px]">${num}</span>
@@ -8207,36 +8204,18 @@ function renderNavigator(questions) {
                     ${scoreVal ? `<span class="bg-yellow-50 text-yellow-700 border border-yellow-100 px-1 rounded text-[14px] font-bold min-w-[20px] text-center">${scoreVal}</span>` : ''}
                 </div>
             </div>
-            ${linkedBundleId ? `<span class="text-[14px] font-bold set-badge shrink-0 ml-auto">#Set</span>` : ''} 
+            ${linkedBundleId ? `<span class="text-[14px] font-bold set-badge shrink-0 ml-auto">#Set</span>` : ''}
         `;
-        // Note: #Set number will be populated by syncBundles via direct DOM manipulation or we rely on re-render?
-        // Actually syncBundles calls renderNavigator? No, updateQuestionNumbers calls renderNavigator THEN syncBundles.
-        // So syncBundles needs to update Nav items too? Or we store data-set-num BEFORE renderNavigator.
 
-        // Better: Let syncBundles update the DOM of existing Nav items? 
-        // Or updateQuestionNumbers stores the set-num on Q items first?
-        // But Q items don't know their set number until syncBundles runs (which iterates bundles).
-
-        // Revised flow: syncBundles should Run First? No, bundles depend on Q IDs?
-        // Let's modify syncBundles to ALSO update the Navigator Items' set badges.
-
-        // Nav Drag Events
-        navItem.addEventListener('dragstart', handleNavDragStart);
-        navItem.addEventListener('dragover', handleNavDragOver);
-        navItem.addEventListener('drop', handleNavDrop);
-        navItem.addEventListener('dragend', handleNavDragEnd);
-
-        // [New] Nav Click → Scroll to Question in Zone B
-        navItem.addEventListener('click', () => {
-            const targetId = navItem.getAttribute('data-target-id');
-            const targetEl = document.getElementById(targetId);
+        // Nav Click → Scroll to Question
+        navItem.addEventListener('click', function() {
+            const targetEl = document.getElementById(navItem.getAttribute('data-target-id'));
             const zoneQ = document.getElementById('zone-question');
             if (targetEl && zoneQ) {
                 targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                // 하이라이트 효과
                 targetEl.style.outline = '2px solid #3b82f6';
                 targetEl.style.borderRadius = '12px';
-                setTimeout(() => { targetEl.style.outline = ''; }, 1200);
+                setTimeout(function() { targetEl.style.outline = ''; }, 1200);
             }
         });
 
@@ -8383,129 +8362,7 @@ function syncBundles(questions) {
     });
 }
 
-// --- Nav Drag Handlers ---
-let navDragSrc = null;
 
-function handleNavDragStart(e) {
-    navDragSrc = this;
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', this.getAttribute('data-target-id'));
-    this.classList.add('opacity-50', 'bg-blue-50');
-}
-
-function handleNavDragOver(e) {
-    e.preventDefault();
-    return false;
-}
-
-function handleNavDrop(e) {
-    e.stopPropagation();
-    if (navDragSrc !== this) {
-        const container = this.parentNode;
-        const allItems = Array.from(container.children);
-
-        // 1. Identify Source & Target Context
-        const srcId = navDragSrc.getAttribute('data-target-id');
-        const tgtId = this.getAttribute('data-target-id');
-
-        const srcQ = document.getElementById(srcId);
-        const tgtQ = document.getElementById(tgtId);
-
-        const srcBundleId = srcQ ? srcQ.getAttribute('data-bundle-id') : null;
-        const tgtBundleId = tgtQ ? tgtQ.getAttribute('data-bundle-id') : null;
-
-        // 2. Identify Moving Block (Source)
-        let movingItems = [navDragSrc];
-        if (srcBundleId) {
-            // If dragging item is part of a bundle, move ALL items of that bundle
-            movingItems = allItems.filter(item => {
-                const qId = item.getAttribute('data-target-id');
-                const q = document.getElementById(qId);
-                return q && q.getAttribute('data-bundle-id') === srcBundleId;
-            });
-        }
-
-        // 3. Identify Reference Block (Target)
-        // We need to decide insertion point: Before First or After Last of Target Group
-        // Base decision on: Is the *first item* of Moving Group above or below the Target?
-        // Or simpler: Compare index of navDragSrc vs this.
-
-        const srcIndex = allItems.indexOf(navDragSrc);
-        const tgtIndex = allItems.indexOf(this);
-        const isMovingDown = srcIndex < tgtIndex;
-
-        // Find Target Anchor
-        let anchorItem = this;
-
-        if (tgtBundleId) {
-            const tgtGroupItems = allItems.filter(item => {
-                const qId = item.getAttribute('data-target-id');
-                const q = document.getElementById(qId);
-                return q && q.getAttribute('data-bundle-id') === tgtBundleId;
-            });
-
-            // If conflict: attempting to drop INSIDE a different bundle?
-            // Rule: Escape the bundle.
-            // If moving down, anchor is the LAST item of target bundle.
-            // If moving up, anchor is the FIRST item of target bundle.
-
-            if (isMovingDown) {
-                anchorItem = tgtGroupItems[tgtGroupItems.length - 1]; // Insert after this
-            } else {
-                anchorItem = tgtGroupItems[0]; // Insert before this
-            }
-        }
-
-        // 4. Perform Move
-        // We move all movingItems sequentially
-        movingItems.forEach(item => {
-            if (isMovingDown) {
-                // Insert After Anchor
-                // Careful: as we append, the anchor position might shift if we use nextSibling? 
-                // Actually, insertBefore(item, anchor.nextSibling) works.
-                // We update anchor to be the just-moved item to maintain order of moving block?
-                // Yes, if moving a block A,B,C after D:
-                // Move A after D. Anchor becomes A.
-                // Move B after A. Anchor becomes B.
-                container.insertBefore(item, anchorItem.nextSibling);
-                anchorItem = item;
-            } else {
-                // Insert Before Anchor
-                // Move A,B,C before D:
-                // Move A before D.
-                // Move B before D (Wait, B should be after A?).
-                // No, we iterate movingItems (A, B, C).
-                // Insert A before D.
-                // Insert B before D? No, that reverses order (B, A, C -> D).
-                // We should keep the block order.
-                // So we insert A before D. Then we need to insert B after A?
-                // Or just insert the whole block at the target index?
-                container.insertBefore(item, anchorItem);
-                // No, for "Before", we don't update anchor if we just keep inserting before the original Anchor. 
-                // EXCEPT if movingItems includes the anchor itself (impossible usually).
-            }
-        });
-
-        // Sync Zone B
-        syncZoneBOrder(container);
-    }
-    return false;
-}
-
-function handleNavDragEnd(e) {
-    this.classList.remove('opacity-50', 'bg-blue-50');
-    // Finalize numbers
-    updateQuestionNumbers();
-    // Nav 드래그로 순서 변경 시 모든 문항을 변경 목록에 추가 (저장 가능하도록)
-    if (window._changedItems) {
-        const zoneB = document.getElementById('zone-question');
-        if (zoneB) {
-            zoneB.querySelectorAll('.builder-item').forEach(function(q) {
-                if (q.id) window._changedItems.add(q.id);
-            });
-        }
-    }
-}
 
 function syncZoneBOrder(navContainer) {
     const zoneB = document.getElementById('zone-question');
