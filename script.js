@@ -8053,10 +8053,8 @@ function updateQuestionNumbers() {
     // 1. Assign Question Numbers (01, 02...)
     questions.forEach((q, idx) => {
         qCount++;
-        // [Fix] 편집 모드에서 원본 번호 우선 사용 (항상 Q.01이 되는 버그 방지)
-        const header = q.querySelector('[data-original-no]');
-        const originalNo = header ? header.getAttribute('data-original-no') : '';
-        const num = originalNo ? String(originalNo).padStart(2, '0') : String(qCount).padStart(2, '0');
+        // [Fix] 항상 DOM 순서대로 번호 부여 (Nav 드래그 후 저장 시 번호 꼬임 방지)
+        const num = String(qCount).padStart(2, '0');
         q.setAttribute('data-q-num', num);
 
         // Update UI Label
