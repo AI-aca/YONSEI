@@ -4605,8 +4605,15 @@ async function runAIGradeForStudent(studentId, catId) {
             if (btn) btn.textContent = `⏳ AI 채점 중 (${aiNeeded.length}개)...`;
             const withTimeout = (p, ms) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
             const aiResults = await Promise.allSettled(aiNeeded.map(q => {
-                const fullQ = catQs.find(cq => cq.id === q.id) || q;
-                return withTimeout(gradeWithAI(fullQ, q.studentAnswer), 10000).then(r => ({ q, r })).catch(() => ({ q, r: null }));
+                const matchedQ = catQs.find(cq => String(cq.no) === String(q.no));
+                const gradeQ = matchedQ ? matchedQ : {
+                    type: q.type, questionType: q.type,
+                    section: q.section,
+                    answer: q.correctAnswer,
+                    modelAnswer: null,
+                    score: q.maxScore
+                };
+                return withTimeout(gradeWithAI(gradeQ, q.studentAnswer), 10000).then(r => ({ q, r })).catch(() => ({ q, r: null }));
             }));
             aiResults.forEach(res => {
                 if (res.status !== 'fulfilled') return;
@@ -4631,7 +4638,7 @@ async function runAIGradeForStudent(studentId, catId) {
         await sendReliableRequest({
             type: 'STUDENT_SAVE', timeout: 20000,
             categoryId: catId, categoryName: category.name, parentFolderId: folderId,
-            testDate: record['응시일'] || '', studentId: record['학생ID'] || '',
+            testDate: parseDateStr(record['응시일'] || ''), studentId: record['학생ID'] || '',
             studentName: record['학생명'] || '', grade: record['학년'] || '',
             questionScores: JSON.stringify(questionScores),
             grammarScore: sections['Grammar'].s, grammarMax: sections['Grammar'].m,
