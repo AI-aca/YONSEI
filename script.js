@@ -2804,7 +2804,7 @@ function renderScoreInput(c) {
                     </select>
                     <!-- 탭 버튼 추가 -->
                     <div class="flex items-center gap-2 ml-4">
-                        <button id="btn-input-new" onclick="switchScoreInputMode('new')" class="btn-ys !bg-[#013976] !text-white !border-2 !border-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center justify-center gap-2 !w-[120px]">&#x1F4DD; 신규 입력</button>
+                        <button id="btn-input-new" onclick="switchScoreInputMode('new')" class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center justify-center gap-2 !w-[120px]">&#x1F4DD; 신규 입력</button>
                         <button id="btn-input-edit" onclick="switchScoreInputMode('edit')" class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center justify-center gap-2 !w-[120px]">&#x270F;&#xFE0F; 수정 입력</button>
                     </div>
                 </div>
@@ -4426,7 +4426,7 @@ function renderAIGradeManager(c) {
                     </select>
                     <div class="flex items-center gap-2 ml-4">
                         <button id="ai-tab-pending" onclick="switchAIGradeTab('pending')"
-                            class="btn-ys !bg-[#013976] !text-white !border-2 !border-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">🔴 AI 미채점</button>
+                            class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">🔴 AI 미채점</button>
                         <button id="ai-tab-done" onclick="switchAIGradeTab('done')"
                             class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">✅ AI 채점 완료</button>
                     </div>
@@ -4722,9 +4722,9 @@ function renderRecords(c) {
             <div class="relative no-print">
                 <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">📊 Individual Reports</h2>
                 <div class="absolute right-0 flex items-center gap-2" style="top:50%; transform:translateY(-50%);">
-                    <button onclick="saveReportData()" id="btn-save-report" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-[#013976] text-white font-bold fs-15 hover:bg-[#012456] transition-all active:scale-95 shadow">💾 저장</button>
-                    <button onclick="printReport('portrait')" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-700 text-white font-bold fs-15 hover:bg-slate-900 transition-all active:scale-95 shadow">🖨️ 세로</button>
-                    <button onclick="printReport('landscape')" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-600 text-white font-bold fs-15 hover:bg-slate-800 transition-all active:scale-95 shadow">🖨️ 가로</button>
+                    <button onclick="saveReportData()" id="btn-save-report" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-400 text-white font-bold fs-15 hover:bg-slate-500 transition-all active:scale-95 shadow">💾 저장</button>
+                    <button onclick="printReport('portrait')" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-400 text-white font-bold fs-15 hover:bg-slate-500 transition-all active:scale-95 shadow">🖨️ 세로</button>
+                    <button onclick="printReport('landscape')" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-400 text-white font-bold fs-15 hover:bg-slate-500 transition-all active:scale-95 shadow">🖨️ 가로</button>
                 </div>
             </div>
 
