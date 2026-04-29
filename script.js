@@ -4356,8 +4356,8 @@ async function submitExam() {
 
     } catch (e) {
         console.error(e);
-        showToast("❌ 제출 실패: " + e.message);
-        alert("제출 중 오류가 발생했습니다: " + e.message);
+        showToast('❌ 제출 실패: ' + e.message);
+        alert('제출 중 오류가 발생했습니다.\n\n✅ 답안은 임시저장되어 있습니다.\nSubmit 버튼을 다시 눌러 재시도해주세요.');
     } finally {
         toggleLoading(false);
     }
