@@ -490,7 +490,7 @@ function changeMode(mode) {
         else if (mode === 'admin_dashboard') {
             body.classList.add('has-sidebar');
             renderSidebarNav();
-            changeTab('records'); // Default tab
+            changeTab('ai_grade'); // Default tab
         }
     });
 }
@@ -1366,6 +1366,8 @@ ${hasImages ? ' [이미지 첨부됨: 위 이미지들을 반드시 참고하여
 - 괄호 안의 선택적 표현이 포함되거나 생략되어도 정답 (예: "sandwich(es)" = "sandwich" = "sandwiches")
 - 영어-한글 의미 동일 표현 허용 (예: "forty pounds" = "40 pounds")
 - 동의어·유사 표현이 문맥상 동일 의미면 정답
+- 고유명사(인명·지명 등)의 영어↔한글 음역 표기 허용 (예: "Tom" = "톰", "Patrick" = "페트릭", "Clinton" = "클린턴", "Jack" = "잭")
+- 한국어 조사·어미의 미세한 차이는 의미상 동일하면 정답 (예: "10대들을" = "10대를", "학생들이" = "학생이")
 
 [스펠링 엄격 규칙 — 아래는 오답 처리]
 - 핵심 단어의 철자가 틀린 경우 오답 (예: "secratary" ≠ "secretary")
@@ -4420,12 +4422,12 @@ function renderExamAnswerSaved() {
 // ─────────────────────────────────────────────
 function renderAIGradeManager(c) {
     if (!globalConfig.categories || globalConfig.categories.length === 0) {
-        renderEmptyState(c, 'AI 채점 관리'); return;
+        renderEmptyState(c, 'AI GRADING'); return;
     }
     setCanvasId('05-2');
     c.innerHTML = `
         <div class="animate-fade-in-safe space-y-6">
-            <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">🤖 AI 채점 관리</h2>
+            <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">🤖 AI GRADING</h2>
 
             <!-- 시험지 선택 + 탭 버튼 한 줄 (Canvas 06 스타일) -->
             <div class="card !py-3.5 !px-6 flex items-center justify-between shadow-lg relative overflow-hidden"
@@ -4433,9 +4435,13 @@ function renderAIGradeManager(c) {
                 <div style="position:absolute; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg, #60a5fa, #6366f1, #a855f7);"></div>
                 <div class="flex items-center gap-4 w-full">
                     <label class="ys-label !mb-0 whitespace-nowrap !text-[#013976] font-bold">📂 시험지 선택</label>
-                    <select id="ai-grade-category" class="ys-field flex-grow !font-normal !text-[#013976] !bg-white !text-[16px]">
+                    <select id="ai-grade-category" onchange="onAIGradeCategoryChange()" class="ys-field flex-1 !font-normal !text-[#013976] !bg-white !text-[16px]">
                         <option value="" disabled selected hidden>시험지를 선택하세요</option>
                         ${globalConfig.categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('')}
+                    </select>
+                    <label class="ys-label !mb-0 whitespace-nowrap !text-[#013976] font-bold">📅 년도</label>
+                    <select id="ai-grade-year" class="ys-field flex-1 !font-normal !text-[#013976] !bg-white !text-[16px]" disabled>
+                        <option value="" disabled selected hidden>시험지 먼저 선택</option>
                     </select>
                     <div class="flex items-center gap-2 ml-4">
                         <button id="ai-tab-pending" onclick="switchAIGradeTab('pending')"
@@ -4456,9 +4462,36 @@ function renderAIGradeManager(c) {
     window._aiGradeMode = 'pending';
 }
 
+async function onAIGradeCategoryChange() {
+    const catId = document.getElementById('ai-grade-category')?.value;
+    const yearSel = document.getElementById('ai-grade-year');
+    if (!catId || !yearSel) return;
+    yearSel.innerHTML = '<option value="" disabled selected>로딩 중...</option>';
+    yearSel.disabled = true;
+    const category = globalConfig.categories.find(c => String(c.id) === String(catId));
+    if (!category) return;
+    const folderId = extractFolderId(category.targetFolderUrl);
+    try {
+        const result = await sendReliableRequest({ type: 'GET_STUDENT_LIST', parentFolderId: folderId, categoryName: category.name });
+        const records = result.data || result.records || [];
+        const years = [...new Set(records.map(r => String(r['응시일'] || '').substring(0, 4)).filter(y => /^\d{4}$/.test(y)))].sort((a, b) => b - a);
+        if (!years.length) {
+            yearSel.innerHTML = '<option value="">데이터 없음</option>';
+        } else {
+            yearSel.innerHTML = '<option value="" disabled selected hidden>년도 선택</option>' +
+                years.map(y => `<option value="${y}">${y}년</option>`).join('');
+            yearSel.disabled = false;
+        }
+    } catch (e) {
+        yearSel.innerHTML = '<option value="">로딩 실패</option>';
+    }
+}
+
 function switchAIGradeTab(mode) {
     const catId = document.getElementById('ai-grade-category')?.value;
+    const year = document.getElementById('ai-grade-year')?.value;
     if (!catId) { showToast('⚠️ 시험지를 먼저 선택하세요.'); return; }
+    if (!year) { showToast('⚠️ 년도를 선택하세요.'); return; }
     window._aiGradeMode = mode;
     const p = document.getElementById('ai-tab-pending');
     const d = document.getElementById('ai-tab-done');
@@ -4471,12 +4504,13 @@ function switchAIGradeTab(mode) {
 
 async function loadAIGradeList() {
     const catId = document.getElementById('ai-grade-category')?.value;
+    const year = document.getElementById('ai-grade-year')?.value;
     const listEl = document.getElementById('ai-grade-list');
-    if (!catId || !listEl) return;
+    if (!catId || !year || !listEl) return;
     const mode = window._aiGradeMode || 'pending';
-    listEl.innerHTML = `<div class="flex justify-center items-center py-10"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#013976]"></div></div>`;
+    toggleLoading(true);
     const category = globalConfig.categories.find(c => String(c.id) === String(catId));
-    if (!category) return;
+    if (!category) { toggleLoading(false); return; }
     const folderId = extractFolderId(category.targetFolderUrl);
     try {
         const result = await sendReliableRequest({ type: 'GET_STUDENT_LIST', parentFolderId: folderId, categoryName: category.name });
@@ -4489,8 +4523,12 @@ async function loadAIGradeList() {
             const isGraded = qs.length > 0 && qs.every(q => q._graded === true || q._graded === 'true');
             return { ...r, _qs: qs, _hasUngraded: hasUngraded, _isGraded: isGraded };
         });
-        const filtered = parsed.filter(r => mode === 'pending' ? r._hasUngraded : r._isGraded);
+        const filtered = parsed.filter(r => {
+            const y = String(r['응시일'] || '').substring(0, 4);
+            return y === year && (mode === 'pending' ? r._hasUngraded : r._isGraded);
+        });
         if (!filtered.length) {
+            toggleLoading(false);
             listEl.innerHTML = `<p class="text-slate-400 text-center py-10" style="font-size:16px;">${mode === 'pending' ? '😕 AI 미채점 학생이 없습니다.' : '✅ AI 채점 완료된 학생이 없습니다.'}</p>`;
             return;
         }
@@ -4505,16 +4543,19 @@ async function loadAIGradeList() {
             const total = r._qs.length;
             const actionBtn = mode === 'pending'
                 ? `<button id="ai-btn-${sid}" onclick="runAIGradeForStudent('${sid}','${catId}')" class="px-3 py-1.5 rounded-xl bg-[#013976] text-white font-bold hover:bg-[#012456] transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:14px;">🤖 AI 채점</button>`
-                : `<span class="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 font-bold whitespace-nowrap flex-none" style="font-size:14px;">✅ 완료 (${r['총점'] || 0}/${r['만점'] || 0}점)</span>`;
-            return `<div class="card !px-5 !py-3.5 flex items-center gap-3 shadow-md relative overflow-hidden" style="${boxStyle}">
+                : `<span class="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 font-bold whitespace-nowrap flex-none" style="font-size:14px;">✅ 완료 (${r['총점'] || 0}/${r['만점'] || 0}점)</span>
+                   <button id="ai-btn-${sid}" onclick="runAIGradeForStudent('${sid}','${catId}')" class="px-3 py-1.5 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:14px;">🔄 다시 채점</button>`;
+            return `<div class="card !px-5 !py-3.5 shadow-md relative overflow-hidden" style="flex-direction:row; display:flex; align-items:center; gap:12px; ${boxStyle}">
                 <div style="position:absolute; top:0; left:0; right:0; height:2px; background: linear-gradient(90deg, #60a5fa, #6366f1, #a855f7);"></div>
                 <span style="font-size:16px; font-weight:800; color:#013976; white-space:nowrap;">👤 ${name}</span>
                 <span class="text-slate-500 flex-1" style="font-size:15px;">🎓 ${grade}&nbsp;|&nbsp;📅 ${date}&nbsp;|&nbsp;📝 답안 ${answered}/${total}개</span>
                 ${actionBtn}
             </div>`;
         }).join('');
+        toggleLoading(false);
         listEl.innerHTML = `<div class="space-y-3"><p style="font-size:17px; font-weight:800; color:#013976; margin-bottom:8px;">${mode === 'pending' ? `AI 미채점 (${filtered.length}명)` : `AI 채점 완료 (${filtered.length}명)`}</p>${rows}</div>`;
     } catch (e) {
+        toggleLoading(false);
         listEl.innerHTML = `<p class="fs-14 text-red-400 text-center py-10">로딩 실패: ${e.message}</p>`;
     }
 }
