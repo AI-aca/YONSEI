@@ -4731,9 +4731,9 @@ function renderRecords(c) {
             <div class="relative no-print">
                 <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">📊 Individual Reports</h2>
                 <div class="absolute right-0 flex items-center gap-2" style="top:50%; transform:translateY(-50%);">
-                    <button onclick="saveReportData()" id="btn-save-report" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-400 text-white font-bold fs-15 hover:bg-slate-500 transition-all active:scale-95 shadow">💾 저장</button>
-                    <button onclick="printReport('portrait')" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-400 text-white font-bold fs-15 hover:bg-slate-500 transition-all active:scale-95 shadow">🖨️ 세로</button>
-                    <button onclick="printReport('landscape')" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-400 text-white font-bold fs-15 hover:bg-slate-500 transition-all active:scale-95 shadow">🖨️ 가로</button>
+                    <button onclick="saveReportData()" id="btn-save-report" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-[#013976] text-white font-bold fs-15 hover:bg-[#012456] transition-all active:scale-95 shadow">💾 저장</button>
+                    <button onclick="printReport('portrait')" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-500 text-white font-bold fs-15 hover:bg-slate-600 transition-all active:scale-95 shadow">🖨️ 세로</button>
+                    <button onclick="printReport('landscape')" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-500 text-white font-bold fs-15 hover:bg-slate-600 transition-all active:scale-95 shadow">🖨️ 가로</button>
                 </div>
             </div>
 
