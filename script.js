@@ -764,7 +764,7 @@ function showMasterCodeModal(tab) {
     document.body.appendChild(overlay);
     setTimeout(() => document.getElementById('master-code-input')?.focus(), 80);
     // Enter 키 지원
-    document.getElementById('master-code-input').addEventListener('keyup', function(e) {
+    document.getElementById('master-code-input').addEventListener('keyup', function (e) {
         if (e.key === 'Enter') verifyMasterCodeModal(tab);
     });
 }
@@ -794,7 +794,7 @@ async function verifyMasterCodeModal(tab) {
             inp.value = ''; inp.focus();
             if (btn) { btn.disabled = false; btn.innerHTML = '🔑 ACCESS NOW'; }
         }
-    } catch(e) {
+    } catch (e) {
         showToast('⛔ 인증 오류: ' + e.message);
         if (btn) { btn.disabled = false; btn.innerHTML = '🔑 ACCESS NOW'; }
     } finally {
@@ -8176,7 +8176,7 @@ function renderNavigator(questions) {
 
     // zoneC.style.border = "2px solid red"; // DEBUG (Removed)
 
-    questions.forEach(function(q) {
+    questions.forEach(function (q) {
         const id = q.id;
         const num = q.getAttribute('data-q-num');
         const type = q.getAttribute('data-type');
@@ -8212,14 +8212,14 @@ function renderNavigator(questions) {
         `;
 
         // Nav Click → Scroll to Question
-        navItem.addEventListener('click', function() {
+        navItem.addEventListener('click', function () {
             const targetEl = document.getElementById(navItem.getAttribute('data-target-id'));
             const zoneQ = document.getElementById('zone-question');
             if (targetEl && zoneQ) {
                 targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 targetEl.style.outline = '2px solid #3b82f6';
                 targetEl.style.borderRadius = '12px';
-                setTimeout(function() { targetEl.style.outline = ''; }, 1200);
+                setTimeout(function () { targetEl.style.outline = ''; }, 1200);
             }
         });
 
