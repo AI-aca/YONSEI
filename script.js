@@ -4704,8 +4704,7 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
             if (btn) btn.textContent = '⏳ AI 채점 중...';
             const withTimeout = (p, ms) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
             const aiResults = await Promise.allSettled(aiNeeded.map(q => {
-                const matchedQ = catQs.find(cq => String(cq.no) === String(q.no));
-                const gradeQ = matchedQ ? matchedQ : { type: q.type, questionType: q.type, section: q.section, answer: q.correctAnswer, modelAnswer: null, score: q.maxScore };
+                const gradeQ = { type: q.type, questionType: q.type, section: q.section, answer: q.correctAnswer, modelAnswer: null, score: q.maxScore };
                 return withTimeout(gradeWithAI(gradeQ, q.studentAnswer), 10000).then(r => ({ q, r })).catch(() => ({ q, r: null }));
             }));
             aiResults.forEach(res => {
@@ -4726,9 +4725,7 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
         const withTimeout2 = (p, ms) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
         if (toVerify.length > 0 && globalConfig.masterUrl) {
             const verifyResults = await Promise.allSettled(toVerify.map(q => {
-                const matchedQ = catQs.find(cq => String(cq.no) === String(q.no));
-                const gradeQ = matchedQ ? matchedQ : { section: q.section, answer: q.correctAnswer };
-                const vPrompt = `[AI 채점 검증]\n문항영역: ${gradeQ.section || q.section}\n정답/키워드: ${gradeQ.answer || q.correctAnswer}\n학생 답안: ${q.studentAnswer || '(미입력)'}\n1차 채점: ${q.score} / ${q.maxScore}점\n[원칙] 의미상 동일=정답, 고유명사 음역 허용, 조사 차이 허용, 오타=오답\n반드시 JSON만: {"score": 숫자}`;
+                const vPrompt = `[AI 채점 검증]\n문항영역: ${q.section}\n정답/키워드: ${q.correctAnswer}\n학생 답안: ${q.studentAnswer || '(미입력)'}\n1차 채점: ${q.score} / ${q.maxScore}점\n[원칙] 의미상 동일=정답, 고유명사 음역 허용, 조사 차이 허용, 오타=오답\n반드시 JSON만: {"score": 숫자}`;
                 return withTimeout2(
                     sendReliableRequest({ type: 'CALL_GEMINI', prompt: vPrompt, systemInstruction: '' }, true)
                         .then(r => {
