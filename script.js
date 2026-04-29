@@ -4725,7 +4725,7 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
         const withTimeout2 = (p, ms) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
         if (toVerify.length > 0 && globalConfig.masterUrl) {
             const verifyResults = await Promise.allSettled(toVerify.map(q => {
-                const vPrompt = `[AI 채점 검증]\n문항영역: ${q.section}\n정답/키워드: ${q.correctAnswer}\n학생 답안: ${q.studentAnswer || '(미입력)'}\n1차 채점: ${q.score} / ${q.maxScore}점\n[원칙] 의미상 동일=정답, 고유명사 음역 허용, 조사 차이 허용, 오타=오답\n반드시 JSON만: {"score": 숫자}`;
+                const vPrompt = `[AI 채점 검증]\n문항영역: ${q.section}\n정답/키워드: ${q.correctAnswer}\n학생 답안: ${q.studentAnswer || '(미입력)'}\n1차 채점: ${q.score} / ${q.maxScore}점\n\n[관대한 채점 규칙 — 아래 모두 정답(만점) 처리]\n- 대소문자 차이 무시\n- 띄어쓰기 차이 무시\n- 하이픈(-), en dash(–), em dash(—) 혼용 허용\n- 정답에 포함된 핵심 단어를 포함하면 정답 (예: 정답="(지켜)보다", 답안="보다" → 정답)\n- 정답이 여러 개(쉼표 구분)인 경우 그 중 하나만 포함해도 정답\n- 괄호 안의 선택적 표현이 포함되거나 생략되어도 정답\n- 영어↔한글 의미 동일 표현 허용\n- 동의어·유사 표현이 문맥상 동일 의미면 정답\n- 고유명사(인명·지명 등)의 영어↔한글 음역 표기 허용 (예: "Tom"="톰", "Patrick"="페트릭")\n- 한국어 조사·어미의 미세한 차이는 의미상 동일하면 정답\n- 숫자↔한글 표기 혼용 허용\n\n[엄격 규칙 — 오답 처리]\n- 핵심 단어의 철자가 틀린 경우 오답\n\n반드시 JSON만: {"score": 숫자}`;
                 return withTimeout2(
                     sendReliableRequest({ type: 'CALL_GEMINI', prompt: vPrompt, systemInstruction: '' }, true)
                         .then(r => {
