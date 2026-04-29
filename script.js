@@ -8496,6 +8496,15 @@ function handleNavDragEnd(e) {
     this.classList.remove('opacity-50', 'bg-blue-50');
     // Finalize numbers
     updateQuestionNumbers();
+    // Nav 드래그로 순서 변경 시 모든 문항을 변경 목록에 추가 (저장 가능하도록)
+    if (window._changedItems) {
+        const zoneB = document.getElementById('zone-question');
+        if (zoneB) {
+            zoneB.querySelectorAll('.builder-item').forEach(function(q) {
+                if (q.id) window._changedItems.add(q.id);
+            });
+        }
+    }
 }
 
 function syncZoneBOrder(navContainer) {
