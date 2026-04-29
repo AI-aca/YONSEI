@@ -2880,20 +2880,19 @@ function renderScoreInput(c) {
             <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">✏️ Student Score Input</h2>
 
             <!-- 1. Category Selection -->
-            <div class="card !py-3.5 !px-6 flex items-center justify-between shadow-lg relative overflow-hidden" style="background: linear-gradient(135deg, #ffffff 0%, #eef4ff 100%); border: 2px solid rgba(1,57,118,0.15);">
+            <div class="card !py-3.5 !px-6 !flex-row !flex-nowrap items-center justify-between shadow-lg relative overflow-hidden flex-none gap-4" style="background: linear-gradient(135deg, #ffffff 0%, #eef4ff 100%); border: 2px solid rgba(1,57,118,0.15);">
                 <div style="position:absolute; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg, #60a5fa, #6366f1, #a855f7);"></div>
-                <div class="flex items-center gap-4 w-full">
-                    <label class="ys-label !mb-0 whitespace-nowrap !text-[#013976] font-bold">&#x1F4C2; &#xC2DC;&#xD5D8;&#xC9C0; &#xC120;&#xD0DD;</label>
+                <div class="flex items-center gap-4 flex-grow">
+                    <span style="font-size:17px;font-weight:700;color:#013976;white-space:nowrap;">📂 시험지 선택</span>
                     <select id="input-category" class="ys-field flex-grow !font-normal !text-[#013976] !bg-white !text-[16px]"
                             onchange="handleScoreCategoryChange(this.value)">
-                        <option value="" disabled selected hidden>&#xC2DC;&#xD5D8;&#xC9C0;&#xB97C; &#xC120;&#xD0DD;&#xD558;&#xC138;&#xC694;</option>
+                        <option value="" disabled selected hidden>시험지를 선택하세요</option>
                         ${globalConfig.categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('')}
                     </select>
-                    <!-- 탭 버튼 추가 -->
-                    <div class="flex items-center gap-2 ml-4">
-                        <button id="btn-input-new" onclick="switchScoreInputMode('new')" class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center justify-center gap-2 !w-[120px]">&#x1F4DD; 신규 입력</button>
-                        <button id="btn-input-edit" onclick="switchScoreInputMode('edit')" class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center justify-center gap-2 !w-[120px]">&#x270F;&#xFE0F; 수정 입력</button>
-                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button id="btn-input-new" onclick="switchScoreInputMode('new')" class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">📝 신규 입력</button>
+                    <button id="btn-input-edit" onclick="switchScoreInputMode('edit')" class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">✏️ 수정 입력</button>
                 </div>
             </div>
 
@@ -3544,11 +3543,11 @@ function switchScoreInputMode(mode) {
     const btnEdit = document.getElementById('btn-input-edit');
     if (btnNew && btnEdit) {
         if (mode === 'new') {
-            btnNew.className = "btn-ys !bg-[#013976] !text-white !border-2 !border-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center justify-center gap-2 !w-[120px]";
-            btnEdit.className = "btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center justify-center gap-2 !w-[120px]";
+            btnNew.className = "btn-ys !bg-[#013976] !text-white !border-2 !border-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2";
+            btnEdit.className = "btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2";
         } else {
-            btnEdit.className = "btn-ys !bg-[#013976] !text-white !border-2 !border-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center justify-center gap-2 !w-[120px]";
-            btnNew.className = "btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center justify-center gap-2 !w-[120px]";
+            btnEdit.className = "btn-ys !bg-[#013976] !text-white !border-2 !border-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2";
+            btnNew.className = "btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2";
         }
     }
 
