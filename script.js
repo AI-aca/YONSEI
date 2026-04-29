@@ -4631,7 +4631,7 @@ async function loadAIGradeList(silentLoad = false) {
             }
             return true;
         });
-        const boxStyle = `background: linear-gradient(135deg, #ffffff 0%, #eef4ff 100%); border: 2px solid rgba(1,57,118,0.15);`;
+        const boxStyle = `bg-slate-50 px-6 py-4 rounded-xl border-2 border-slate-200 hover:shadow-md hover:bg-white hover:border-blue-300 transition-all`;
         const rows = filtered.map(r => {
             const sid = r['학생ID'] || '';
             const name = r['학생명'] || '';
@@ -4645,8 +4645,7 @@ async function loadAIGradeList(silentLoad = false) {
                    <button id="ai-confirm-btn-${sid}" onclick="confirmAIGrade('${sid}','${catId}')" class="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:15px;">✅ 확인</button>`
                 : `<span class="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 font-bold whitespace-nowrap flex-none" style="font-size:15px;">✅ 완료 (${r['총점'] || 0}/${r['만점'] || 0}점)</span>
                    <button id="ai-btn-${sid}" onclick="if(!confirm('다시 채점하면 기존 채점 결과가 초기화됩니다.\n계속하시겠습니까?')) return; runAIGradeAndVerify('${sid}','${catId}',true)" class="px-3 py-1.5 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:15px;">🔄 다시 채점</button>`;
-            return `<div class="card !px-5 !py-3.5 shadow-md relative overflow-hidden" style="flex-direction:row; display:flex; align-items:center; gap:12px; ${boxStyle}">
-                <div style="position:absolute; top:0; left:0; right:0; height:2px; background: linear-gradient(90deg, #60a5fa, #6366f1, #a855f7);"></div>
+            return `<div class="${boxStyle}" style="display:flex; align-items:center; gap:12px;">
                 <span style="font-size:16px; font-weight:800; color:#013976; white-space:nowrap;">👤 ${name}</span>
                 <span class="text-slate-500 flex-1" style="font-size:16px;">🎓 ${grade}&nbsp;|&nbsp;📅 ${date}&nbsp;|&nbsp;📝 답안 ${answered}/${total}개</span>
                 ${actionBtn}
