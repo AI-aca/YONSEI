@@ -719,6 +719,12 @@ function hasUnsavedChanges() {
 function checkUnsavedChanges(callback) {
     if (hasUnsavedChanges()) {
         if (confirm("작업 중인 정보를 저장하지 않았을 경우 정보가 손실됩니다.")) {
+            window._hasLoadedData = false;
+            callback();
+        }
+    } else if (window._hasLoadedData) {
+        if (confirm("현재 화면에서 나가시겠습니까?\n로드된 데이터가 사라지며 다시 불러와야 합니다.")) {
+            window._hasLoadedData = false;
             callback();
         }
     } else {
@@ -728,6 +734,7 @@ function checkUnsavedChanges(callback) {
 
 function changeTab(tab) {
     checkUnsavedChanges(() => {
+        window._hasLoadedData = false;
         // [Fix] 탭 전환 시 레이아웃 완전 복원 (어느 탭에서 와도 정상화)
         const _header = document.getElementById('app-header');
         const _footer = document.getElementById('app-footer');
@@ -3089,7 +3096,8 @@ async function handleScoreCategoryChange(catId) {
     }).join('');
 
 
-    showToast('\u2705 ' + catQuestions.length + '\uAC1C \uBB38\uD56D \uB85C\uB4DC \uC644\uB8CC (\uB9CC\uC810 ' + maxScore + '\uC810)');
+    showToast('✅ ' + catQuestions.length + '개 문항 로드 완료 (만점 ' + maxScore + '점)');
+    window._hasLoadedData = true;
     // Flatpickr 달력 적용
     setTimeout(() => applyYsDatePicker('#input-test-date'), 50);
 }
@@ -4540,6 +4548,7 @@ async function loadAIGradeList(silentLoad = false) {
         }).join('');
         if (!silentLoad) toggleLoading(false);
         listEl.innerHTML = `<div class="space-y-3"><p style="font-size:17px; font-weight:800; color:#013976; margin-bottom:8px;">${mode === 'pending' ? `AI 미채점 (${filtered.length}명)` : `AI 채점 완료 (${filtered.length}명)`}</p>${rows}</div>`;
+        window._hasLoadedData = true;
     } catch (e) {
         if (!silentLoad) toggleLoading(false);
         listEl.innerHTML = `<p class="fs-14 text-red-400 text-center py-10">로딩 실패: ${e.message}</p>`;
@@ -5192,6 +5201,7 @@ async function loadStudentReport() {
             const savedNotes = report.notes || null; // 수정: DB에서 기타사항 불러오기
             window.currentReportData = { record: report, averages, activeSections, sectionComments: savedSections, overallComment: savedOverall, notes: savedNotes };
             renderReportCard(report, averages, savedSections, savedOverall, activeSections, savedNotes);
+            window._hasLoadedData = true;
             showToast(`✅ 성적표 로드 완료 (평균 ${validRecs.length}명 기준)`);
 
         } else {
@@ -6564,6 +6574,7 @@ async function loadStudentStats() {
         });
         window._allStudentStatsData = result.data || [];
         renderStudentStatsUI(window._allStudentStatsData, '');
+        window._hasLoadedData = true;
     } catch (e) {
         document.getElementById('stats-display').innerHTML =
             `<div class="card text-center text-red-400">오류: ${e.message}</div>`;
@@ -6885,6 +6896,7 @@ async function loadQuestionStats() {
 
         const stats = calculateQuestionStats(questionsToUse);
         renderStatsCharts(stats);
+        window._hasLoadedData = true;
         showToast('✅ 통계 로드 완료!');
 
     } catch (err) {
