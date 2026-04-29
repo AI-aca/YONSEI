@@ -10892,7 +10892,7 @@ function renderExamInstructions() {
         try {
             const _draft = JSON.parse(_draftRaw);
             const _elapsedMs = Date.now() - (_draft.savedAt || 0);
-            const DRAFT_LIMIT_MS = 5 * 60 * 60 * 1000; // [Fix] 5시간 유효기간
+            const DRAFT_LIMIT_MS = 48 * 60 * 60 * 1000; // 48시간 유효기간
             if (_elapsedMs > DRAFT_LIMIT_MS) {
                 // 유효기간 초과 → 자동 삭제 후 새로 시작
                 clearExamDraft(catId, name);
