@@ -4538,9 +4538,6 @@ function renderAIGradeManager(c) {
                             class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">🔴 AI 미채점</button>
                         <button id="ai-tab-done" onclick="switchAIGradeTab('done')"
                             class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">✅ AI 채점 완료</button>
-                        <label class="flex items-center gap-1.5 cursor-pointer whitespace-nowrap" style="font-size:15px; font-weight:700; color:#013976;">
-                            <input type="checkbox" id="ai-recent-1month" checked onchange="loadAIGradeList()" style="width:16px;height:16px;cursor:pointer;"> 최근 1개월
-                        </label>
                     </div>
                 </div>
             </div>
@@ -4634,11 +4631,6 @@ async function loadAIGradeList(silentLoad = false) {
             }
             return true;
         });
-        if (!filtered.length) {
-            if (!silentLoad) toggleLoading(false);
-            listEl.innerHTML = `<p class="text-slate-400 text-center py-10" style="font-size:16px;">${mode === 'pending' ? '😕 AI 미채점 학생이 없습니다.' : '✅ AI 채점 완료된 학생이 없습니다.'}</p>`;
-            return;
-        }
         const boxStyle = `background: linear-gradient(135deg, #ffffff 0%, #eef4ff 100%); border: 2px solid rgba(1,57,118,0.15);`;
         const rows = filtered.map(r => {
             const sid = r['학생ID'] || '';
@@ -4661,7 +4653,10 @@ async function loadAIGradeList(silentLoad = false) {
             </div>`;
         }).join('');
         if (!silentLoad) toggleLoading(false);
-        listEl.innerHTML = `<div class="space-y-3"><p style="font-size:17px; font-weight:800; color:#013976; margin-bottom:8px;">${mode === 'pending' ? `AI 미채점 (${filtered.length}명)` : `AI 채점 완료 (${filtered.length}명)`}</p>${rows}</div>`;
+        const headerText = mode === 'pending'
+            ? `🔴 AI 미채점 명단 : ${filtered.length}명`
+            : `✅ AI 채점 완료 명단 : ${filtered.length}명`;
+        listEl.innerHTML = `<div class="space-y-3"><div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;"><p style="font-size:17px;font-weight:800;color:#013976;margin-bottom:0;">${headerText}</p><label style="display:flex;align-items:center;gap:5px;font-size:15px;font-weight:700;color:#013976;cursor:pointer;"><input type="checkbox" id="ai-recent-1month" ${recentOnly ? 'checked' : ''} onchange="loadAIGradeList()" style="width:16px;height:16px;cursor:pointer;"> 최근 1개월</label></div>${rows}</div>`;
         window._hasLoadedData = true;
     } catch (e) {
         if (!silentLoad) toggleLoading(false);
