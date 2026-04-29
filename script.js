@@ -5175,7 +5175,12 @@ async function loadStudentReport() {
             averages['Listening_점수'] = averages.listeningScore;
             averages['Vocabulary_점수'] = averages.vocabScore;
 
+            const _mxMap = { Grammar: 'grammarMax', Writing: 'writingMax', Reading: 'readingMax', Listening: 'listeningMax', Vocabulary: 'vocabMax' };
             const activeSections = allSections.filter(section => {
+                // 만점 > 0이면 포함 (0점이어도 해당 영역 문항이 있으면 표시)
+                const maxScore = parseFloat(report[section + '_만점'] || report[_mxMap[section]] || 0);
+                if (maxScore > 0) return true;
+                // 만점 정보 없으면 기존 방식 (점수 > 0)
                 const score = report[section + '_점수'] !== undefined
                     ? parseFloat(report[section + '_점수'])
                     : parseFloat(report[secMap[section]] || 0);
