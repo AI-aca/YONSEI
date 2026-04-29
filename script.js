@@ -4535,9 +4535,9 @@ function renderAIGradeManager(c) {
                     </select>
                     <div class="flex items-center gap-2 ml-4">
                         <button id="ai-tab-pending" onclick="switchAIGradeTab('pending')"
-                            class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">🔴 AI 미채점</button>
+                            class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-3 !py-1.5 !text-[16px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">🔴 AI 미채점</button>
                         <button id="ai-tab-done" onclick="switchAIGradeTab('done')"
-                            class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">✅ AI 채점 완료</button>
+                            class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-3 !py-1.5 !text-[16px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2">✅ AI 채점 완료</button>
                     </div>
                 </div>
             </div>
