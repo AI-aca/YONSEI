@@ -4551,6 +4551,7 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
     const confirmBtn = document.getElementById('ai-confirm-btn-' + studentId);
     if (btn) { btn.disabled = true; btn.textContent = '⏳ 채점 중...'; }
     if (confirmBtn) confirmBtn.disabled = true;
+    toggleLoading(true);
     const category = globalConfig.categories.find(c => String(c.id) === String(catId));
     if (!category) { showToast('시험지 정보 없음'); return; }
     const folderId = extractFolderId(category.targetFolderUrl);
@@ -4651,7 +4652,14 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
         window._aiGradeTemp[studentId] = { questionScores, sections, difficulties, total, max, catId, category, folderId, record };
 
         showToast('✅ 검증이 완료되었습니다. 확인 버튼을 눌러주세요.');
-        if (btn) { btn.disabled = false; btn.textContent = '🔄 재채점'; }
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = `${total}/${max}점`;
+            btn.style.background = '#f1f5f9';
+            btn.style.color = '#475569';
+            btn.style.cursor = 'default';
+            btn.style.border = '1.5px solid #cbd5e1';
+        }
         if (confirmBtn) { confirmBtn.disabled = false; }
 
         if (autoConfirm) { await confirmAIGrade(studentId, catId); }
@@ -4660,6 +4668,8 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
         showToast('❌ AI 채점 실패: ' + e.message);
         if (btn) { btn.disabled = false; btn.textContent = '🤖 AI 채점 및 검증'; }
         if (confirmBtn) { confirmBtn.disabled = false; }
+    } finally {
+        toggleLoading(false);
     }
 }
 
