@@ -4556,11 +4556,11 @@ async function onAIGradeCategoryChange() {
     const catId = document.getElementById('ai-grade-category')?.value;
     const yearSel = document.getElementById('ai-grade-year');
     if (!catId || !yearSel) return;
-    yearSel.innerHTML = '<option value="" disabled selected>로딩 중...</option>';
     yearSel.disabled = true;
     const category = globalConfig.categories.find(c => String(c.id) === String(catId));
     if (!category) return;
     const folderId = extractFolderId(category.targetFolderUrl);
+    toggleLoading(true);
     try {
         const result = await sendReliableRequest({ type: 'GET_STUDENT_LIST', parentFolderId: folderId, categoryName: category.name });
         const records = result.data || result.records || [];
@@ -4574,6 +4574,8 @@ async function onAIGradeCategoryChange() {
         }
     } catch (e) {
         yearSel.innerHTML = '<option value="">로딩 실패</option>';
+    } finally {
+        toggleLoading(false);
     }
 }
 
