@@ -4535,9 +4535,9 @@ function renderAIGradeManager(c) {
                     </select>
                     <div class="flex items-center gap-2 ml-4">
                         <button id="ai-tab-pending" onclick="switchAIGradeTab('pending')"
-                            class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[16px] !font-black rounded-xl whitespace-nowrap justify-center" style="min-width:140px;">🔴 AI 미채점</button>
+                            class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[16px] !font-black rounded-xl whitespace-nowrap justify-center" style="width:150px;">🔴 AI 미채점</button>
                         <button id="ai-tab-done" onclick="switchAIGradeTab('done')"
-                            class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[16px] !font-black rounded-xl whitespace-nowrap justify-center" style="min-width:140px;">✅ AI 채점 완료</button>
+                            class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[16px] !font-black rounded-xl whitespace-nowrap justify-center" style="width:150px;">✅ AI 채점 완료</button>
                     </div>
                 </div>
             </div>
@@ -4589,8 +4589,8 @@ function switchAIGradeTab(mode) {
     const d = document.getElementById('ai-tab-done');
     const on = 'btn-ys !bg-[#013976] !text-white !border-2 !border-[#013976] !px-5 !py-2.5 !text-[16px] !font-black rounded-xl whitespace-nowrap justify-center';
     const off = 'btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[16px] !font-black rounded-xl whitespace-nowrap justify-center';
-    if (p) { p.className = mode === 'pending' ? on : off; p.style.minWidth = '140px'; }
-    if (d) { d.className = mode === 'done' ? on : off; d.style.minWidth = '140px'; }
+    if (p) { p.className = mode === 'pending' ? on : off; p.style.width = '150px'; }
+    if (d) { d.className = mode === 'done' ? on : off; d.style.width = '150px'; }
     loadAIGradeList();
 }
 
