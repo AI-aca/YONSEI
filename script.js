@@ -4502,18 +4502,18 @@ function switchAIGradeTab(mode) {
     loadAIGradeList();
 }
 
-async function loadAIGradeList() {
+async function loadAIGradeList(silentLoad = false) {
     const catId = document.getElementById('ai-grade-category')?.value;
     const year = document.getElementById('ai-grade-year')?.value;
     const listEl = document.getElementById('ai-grade-list');
     if (!catId || !year || !listEl) return;
     const mode = window._aiGradeMode || 'pending';
-    toggleLoading(true);
+    if (!silentLoad) toggleLoading(true);
     const category = globalConfig.categories.find(c => String(c.id) === String(catId));
     if (!category) { toggleLoading(false); return; }
     const folderId = extractFolderId(category.targetFolderUrl);
     try {
-        const result = await sendReliableRequest({ type: 'GET_STUDENT_LIST', parentFolderId: folderId, categoryName: category.name });
+        const result = await sendReliableRequest({ type: 'GET_STUDENT_LIST', parentFolderId: folderId, categoryName: category.name }, silentLoad);
         const records = result.data || result.records || [];
         const parsed = records.map(r => {
             let qs = [];
@@ -4528,7 +4528,7 @@ async function loadAIGradeList() {
             return y === year && (mode === 'pending' ? r._hasUngraded : r._isGraded);
         });
         if (!filtered.length) {
-            toggleLoading(false);
+            if (!silentLoad) toggleLoading(false);
             listEl.innerHTML = `<p class="text-slate-400 text-center py-10" style="font-size:16px;">${mode === 'pending' ? '😕 AI 미채점 학생이 없습니다.' : '✅ AI 채점 완료된 학생이 없습니다.'}</p>`;
             return;
         }
@@ -4552,10 +4552,10 @@ async function loadAIGradeList() {
                 ${actionBtn}
             </div>`;
         }).join('');
-        toggleLoading(false);
+        if (!silentLoad) toggleLoading(false);
         listEl.innerHTML = `<div class="space-y-3"><p style="font-size:17px; font-weight:800; color:#013976; margin-bottom:8px;">${mode === 'pending' ? `AI 미채점 (${filtered.length}명)` : `AI 채점 완료 (${filtered.length}명)`}</p>${rows}</div>`;
     } catch (e) {
-        toggleLoading(false);
+        if (!silentLoad) toggleLoading(false);
         listEl.innerHTML = `<p class="fs-14 text-red-400 text-center py-10">로딩 실패: ${e.message}</p>`;
     }
 }
@@ -4567,7 +4567,7 @@ async function runAIGradeForStudent(studentId, catId) {
     if (!category) { showToast('시험지 정보 없음'); return; }
     const folderId = extractFolderId(category.targetFolderUrl);
     try {
-        const result = await sendReliableRequest({ type: 'GET_STUDENT_LIST', parentFolderId: folderId, categoryName: category.name });
+        const result = await sendReliableRequest({ type: 'GET_STUDENT_LIST', parentFolderId: folderId, categoryName: category.name }, true);
         const record = (result.data || result.records || []).find(r => String(r['학생ID']) === String(studentId));
         if (!record) { showToast('학생 데이터를 찾을 수 없습니다.'); return; }
         let questionScores;
@@ -4652,9 +4652,9 @@ async function runAIGradeForStudent(studentId, catId) {
             difficulty_low: difficulties['하'].s, difficulty_low_max: difficulties['하'].m,
             difficulty_basic: difficulties['기초'].s, difficulty_basic_max: difficulties['기초'].m,
             totalScore: total, maxScore: max, studentClass: record['등록학급'] || ''
-        });
+        }, true);
         showToast(`✅ ${record['학생명']} AI 채점 완료! (${total}/${max}점)`);
-        await loadAIGradeList();
+        await loadAIGradeList(true);
     } catch (e) {
         console.error('AI 채점 실패:', e);
         showToast('❌ AI 채점 실패: ' + e.message);
