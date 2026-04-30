@@ -4717,15 +4717,21 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
             const aiResults = await Promise.allSettled(aiNeeded.map(q => {
                 const srcQ = qMap[String(q.no)] || {};
                 const gradeQ = { type: q.type, questionType: q.type, section: q.section, answer: q.correctAnswer, modelAnswer: srcQ.modelAnswer || null, score: q.maxScore, questionTitle: stripHtml(srcQ.title || srcQ.questionTitle || ''), text: stripHtml(srcQ.text || ''), bundlePassageText: (srcQ.setId && bundleMap[String(srcQ.setId)]) ? bundleMap[String(srcQ.setId)] : '' };
-                // [디버그] AI 채점 직전 문항 정보 콘솔 출력
-                console.group(`[AI채점] 2단계 no.${q.no} | ${q.section} | ${q.type}`);
-                console.log('질문내용(지시문):', gradeQ.questionTitle || '❌ 없음');
-                console.log('지문내용:        ', gradeQ.text || '❌ 없음');
-                console.log('묶음지문내용:    ', gradeQ.bundlePassageText || '❌ 없음');
-                console.log('정답:            ', q.correctAnswer || '❌ 없음');
-                console.log('모범답안:          ', gradeQ.modelAnswer ? '✅ 있음: ' + gradeQ.modelAnswer : '❌ 없음');
-                console.log('학생답:          ', q.studentAnswer || '(미입력)');
-                console.log('배점:            ', q.maxScore + '점');
+                // [디버그] AI 채점 직전 문항 정보 콘솔 출력 (프롬프트 Step 순서)
+                const _isListeningDbg = (q.section || '').toLowerCase() === 'listening';
+                console.group(`[AI채점] 2단계 no.${q.no} | ${q.section} | ${q.type} | ${_isListeningDbg ? '🎧 Listening(정답목록+모범답안)' : '📝 일반(모범답안만)'}`);
+                console.log('Step1. 묶음지문:  ', gradeQ.bundlePassageText || '❌ 없음');
+                console.log('Step2. 질문내용:  ', gradeQ.questionTitle || '❌ 없음');
+                console.log('Step3. 지문내용:  ', gradeQ.text || '❌ 없음');
+                if (_isListeningDbg) {
+                    console.log('Step4. 정답목록:  ', q.correctAnswer || '❌ 없음');
+                    console.log('Step4. 모범답안:  ', gradeQ.modelAnswer ? '✅ 있음: ' + gradeQ.modelAnswer : '❌ 없음');
+                } else {
+                    // 일반 주관형: 정답 미출력 (프롬프트에도 미포함)
+                    console.log('Step4. 모범답안:  ', gradeQ.modelAnswer ? '✅ 있음: ' + gradeQ.modelAnswer : '❌ 없음');
+                }
+                console.log('Step5. 학생답:    ', q.studentAnswer || '(미입력)');
+                console.log('      배점:       ', q.maxScore + '점');
                 console.groupEnd();
                 return gradeWithAI(gradeQ, q.studentAnswer).then(r => ({ q, r })).catch(() => ({ q, r: null }));
             }));
