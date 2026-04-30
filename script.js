@@ -4710,13 +4710,16 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
         // HTML → 순수 텍스트 변환 (AI 채점 프롬프트용)
         const stripHtml = html => (html || '').replace(/<source-footnote[\s\S]*?<\/source-footnote>/gi, '').replace(/<sources-carousel[\s\S]*?<\/sources-carousel[^>]*>/gi, '').replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/<!--[\s\S]*?-->/g, '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
         if (aiNeeded.length > 0 && globalConfig.masterUrl) {
-            const qDbResult = await sendReliableRequest({ type: 'GET_FULL_DB', parentFolderId: folderId, categoryName: category.name }, true);
-            const qDbList = (qDbResult && qDbResult.questions) ? qDbResult.questions : [];
-            qDbList.forEach(qi => { qMap[String(qi.no)] = qi; });
-            // 묶음 지문 매핑 (setId → bundleText)
-            const bundleDbList = (qDbResult && qDbResult.bundles) ? qDbResult.bundles : [];
-            const bundleMap = {};
-            bundleDbList.forEach(b => { bundleMap[String(b.id)] = stripHtml(b.text || ''); });
+            try {
+                const qDbResult = await sendReliableRequest({ type: 'GET_FULL_DB', parentFolderId: folderId, categoryName: category.name }, true);
+                const qDbList = (qDbResult && qDbResult.questions) ? qDbResult.questions : [];
+                qDbList.forEach(qi => { qMap[String(qi.no)] = qi; });
+                // 묶음 지문 매핑 (setId → bundleText)
+                const bundleDbList = (qDbResult && qDbResult.bundles) ? qDbResult.bundles : [];
+                bundleDbList.forEach(b => { bundleMap[String(b.id)] = stripHtml(b.text || ''); });
+            } catch(e) {
+                console.warn('[AI채점] GET_FULL_DB 로드 실패 (지문 없이 채점 진행):', e.message);
+            }
         }
 
         // 2단계: AI 채점
