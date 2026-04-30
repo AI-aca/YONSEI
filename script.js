@@ -4645,7 +4645,7 @@ async function loadAIGradeList(silentLoad = false) {
                    <button id="ai-btn-${sid}" onclick="if(!confirm('다시 채점하면 기존 채점 결과가 초기화됩니다.\n계속하시겠습니까?')) return; runAIGradeAndVerify('${sid}','${catId}',true)" class="px-3 py-1.5 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:16px;">🔄 다시 채점</button>`;
             return `<div class="flex justify-between items-center bg-slate-50 px-6 py-4 rounded-xl border-2 border-slate-200 hover:shadow-md hover:bg-white hover:border-blue-300 transition-all">
                 <span style="font-size:16px; font-weight:800; color:#013976; white-space:nowrap;">👤 ${name}</span>
-                <span style="color:#64748b; flex:1; font-size:16px;">🎓 ${grade}&nbsp;|&nbsp;📅 ${date}&nbsp;|&nbsp;📝 답안 ${answered}/${total}개</span>
+                <span style="color:#64748b; flex:1; font-size:16px;">&nbsp;|&nbsp;🎓 ${grade}&nbsp;|&nbsp;📅 ${date}&nbsp;|&nbsp;📝 답안 ${answered}/${total}개</span>
                 <div style="display:flex; align-items:center; gap:8px;">${actionBtn}</div>
             </div>`;
         }).join('');
