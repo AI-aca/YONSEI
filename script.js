@@ -1427,12 +1427,18 @@ async function gradeWithAI(q, userAns) {
 
     const hasImages = imageUrls.length > 0;
 
+    // 단어 번역 문항 감지: 모범답안에 '올바르면 정답' 패턴 or 모범답안이 존재하지 않고 문항이 짧은 영어 표현인 경우
+    const _isWordTrans = !!(q.modelAnswer && q.modelAnswer.includes('올바르면 정답'));
+    const _answerLine = _isWordTrans
+        ? `⚠️ [단어번역문항] 문항 영단어의 올바른 한국어 번역이면 어떤 표현이든 모두 정답입니다. (참고 예시 — 말그라도 안 됨: ${q.answer})`
+        : `채점 참고 예시(유일한 정답 아님): ${q.answer}`;
+
     const prompt = `
 [AI Online Grading Request]
  문항: ${q.questionTitle || q.text}
  유형: ${q.questionType}
  영역: ${q.section}
- 채점 참고 예시(유일한 정답 아님): ${q.answer}
+ ${_answerLine}
  모범 답안: ${q.modelAnswer || '없음'}
  학생 답안: ${userAns}
  배점: ${q.score}
