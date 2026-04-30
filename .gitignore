@@ -7,3 +7,7 @@
 # 에이전트/IDE 설정
 .agents/
 .vscode/
+
+# 임시 작업 스크립트 (AI 에이전트 작업용)
+fix_*.js
+test_*.js
