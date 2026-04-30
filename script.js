@@ -4643,7 +4643,7 @@ async function loadAIGradeList(silentLoad = false) {
                    <button id="ai-confirm-btn-${sid}" onclick="confirmAIGrade('${sid}','${catId}')" class="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:16px;">✅ 확인</button>`
                 : `<span class="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 font-bold whitespace-nowrap flex-none" style="font-size:16px;">✅ 완료 (${r['총점'] || 0}/${r['만점'] || 0}점)</span>
                    <button id="ai-btn-${sid}" onclick="if(!confirm('다시 채점하면 기존 채점 결과가 초기화됩니다.\n계속하시겠습니까?')) return; runAIGradeAndVerify('${sid}','${catId}',true)" class="px-3 py-1.5 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:16px;">🔄 다시 채점</button>`;
-            return `<div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:16px 24px; border-radius:12px; border:2px solid #e2e8f0; transition:all 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';this.style.background='#fff';this.style.borderColor='#93c5fd';" onmouseout="this.style.boxShadow='';this.style.background='#f8fafc';this.style.borderColor='#e2e8f0';">
+            return `<div class="flex justify-between items-center bg-slate-50 px-6 py-4 rounded-xl border-2 border-slate-200 hover:shadow-md hover:bg-white hover:border-blue-300 transition-all">
                 <span style="font-size:16px; font-weight:800; color:#013976; white-space:nowrap;">👤 ${name}</span>
                 <span style="color:#64748b; flex:1; font-size:16px;">🎓 ${grade}&nbsp;|&nbsp;📅 ${date}&nbsp;|&nbsp;📝 답안 ${answered}/${total}개</span>
                 <div style="display:flex; align-items:center; gap:8px;">${actionBtn}</div>
@@ -4653,7 +4653,7 @@ async function loadAIGradeList(silentLoad = false) {
         const headerText = mode === 'pending'
             ? `🔴 AI 미채점 명단 : ${filtered.length}명`
             : `✅ AI 채점 완료 명단 : ${filtered.length}명`;
-        listEl.innerHTML = `<div style="display:flex; flex-direction:column; gap:12px;"><div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;"><p style="font-size:17px;font-weight:800;color:#013976;margin-bottom:0;">${headerText}</p><label style="display:flex;align-items:center;gap:5px;font-size:15px;font-weight:700;color:#013976;cursor:pointer;"><input type="checkbox" id="ai-recent-1month" ${recentOnly ? 'checked' : ''} onchange="loadAIGradeList()" style="width:16px;height:16px;cursor:pointer;"> 최근 1개월</label></div>${rows}</div>`;
+        listEl.innerHTML = `<div style="display:flex; flex-direction:column; gap:12px;"><div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;"><span style="font-size:17px;font-weight:800;color:#013976;line-height:1;">${headerText}</span><label style="display:flex;align-items:center;gap:5px;font-size:15px;font-weight:700;color:#013976;cursor:pointer;"><input type="checkbox" id="ai-recent-1month" ${recentOnly ? 'checked' : ''} onchange="loadAIGradeList()" style="width:16px;height:16px;cursor:pointer;"> 최근 1개월</label></div>${rows}</div>`;
         window._hasLoadedData = true;
     } catch (e) {
         if (!silentLoad) toggleLoading(false);
@@ -4730,7 +4730,7 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
         const withTimeout2 = (p, ms) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
         if (toVerify.length > 0 && globalConfig.masterUrl) {
             const verifyResults = await Promise.allSettled(toVerify.map(q => {
-                const vPrompt = `[AI 채점 검증]\n문항영역: ${q.section}\n정답/키워드: ${q.correctAnswer}\n학생 답안: ${q.studentAnswer || '(미입력)'}\n1차 채점: ${q.score} / ${q.maxScore}점\n\n[관대한 채점 규칙 — 아래 모두 정답(만점) 처리]\n- 대소문자 차이 무시\n- 띄어쓰기 차이 무시\n- 하이픈(-), en dash(–), em dash(—) 혼용 허용\n- 정답에 포함된 핵심 단어를 포함하면 정답 (예: 정답="(지켜)보다", 답안="보다" → 정답)\n- 정답이 여러 개(쉼표 구분)인 경우 그 중 하나만 포함해도 정답\n- 괄호 안의 선택적 표현이 포함되거나 생략되어도 정답\n- 영어↔한글 의미 동일 표현 허용\n- 동의어·유사 표현이 문맥상 동일 의미면 정답\n- 고유명사(인명·지명 등)의 영어↔한글 음역 표기 허용 (예: "Tom"="톰", "Patrick"="페트릭")\n- 한국어 조사·어미의 미세한 차이는 의미상 동일하면 정답\n- 숫자↔한글 표기 혼용 허용\n\n[엄격 규칙 — 오답 처리]\n- 핵심 단어의 철자가 틀린 경우 오답\n\n반드시 JSON만: {"score": 숫자}`;
+                const vPrompt = `[AI 채점 검증]\n문항영역: ${q.section}\n정답/키워드: ${q.correctAnswer}\n학생 답안: ${q.studentAnswer || '(미입력)'}\n1차 채점: ${q.score} / ${q.maxScore}점\n\n[관대한 채점 규칙 — 아래 모두 정답(만점) 처리]\n- 대소문자 차이 무시\n- 띄어쓰기 차이 무시\n- 하이픈(-), en dash(–), em dash(—) 혼용 허용\n- 정답에 포함된 핵심 단어를 포함하면 정답 (예: 정답="(지켜)보다", 답안="보다" → 정답)\n- 정답이 여러 개(쉼표 구분)인 경우 그 중 하나만 포함해도 정답\n- 괄호 안의 선택적 표현이 포함되거나 생략되어도 정답\n- 영어↔한글 의미 동일 표현 허용\n- 동의어·유사 표현이 문맥상 동일 의미면 정답\n- 고유명사(인명·지명 등)의 영어↔한글 음역 표기 허용 (예: "Tom"="톰", "Patrick"="페트릭")\n- 한국어 조사·어미의 미세한 차이는 의미상 동일하면 정답\n- 동의어·유사 표현이 문맥상 동일 의미면 정답 (예: "무심코 말이나오다"="무심코 말하다"="무심코 말해지다", "보다 좋은"="더 좋은" → 정답)\n- 숫자↔한글 표기 혼용 허용\n\n[엄격 규칙 — 오답 처리]\n- 핵심 단어의 철자가 틀린 경우 오답\n\n반드시 JSON만: {"score": 숫자}`;
                 return withTimeout2(
                     sendReliableRequest({ type: 'CALL_GEMINI', prompt: vPrompt, systemInstruction: '' }, true)
                         .then(r => {
@@ -4762,6 +4762,13 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
         // 로컬 임시 저장
         window._aiGradeTemp = window._aiGradeTemp || {};
         window._aiGradeTemp[studentId] = { questionScores, sections, difficulties, total, max, catId, category, folderId, record };
+
+        // 감점 문항 디버그 출력
+        const deducted = questionScores.filter(q => q.score < q.maxScore);
+        if (deducted.length > 0) {
+            console.log(`[AI채점] 감점 문항 (${deducted.length}개):`);
+            deducted.forEach(q => console.log(`  no.${q.no} | 배점:${q.maxScore} | 획득:${q.score} | 학생:"${q.studentAnswer}" | 정답:"${q.correctAnswer}"`));
+        }
 
         showToast('✅ 검증이 완료되었습니다. 확인 버튼을 눌러주세요.');
         if (btn) {
