@@ -4726,7 +4726,9 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
         if (btn) btn.textContent = '⏳ 점수 검증 중...';
 
         // 3단계: AI 검증
-        const toVerify = questionScores.filter(q => q.type !== '객관형');
+        // AI 채점이 실제로 필요했던 문항만 검증 (키워드 매칭 정답 문항 제외 → 타임아웃 방지)
+        const aiNeededSet = new Set(aiNeeded.map(({ q }) => q));
+        const toVerify = questionScores.filter(q => aiNeededSet.has(q));
         const withTimeout2 = (p, ms) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
         if (toVerify.length > 0 && globalConfig.masterUrl) {
             const verifyResults = await Promise.allSettled(toVerify.map(q => {
@@ -4748,7 +4750,8 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
                 q._verified = true;
             });
         }
-        questionScores.forEach(q => { if (q.type === '객관형') q._verified = true; });
+        // 객관형 + 키워드 매칭 정답 처리된 주관형 → _verified 처리
+        questionScores.forEach(q => { if (q.type === '객관형' || (q._graded && !aiNeededSet.has(q))) q._verified = true; });
 
         // 집계
         let total = 0, max = 0;
