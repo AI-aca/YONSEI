@@ -1373,42 +1373,8 @@ async function obsolete_updateQ(id) {
     }
 }
 
-// --- GEMINI AI INTEGRATION (GAS 프록시 경유 — API Key 브라우저 노출 없음) ---
-async function callGeminiAPI(prompt, silent = false) {
-    if (!globalConfig.masterUrl) { if (!silent) showToast("⚠️ 서버 연결이 필요합니다. (masterUrl 미설정)"); return null; }
-    const folderId = globalConfig.mainServerLink ? globalConfig.mainServerLink.match(/folders\/([^/?]+)/)?.[1] : null;
-    try {
-        if (!silent) toggleLoading(true);
-        const res = await fetch(globalConfig.masterUrl, {
-            method: 'POST',
-            body: JSON.stringify({
-                type: 'CALL_GEMINI',
-                parentFolderId: folderId,
-                prompt: prompt
-            })
-        });
-        const wrapper = await res.json();
-        if (!silent) toggleLoading(false);
-
-        if (wrapper.status !== 'Success') {
-            console.error("GAS CALL_GEMINI Error:", wrapper.message);
-            throw new Error(wrapper.message || "GAS Error");
-        }
-
-        const data = wrapper.data;
-        if (data.candidates && data.candidates.length > 0 && data.candidates[0].content) {
-            return data.candidates[0].content.parts[0].text;
-        } else {
-            console.warn("Gemini API returned no candidates (Safety filter?):", data);
-            return "AI 분석을 생성할 수 없습니다. (내용이 안전 정책에 의해 필터링되었거나 응답이 비어있습니다.)";
-        }
-
-    } catch (e) {
-        if (!silent) toggleLoading(false);
-        console.error("Gemini Call Exception:", e);
-        return "AI 서비스 연결 실패";
-    }
-}
+// --- GEMINI AI INTEGRATION ---
+// ↓ 구버전 단순 fetch 방식 제거됨 — L5609 신버전(sendReliableRequest + 5회 재시도 + imageUrls 지원) 사용
 
 // [New] AI 자동 채점 핵심 로직
 async function gradeWithAI(q, userAns) {
@@ -1418,7 +1384,7 @@ async function gradeWithAI(q, userAns) {
     // 묶음 지문 + 개별 지문 텍스트
     const bundleText = q.bundlePassageText || '';
     const passageText = q.text || ''; // GAS는 text 필드로 반환 (passage1 없음)
-    const fullContext = bundleText ? '[묶음 지문]\n' + bundleText + '\n\n[개별 문항 지문]\n' + passageText : passageText;
+
 
     // [Fix] 이미지 URL 수집 (문항 이미지 + 번들 이미지) — GAS에서 Drive 파일로 읽어 AI에 전달
     const imageUrls = [];
@@ -1427,60 +1393,42 @@ async function gradeWithAI(q, userAns) {
 
     const hasImages = imageUrls.length > 0;
 
-    // 단어 번역 문항 감지: 모범답안에 '올바르면 정답' 패턴 or 모범답안이 존재하지 않고 문항이 짧은 영어 표현인 경우
-    const _isWordTrans = !!(q.modelAnswer && q.modelAnswer.includes('올바르면 정답'));
-    const _answerLine = _isWordTrans
-        ? `⚠️ [단어번역문항] 문항에 제시된 영어의 올바른 한국어 번역이면 어떤 표현이든 모두 정답입니다. (참고 예시 — 이외에도 올바른 번역이면 모두 정답: ${q.answer})`
-        : `채점 참고 예시(유일한 정답 아님): ${q.answer}`;
+    const isListening = (q.section || '').toLowerCase() === 'listening';
 
-    const prompt = `
-[AI Online Grading Request]
- 문항: ${q.questionTitle || q.text}
- 유형: ${q.questionType}
- 영역: ${q.section}
- ${_answerLine}
- 모범 답안: ${q.modelAnswer || '없음'}
- 학생 답안: ${userAns}
- 배점: ${q.score}
-${fullContext ? ' 지문(문맥):\n' + fullContext : ''}
-${hasImages ? ' [이미지 첨부됨: 위 이미지들을 반드시 참고하여 채점하세요]' : ''}
+    // Listening: 정답 포함 (정답 목록 중 하나면 정답)
+    // 나머지: 정답 없이 모범답안(채점기준)으로만 의미 판단
+    const step4 = isListening
+        ? `Step 4. 정답 목록(이 중 하나에 해당하면 정답): ${q.answer || '없음'}\n        채점 기준(모범답안): ${q.modelAnswer || '없음'}`
+        : `Step 4. 채점 기준(모범답안): ${q.modelAnswer || '없음'}`;
 
-[채점 핵심 원칙 — 주관형·작문형 전용 (절대 최우선)]
-⚠️ 정답/키워드는 '참고 기준'입니다. 실제 채점 기준은 학생 답이 문항에 비추어 의미적으로 올바른가입니다.
-- 단어 번역 문항(문항이 영단어 하나인 경우): 올바른 한국어 번역이면 표현이 달라도 모두 정답
-  (예: 문항=watch → "보다"/"지켜보다"/"쳐다보다"/"관찰하다" 모두 정답)
-  (예: 문항=better → "더 좋은"/"보다 좋은"/"더 나은"/"보다 나은"/"더 잘" 모두 정답)
-- 문장 번역 문항: 핵심 의미가 같으면 표현·어순이 달라도 정답
-- 빈칸 완성 문항: 문맥에 자연스럽게 어울리면 정답/키워드와 표현이 달라도 정답
-- 정답/키워드와 표현이 다르다는 이유만으로 오답 처리 절대 금지
-
-[Instructions - 채점 기준]
-1. 위 지문(문맥)${hasImages ? '과 첨부 이미지' : ''}을 읽고, 학생의 답안이 문항에 비추어 의미적으로 올바른지 판단하세요.
-2. 채점 참고 예시는 활용 예시일 뿐이며 유일한 정답이 아닙니다. 학생 답이 의미상 올바르면 반드시 정답 처리하세요.
-
-[주관형 관대한 채점 규칙 — 아래 모두 정답(만점) 처리]
+    const prompt = `[채점 규칙 — 절대 최우선]
+- 띄어쓰기 차이 무시 (예: "관찰 하다" = "관찰하다")
 - 대소문자 차이 무시 (예: "Mallet" = "mallet")
-- 띄어쓰기 차이 무시 (예: "T Hudson" = "THudson")
-- 하이픈(-), en dash(–), em dash(—) 혼용 허용 (예: "1815-1875" = "1815–1875")
-- 정답에 포함된 핵심 단어를 포함하면, 추가 정보가 더 있어도 정답 (예: 정답="Mallet", 답안="(22) Mallet (street)" → 정답)
-- 숫자↔한글 표기 혼용 허용 (예: "11.30" = "11시30분", "12 February" = "12월" = "2월12일")
+- 하이픈(-), en dash(–), em dash(—) 혼용 허용
 - 아포스트로피(')와 백틱(\`)은 동일 문자로 간주
-- 괄호 안의 선택적 표현이 포함되거나 생략되어도 정답 (예: "sandwich(es)" = "sandwich" = "sandwiches")
-- 영어-한글 의미 동일 표현 허용 (예: "forty pounds" = "40 pounds")
+- 고유명사 영어↔한글 음역 허용 (예: "Tom"="톰", "Patrick"="페트릭", "Clinton"="클린턴", "Jack"="잭")
+- 한국어 조사·어미 차이 허용 (예: "10대들을"="10대를", "학생들이"="학생이")
+- 단수/복수 차이 허용 (예: "sandwich"="sandwiches")
+- 관사(a/the) 추가·생략 허용
+- 숫자↔한글 표기 혼용 허용 (예: "11.30"="11시30분", "forty pounds"="40파운드")
+- 핵심 단어를 포함하면 추가 정보가 있어도 정답 (예: "(22) Mallet (street)" → 핵심="Mallet" → 정답)
 - 동의어·유사 표현이 문맥상 동일 의미면 정답
-- 고유명사(인명·지명 등)의 영어↔한글 음역 표기 허용 (예: "Tom" = "톰", "Patrick" = "페트릭", "Clinton" = "클린턴", "Jack" = "잭")
-- 한국어 조사·어미의 미세한 차이는 의미상 동일하면 정답 (예: "10대들을" = "10대를", "학생들이" = "학생이")
+- 철자가 틀린 경우만 오답 (단, 단수/복수·관사 제외)
+- [작문형] 0점~배점 사이 부분점수 가능
 
-[스펠링 엄격 규칙 — 아래는 오답 처리]
-- 핵심 단어의 철자가 틀린 경우 오답 (예: "secratary" ≠ "secretary")
-- 단, 단수/복수 차이, 관사(a/the) 추가/생략은 허용
+[채점 절차 — 순서대로 확인]
+Step 1. 묶음 지문: ${bundleText || '없음'}
+Step 2. 문항(질문내용): ${q.questionTitle || q.text || '없음'}
+Step 3. 개별 지문: ${passageText || '없음'}
+${step4}
+Step 5. 학생 답안: ${userAns || '(미입력)'}
 
-[작문형]: 문맥, 문법, 핵심 단어 포함 여부를 종합 평가하여 0점에서 배점 사이의 점수를 부여하세요.
+배점: ${q.score}점 / 영역: ${q.section} / 유형: ${q.questionType}
+${hasImages ? '[이미지 첨부됨: 위 이미지들을 반드시 참고하여 채점하세요]' : ''}
 
-출력은 반드시 아래 JSON 형식으로만 하세요. (기타 텍스트 금지)
-
+→ 위 규칙과 절차에 따라 학생 답이 채점 기준에 맞는지 판단. 출력은 JSON만:
 {"score": 점수숫자, "feedback": "간략한 채점 근거(한국어)"}
-    `;
+`;
 
     try {
         const res = await callGeminiAPI(prompt, true, imageUrls); // 이미지 URL 전달
@@ -4699,7 +4647,7 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
         // 고유명사 영↔한 음역 매핑 테이블
         const PN_MAP = { 'tom': '__PN1__', '톰': '__PN1__', 'jack': '__PN2__', '잭': '__PN2__', 'patrick': '__PN3__', '페트릭': '__PN3__', '패트릭': '__PN3__', 'clinton': '__PN4__', '클린턴': '__PN4__', 'mallet': '__PN5__', '말레': '__PN5__', 'sophia': '__PN6__', '소피아': '__PN6__', 'emma': '__PN7__', '엠마': '__PN7__' };
         const normPN = s => { let ns = normalize(s); Object.entries(PN_MAP).forEach(([k, v]) => { ns = ns.split(k).join(v); }); return ns; };
-        const catQs = (globalConfig.questions || []).filter(q => String(q.catId) === String(catId));
+
 
         // 1단계: 키워드 매칭
         const aiNeeded = [];
@@ -4740,7 +4688,7 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
                         q.correct = accPN.some(a => a && nsPN.includes(a)) || accPN.includes(nsPN);
                     }
                     if (q.correct) { q.score = maxQ; q._graded = true; } else { aiNeeded.push(q); }
-                } else { q.score = 0; q.correct = false; q._graded = true; }
+                } else { aiNeeded.push(q); } // correctAnswer 없음 → AI 채점 대상 (모범답안으로 판단)
             }
         });
 
@@ -4765,7 +4713,7 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
         // 2단계: AI 채점
         if (aiNeeded.length > 0 && globalConfig.masterUrl) {
             if (btn) btn.textContent = '⏳ AI 채점 중...';
-            const withTimeout = (p, ms) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
+
             const aiResults = await Promise.allSettled(aiNeeded.map(q => {
                 const srcQ = qMap[String(q.no)] || {};
                 const gradeQ = { type: q.type, questionType: q.type, section: q.section, answer: q.correctAnswer, modelAnswer: srcQ.modelAnswer || null, score: q.maxScore, questionTitle: stripHtml(srcQ.title || srcQ.questionTitle || ''), text: stripHtml(srcQ.text || ''), bundlePassageText: (srcQ.setId && bundleMap[String(srcQ.setId)]) ? bundleMap[String(srcQ.setId)] : '' };
@@ -4779,7 +4727,7 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
                 console.log('학생답:          ', q.studentAnswer || '(미입력)');
                 console.log('배점:            ', q.maxScore + '점');
                 console.groupEnd();
-                return withTimeout(gradeWithAI(gradeQ, q.studentAnswer), 10000).then(r => ({ q, r })).catch(() => ({ q, r: null }));
+                return gradeWithAI(gradeQ, q.studentAnswer).then(r => ({ q, r })).catch(() => ({ q, r: null }));
             }));
             aiResults.forEach(res => {
                 if (res.status !== 'fulfilled') return;
@@ -4791,56 +4739,11 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
         }
         questionScores.forEach(q => { if (!q._graded) { q.score = 0; q.correct = false; q._graded = true; } });
 
-        showToast('채점 완료! 곧 점수 검증을 진행합니다.');
-        if (btn) btn.textContent = '⏳ 점수 검증 중...';
+        showToast('채점 완료!');
 
-        // 3단계: AI 검증
-        // AI 채점이 실제로 필요했던 문항만 검증 (키워드 매칭 정답 문항 제외 → 타임아웃 방지)
-        const aiNeededSet = new Set(aiNeeded); // aiNeeded는 q 객체 자체의 배열
-        const toVerify = questionScores.filter(q => aiNeededSet.has(q));
-        const withTimeout2 = (p, ms) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
-        if (toVerify.length > 0 && globalConfig.masterUrl) {
-            const verifyResults = await Promise.allSettled(toVerify.map(q => {
-                const _sq = qMap[String(q.no)] || {};
-                const _qt = stripHtml(_sq.title || _sq.text || '(내용 없음)');
-                const _bt = (_sq.setId ? bundleMap[String(_sq.setId)] : '') || '';
-                const _pt = stripHtml(_sq.text || '');
-                const _fc = _bt ? '[묶음 지문]\n' + _bt + '\n\n[개별 지문]\n' + _pt : _pt;
-                // [디버그] 3단계 검증 직전 콘솔 출력
-                console.group(`[AI채점] 3단계(검증) no.${q.no} | ${q.section}`);
-                console.log('질문내용(지시문):', _qt || '❌ 없음');
-                console.log('지문내용:        ', _pt || '❌ 없음');
-                console.log('묶음지문내용:    ', _bt || '❌ 없음');
-                console.log('정답:            ', q.correctAnswer || '❌ 없음');
-                console.log('학생답:          ', q.studentAnswer || '(미입력)');
-                console.log('1차점수:         ', `${q.score} / ${q.maxScore}점`);
-                console.groupEnd();
-                // 단어번역 문항 감지 (3단계 검증)
-                const _v_isWordTrans = !!((_sq.modelAnswer || '').includes('올바르면 정답'));
-                const _v_answerLine = _v_isWordTrans
-                    ? `⚠️ [단어번역] 문항에 제시된 영어의 올바른 한국어 번역이면 어떤 표현이든 모두 정답입니다. (참고 예시 — 이외에도 올바른 번역이면 모두 정답: ${q.correctAnswer})`
-                    : `채점 참고 예시(유일한 정답 아님): ${q.correctAnswer}`;
-                const _coreRule = `[채점 핵심 원칙 — 주관형 전용 (절대 최우선)]\n⚠️ 정답/키워드는 참고 기준입니다. 실제 채점 기준은 학생 답이 문항에 비추어 의미적으로 올바른가입니다.\n- 단어 번역 문항(문항이 영단어 하나인 경우): 올바른 한국어 번역이면 표현 달라도 모두 정답. (watch → 보다/지켜보다/쳐다보다/관찰하다 모두 정답, better → 더 좋은/보다 좋은/더 나은/더 잘 모두 정답)\n- 문장 번역: 핵심 의미 같으면 어순·표현 달라도 정답\n- 고유명사 영어↔한글 음역 동일 처리: Patrick=페트릭, Tom=톰, Jack=잭 등 기준으로 차이 재외, 나머지 내용 동일하면 정답\n- 정답과 표현만 다르다는 이유만으로 오답 처리 절대 금지\n\n`;
-                const vPrompt = _coreRule + `[AI 채점 검증]\n문항영역: ${q.section}\n문항 내용: ${_qt}\n${_fc ? '지문:\n' + _fc + '\n' : ''}\n${_v_answerLine}\n학생 답안: ${q.studentAnswer || '(미입력)'}\n1차 채점: ${q.score} / ${q.maxScore}점\n\n[관대한 채점 규칙 — 아래 모두 정답(만점) 처리]\n- 대소문자 차이 무시\n- 띄어쓰기 차이 무시\n- 하이픈(-), en dash(–), em dash(—) 혼용 허용\n- 정답에 포함된 핵심 단어를 포함하면 정답 (예: 정답="(지켜)보다", 답안="보다" → 정답)\n- 정답이 여러 개(쉼표 구분)인 경우 그 중 하나만 포함해도 정답\n- 괄호 안의 선택적 표현이 포함되거나 생략되어도 정답\n- 영어↔한글 의미 동일 표현 허용\n- 동의어·유사 표현이 문맥상 동일 의미면 정답\n- 고유명사(인명·지명 등)의 영어↔한글 음역 표기 허용 (예: "Tom"="톰", "Patrick"="페트릭", "Jack"="잭", "Clinton"="클린턴")\n- 한국어 조사·어미의 미세한 차이는 의미상 동일하면 정답\n- 동의어·유사 표현이 문맥상 동일 의미면 정답 (예: "무심코 말이나오다"="무심코 말하다"="무심코 말해지다", "보다 좋은"="더 좋은" → 정답)\n- 숫자↔한글 표기 혼용 허용\n- 아포스트로피(')와 백틱(\`)은 동일 문자로 간주\n- 단수/복수 차이 허용 (예: "sandwich" = "sandwiches")\n- 관사(a/the) 추가·생략 허용\n\n[엄격 규칙 — 오답 처리]\n- 핵심 단어의 철자가 틀린 경우 오답\n\n반드시 JSON만: {"score": 숫자}`;
-                return withTimeout2(
-                    sendReliableRequest({ type: 'CALL_GEMINI', prompt: vPrompt, systemInstruction: '' }, true)
-                        .then(r => {
-                            if (!r || !r.text) return { q, score: null };
-                            const parsed = JSON.parse(r.text.replace(/```json|```/g, '').trim());
-                            return { q, score: parsed.score };
-                        }),
-                    12000
-                ).catch(() => ({ q, score: null }));
-            }));
-            verifyResults.forEach(res => {
-                if (res.status !== 'fulfilled') return;
-                const { q, score } = res.value;
-                if (score !== null && score !== undefined) { q.score = Math.min(Math.max(0, Math.round(score)), q.maxScore || 0); q.correct = q.score >= (q.maxScore || 0); }
-                q._verified = true;
-            });
-        }
-        // 객관형 + 키워드 매칭 정답 처리된 주관형 → _verified 처리
-        questionScores.forEach(q => { if (q.type === '객관형' || (q._graded && !aiNeededSet.has(q))) q._verified = true; });
+        // 전체 문항 _verified 처리 (3단계 폐지)
+        questionScores.forEach(q => { if (q._graded) q._verified = true; });
+
 
         // 집계
         let total = 0, max = 0;
@@ -4862,7 +4765,7 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
             deducted.forEach(q => console.log(`  no.${q.no} | 배점:${q.maxScore} | 획득:${q.score} | 학생:"${q.studentAnswer}" | 정답:"${q.correctAnswer}"`));
         }
 
-        showToast('✅ 검증이 완료되었습니다. 확인 버튼을 눌러주세요.');
+        showToast('✅ 채점이 완료되었습니다. 확인 버튼을 눌러주세요.');
         if (btn) {
             btn.disabled = true;
             btn.textContent = `${total}/${max}점`;
