@@ -4468,6 +4468,9 @@ function _downloadAnswerTxt(session, category, questionScores) {
 function renderExamAnswerSaved() {
     const examContainer = document.getElementById('dynamic-content');
     if (!examContainer) return;
+    // [제출 완료] 페이지 이탈 경고 제거
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.onbeforeunload = null;
     const _header = document.getElementById('app-header');
     const _footer = document.getElementById('app-footer');
     const _mc = document.getElementById('main-container');

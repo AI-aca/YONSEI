@@ -131,29 +131,46 @@ function doPost(e) {
     else if (data.type === "SAVE_CONFIG") {
       var configSheet = getOrCreateConfigSheet(rootFolderId);
       var configToSave = data.config;
-      
-      // 기존 데이터만 지우고 행렬(포맷)은 유지하여 구글 시트 오류(모든 비고정행 삭제 에러) 방지
+      var SENSITIVE_KEYS_SAVE = ['geminiKey', 'adminCode', 'masterCode'];
+
+      // [민감값 보존] clearContent 전에 기존 민감값 백업
+      var sensitiveBackup = {};
       var lastRow = configSheet.getLastRow();
       if (lastRow > 1) {
+        var existingVals = configSheet.getRange(2, 1, lastRow - 1, 2).getValues();
+        for (var si = 0; si < existingVals.length; si++) {
+          var sk = String(existingVals[si][0]);
+          if (SENSITIVE_KEYS_SAVE.indexOf(sk) !== -1 && existingVals[si][1] !== '') {
+            sensitiveBackup[sk] = existingVals[si][1];
+          }
+        }
+        // 기존 데이터만 지우고 행렬(포맷)은 유지하여 구글 시트 오류(모든 비고정행 삭제 에러) 방지
         configSheet.getRange(2, 1, lastRow - 1, 2).clearContent();
       }
-      
-      // 새로운 설정 저장 (일괄 저장을 위해 배열 형태로 준비)
+
+      // 새로운 설정 저장 — 민감값은 프론트에서 오지 않으므로 제외하고 저장
       var newRows = [];
       for (var key in configToSave) {
-        var value = configToSave[key];
-        // 객체/배열은 JSON 문자열로 변환
-        if (typeof value === 'object') {
-          value = JSON.stringify(value);
+        if (SENSITIVE_KEYS_SAVE.indexOf(key) === -1) {
+          var value = configToSave[key];
+          // 객체/배열은 JSON 문자열로 변환
+          if (typeof value === 'object') {
+            value = JSON.stringify(value);
+          }
+          newRows.push([key, value]);
         }
-        newRows.push([key, value]);
       }
-      
+
+      // [민감값 복원] 백업해둔 민감값을 마지막에 추가
+      for (var skKey in sensitiveBackup) {
+        newRows.push([skKey, sensitiveBackup[skKey]]);
+      }
+
       // 일괄 배열 업데이트 (appendRow루프보다 압도적으로 빠르고 확실함)
       if (newRows.length > 0) {
         configSheet.getRange(2, 1, newRows.length, 2).setValues(newRows);
       }
-      
+
       return ContentService.createTextOutput(JSON.stringify({
         status: "Success"
       })).setMimeType(ContentService.MimeType.JSON);
