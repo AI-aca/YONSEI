@@ -5167,10 +5167,10 @@ async function generateOverallComment(record, averages, activeSections, sectionC
     if (oaUpperPercentile <= 10) totalLevel = '매우 우수';
     else if (oaUpperPercentile <= 20) totalLevel = '우수';
     else if (oaUpperPercentile <= 35) totalLevel = '다소 우수';
-    else if (oaUpperPercentile <= 55) totalLevel = '보통';
-    else if (oaUpperPercentile <= 70) totalLevel = '다소 부진';
-    else if (oaUpperPercentile <= 85) totalLevel = '부진';
-    else totalLevel = '매우 부진';
+    else if (oaUpperPercentile <= 55) totalLevel = '일반 또는 평범';
+    else if (oaUpperPercentile <= 70) totalLevel = '다소 부족';
+    else if (oaUpperPercentile <= 85) totalLevel = '부족';
+    else totalLevel = '많이 부족';
 
     // 권장학급 총점 평균 + 학급 내 백분위
     const _oaGrd = record.grade || record['학년'] || '';
@@ -5463,10 +5463,10 @@ async function generateSectionComments(record, averages, activeSections) {
             if (upperPercentile <= 10) level = '매우 우수';
             else if (upperPercentile <= 20) level = '우수';
             else if (upperPercentile <= 35) level = '다소 우수';
-            else if (upperPercentile <= 55) level = '보통';
-            else if (upperPercentile <= 70) level = '다소 부진';
-            else if (upperPercentile <= 85) level = '부진';
-            else level = '매우 부진';
+            else if (upperPercentile <= 55) level = '일반 또는 평범';
+            else if (upperPercentile <= 70) level = '다소 부족';
+            else if (upperPercentile <= 85) level = '부족';
+            else level = '많이 부족';
             const rate = maxScore > 0 ? (studentScore / maxScore * 100) : 0;
 
             // 권장학급 평균 + 학급 내 백분위 계산
