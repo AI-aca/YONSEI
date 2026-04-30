@@ -1417,7 +1417,7 @@ async function gradeWithAI(q, userAns) {
 
     // 묶음 지문 + 개별 지문 텍스트
     const bundleText = q.bundlePassageText || '';
-    const passageText = q.passage1 || q.text || '';
+    const passageText = q.text || ''; // GAS는 text 필드로 반환 (passage1 없음)
     const fullContext = bundleText ? '[묶음 지문]\n' + bundleText + '\n\n[개별 문항 지문]\n' + passageText : passageText;
 
     // [Fix] 이미지 URL 수집 (문항 이미지 + 번들 이미지) — GAS에서 Drive 파일로 읽어 AI에 전달
@@ -4728,7 +4728,7 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
             const withTimeout = (p, ms) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
             const aiResults = await Promise.allSettled(aiNeeded.map(q => {
                 const srcQ = qMap[String(q.no)] || {};
-                const gradeQ = { type: q.type, questionType: q.type, section: q.section, answer: q.correctAnswer, modelAnswer: srcQ.modelAnswer || null, score: q.maxScore, questionTitle: stripHtml(srcQ.title || srcQ.questionTitle || ''), text: stripHtml(srcQ.text || ''), passage1: stripHtml(srcQ.passage1 || ''), bundlePassageText: (srcQ.setId && bundleMap[String(srcQ.setId)]) ? bundleMap[String(srcQ.setId)] : '' };
+                const gradeQ = { type: q.type, questionType: q.type, section: q.section, answer: q.correctAnswer, modelAnswer: srcQ.modelAnswer || null, score: q.maxScore, questionTitle: stripHtml(srcQ.title || srcQ.questionTitle || ''), text: stripHtml(srcQ.text || ''), bundlePassageText: (srcQ.setId && bundleMap[String(srcQ.setId)]) ? bundleMap[String(srcQ.setId)] : '' };
                 return withTimeout(gradeWithAI(gradeQ, q.studentAnswer), 10000).then(r => ({ q, r })).catch(() => ({ q, r: null }));
             }));
             aiResults.forEach(res => {
@@ -4746,12 +4746,17 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
 
         // 3단계: AI 검증
         // AI 채점이 실제로 필요했던 문항만 검증 (키워드 매칭 정답 문항 제외 → 타임아웃 방지)
-        const aiNeededSet = new Set(aiNeeded.map(({ q }) => q));
+        const aiNeededSet = new Set(aiNeeded); // aiNeeded는 q 객체 자체의 배열
         const toVerify = questionScores.filter(q => aiNeededSet.has(q));
         const withTimeout2 = (p, ms) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
         if (toVerify.length > 0 && globalConfig.masterUrl) {
             const verifyResults = await Promise.allSettled(toVerify.map(q => {
-                const vPrompt = `[AI 채점 검증]\n문항영역: ${q.section}\n문항 내용: ${q.questionTitle || q.text || '(내용 없음)'}\n${(() => { const sq = qMap[String(q.no)] || {}; const bt = sq.bundlePassageText || ''; const pt = sq.passage1 || sq.text || ''; const fc = bt ? bt + '\\n' + pt : pt; return fc ? '지문:\\n' + fc + '\\n' : ''; })()}\n정답/키워드: ${q.correctAnswer}\n학생 답안: ${q.studentAnswer || '(미입력)'}\n1차 채점: ${q.score} / ${q.maxScore}점\n\n[관대한 채점 규칙 — 아래 모두 정답(만점) 처리]\n- 대소문자 차이 무시\n- 띄어쓰기 차이 무시\n- 하이픈(-), en dash(–), em dash(—) 혼용 허용\n- 정답에 포함된 핵심 단어를 포함하면 정답 (예: 정답="(지켜)보다", 답안="보다" → 정답)\n- 정답이 여러 개(쉼표 구분)인 경우 그 중 하나만 포함해도 정답\n- 괄호 안의 선택적 표현이 포함되거나 생략되어도 정답\n- 영어↔한글 의미 동일 표현 허용\n- 동의어·유사 표현이 문맥상 동일 의미면 정답\n- 고유명사(인명·지명 등)의 영어↔한글 음역 표기 허용 (예: "Tom"="톰", "Patrick"="페트릭")\n- 한국어 조사·어미의 미세한 차이는 의미상 동일하면 정답\n- 동의어·유사 표현이 문맥상 동일 의미면 정답 (예: "무심코 말이나오다"="무심코 말하다"="무심코 말해지다", "보다 좋은"="더 좋은" → 정답)\n- 숫자↔한글 표기 혼용 허용\n\n[엄격 규칙 — 오답 처리]\n- 핵심 단어의 철자가 틀린 경우 오답\n\n반드시 JSON만: {"score": 숫자}`;
+                const _sq = qMap[String(q.no)] || {};
+                const _qt = stripHtml(_sq.title || _sq.text || '(내용 없음)');
+                const _bt = (_sq.setId ? bundleMap[String(_sq.setId)] : '') || '';
+                const _pt = stripHtml(_sq.text || '');
+                const _fc = _bt ? '[묶음 지문]\n' + _bt + '\n\n[개별 지문]\n' + _pt : _pt;
+                const vPrompt = `[AI 채점 검증]\n문항영역: ${q.section}\n문항 내용: ${_qt}\n${_fc ? '지문:\n' + _fc + '\n' : ''}\n정답/키워드: ${q.correctAnswer}\n학생 답안: ${q.studentAnswer || '(미입력)'}\n1차 채점: ${q.score} / ${q.maxScore}점\n\n[관대한 채점 규칙 — 아래 모두 정답(만점) 처리]\n- 대소문자 차이 무시\n- 띄어쓰기 차이 무시\n- 하이픈(-), en dash(–), em dash(—) 혼용 허용\n- 정답에 포함된 핵심 단어를 포함하면 정답 (예: 정답="(지켜)보다", 답안="보다" → 정답)\n- 정답이 여러 개(쉼표 구분)인 경우 그 중 하나만 포함해도 정답\n- 괄호 안의 선택적 표현이 포함되거나 생략되어도 정답\n- 영어↔한글 의미 동일 표현 허용\n- 동의어·유사 표현이 문맥상 동일 의미면 정답\n- 고유명사(인명·지명 등)의 영어↔한글 음역 표기 허용 (예: "Tom"="톰", "Patrick"="페트릭", "Jack"="잭", "Clinton"="클린턴")\n- 한국어 조사·어미의 미세한 차이는 의미상 동일하면 정답\n- 동의어·유사 표현이 문맥상 동일 의미면 정답 (예: "무심코 말이나오다"="무심코 말하다"="무심코 말해지다", "보다 좋은"="더 좋은" → 정답)\n- 숫자↔한글 표기 혼용 허용\n- 아포스트로피(')와 백틱(\`)은 동일 문자로 간주\n- 단수/복수 차이 허용 (예: "sandwich" = "sandwiches")\n- 관사(a/the) 추가·생략 허용\n\n[엄격 규칙 — 오답 처리]\n- 핵심 단어의 철자가 틀린 경우 오답\n\n반드시 JSON만: {"score": 숫자}`;
                 return withTimeout2(
                     sendReliableRequest({ type: 'CALL_GEMINI', prompt: vPrompt, systemInstruction: '' }, true)
                         .then(r => {
@@ -5241,6 +5246,17 @@ ${sectionSummary}
 - ⛔ "수업을 잘 따라오고 있습니다", "수업에 적응하고 있습니다", "학원 생활" 등 재원생 대상 표현 절대 금지. (이 시험은 입학 전 레벨테스트임)
 - ⛔ 줄바꿈(\n, 개행) 절대 금지. 전체 코멘트를 하나의 연속된 문단으로 작성하세요.`;
 
+    // [디버그] 종합 코멘트 산출 정보 콘솔 출력
+    console.log(`[AI코멘트] 종합 코멘트 (${sName})`, {
+        송점: `${totalScore} / ${totalMax}점 (${totalRate}%)`,
+        성취레벨: totalLevel,
+        전체백분위: `상위 ${oaUpperPercentile}% (${_pctLabel(oaUpperPercentile)})`,
+        권장학급백분위: clsTotalPercentile !== null ? `상위 ${clsTotalPercentile}%` : '없음',
+        전체평균대비: `${_oaDiff >= 0 ? '+' : ''}${_oaDiff.toFixed(1)}점`,
+        영역별백분위: _secPcts.map(x => `${x.s}:${x.pct}%`).join(', '),
+        편차규칙: _gapRule ? '⚠️ 30%p 이상 편차 필수 언급 삽입됨' : '없음',
+    });
+
     return await callGeminiAPI(prompt, true);
 }
 
@@ -5559,6 +5575,18 @@ ${_weaknessRule}
 - ⛔ "수업을 잘 따라오고 있습니다", "수업에 적응하고 있습니다", "학원 생활" 등 재원생 대상 표현 절대 금지. (이 시험은 입학 전 레벨테스트임)
 - ⛔ 줄바꿈(\n, 개행) 절대 금지. 전체 코멘트를 하나의 연속된 문단으로 작성하세요.`;
 
+            // [디버그] 영역 코멘트 산출 정보 콘솔 출력
+            console.log(`[AI코멘트] ${_sectionKR} 영역 (${sName})`, {
+                점수: `${studentScore} / ${maxScore}점`,
+                성취레벨: level,
+                전체백분위: `상위 ${upperPercentile}% (${_pctLabel(upperPercentile)})`,
+                권장학급백분위: clsUpperPercentile !== null ? `상위 ${clsUpperPercentile}%` : '없음',
+                전체평균대비: `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}점`,
+                만점여부: _isPerfect ? '✅ 만점' : '❌ 미만',
+                분기: _isPerfect ? '유지' : _aboveCls ? '보완포인트' : '미흡한점',
+                세부영역: subTypeInfo || '없음',
+                오답문항: wrongInfo || '없음',
+            });
             return { section, result: await callGeminiAPI(prompt, true) };
         })
     ).then(results => {
