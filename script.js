@@ -4762,14 +4762,15 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
                 const srcQ = qMap[String(q.no)] || {};
                 const gradeQ = { type: q.type, questionType: q.type, section: q.section, answer: q.correctAnswer, modelAnswer: srcQ.modelAnswer || null, score: q.maxScore, questionTitle: stripHtml(srcQ.title || srcQ.questionTitle || ''), text: stripHtml(srcQ.text || ''), bundlePassageText: (srcQ.setId && bundleMap[String(srcQ.setId)]) ? bundleMap[String(srcQ.setId)] : '' };
                 // [디버그] AI 채점 직전 문항 정보 콘솔 출력
-                console.log(`[AI채점] no.${q.no} ${q.section} [${q.type}]`, {
-                    '문항내용(지시문)': gradeQ.questionTitle || '(없음)',
-                    '지문내용': gradeQ.text ? gradeQ.text.slice(0, 80) + (gradeQ.text.length > 80 ? '...' : '') : '(없음)',
-                    '묶음지문': gradeQ.bundlePassageText ? '✅ 있음 (' + gradeQ.bundlePassageText.slice(0, 40) + '...)' : '❌ 없음',
-                    '정답': q.correctAnswer,
-                    '학생답': q.studentAnswer,
-                    '배점': q.maxScore,
-                });
+                console.group(`[AI채점] 2단계 no.${q.no} | ${q.section} | ${q.type}`);
+                console.log('질문내용(지시문):', gradeQ.questionTitle || '❌ 없음');
+                console.log('지문내용:        ', gradeQ.text || '❌ 없음');
+                console.log('묶음지문내용:    ', gradeQ.bundlePassageText || '❌ 없음');
+                console.log('정답:            ', q.correctAnswer || '❌ 없음');
+                console.log('모범답안:          ', gradeQ.modelAnswer ? '✅ 있음: ' + gradeQ.modelAnswer : '❌ 없음');
+                console.log('학생답:          ', q.studentAnswer || '(미입력)');
+                console.log('배점:            ', q.maxScore + '점');
+                console.groupEnd();
                 return withTimeout(gradeWithAI(gradeQ, q.studentAnswer), 10000).then(r => ({ q, r })).catch(() => ({ q, r: null }));
             }));
             aiResults.forEach(res => {
@@ -4797,6 +4798,15 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
                 const _bt = (_sq.setId ? bundleMap[String(_sq.setId)] : '') || '';
                 const _pt = stripHtml(_sq.text || '');
                 const _fc = _bt ? '[묶음 지문]\n' + _bt + '\n\n[개별 지문]\n' + _pt : _pt;
+                // [디버그] 3단계 검증 직전 콘솔 출력
+                console.group(`[AI채점] 3단계(검증) no.${q.no} | ${q.section}`);
+                console.log('질문내용(지시문):', _qt || '❌ 없음');
+                console.log('지문내용:        ', _pt || '❌ 없음');
+                console.log('묶음지문내용:    ', _bt || '❌ 없음');
+                console.log('정답:            ', q.correctAnswer || '❌ 없음');
+                console.log('학생답:          ', q.studentAnswer || '(미입력)');
+                console.log('1차점수:         ', `${q.score} / ${q.maxScore}점`);
+                console.groupEnd();
                 const _coreRule = `[채점 핵심 원칙 — 주관형 전용 (절대 최우선)]\n⚠️ 정답/키워드는 참고 기준입니다. 실제 채점 기준은 학생 답이 문항에 비추어 의미적으로 올바른가입니다.\n- 단어 번역 문항(문항이 영단어 하나인 경우): 올바른 한국어 번역이면 표현 달라도 모두 정답. (watch → 보다/지켜보다/쳐다보다/관찰하다 모두 정답)\n- 문장 번역: 핵심 의미 같으면 어순·표현 달라도 정답\n- 고유명사 영어↔한글 음역 동일 처리: Patrick=페트릭, Tom=톰, Jack=잭 등 기준으로 차이 재외, 나머지 내용 동일하면 정답\n- 정답와 표현만 다르다는 이유만으로 오답 처리 절대 금지\n\n`;
                 const vPrompt = _coreRule + `[AI 채점 검증]\n문항영역: ${q.section}\n문항 내용: ${_qt}\n${_fc ? '지문:\n' + _fc + '\n' : ''}\n정답/키워드: ${q.correctAnswer}\n학생 답안: ${q.studentAnswer || '(미입력)'}\n1차 채점: ${q.score} / ${q.maxScore}점\n\n[관대한 채점 규칙 — 아래 모두 정답(만점) 처리]\n- 대소문자 차이 무시\n- 띄어쓰기 차이 무시\n- 하이픈(-), en dash(–), em dash(—) 혼용 허용\n- 정답에 포함된 핵심 단어를 포함하면 정답 (예: 정답="(지켜)보다", 답안="보다" → 정답)\n- 정답이 여러 개(쉼표 구분)인 경우 그 중 하나만 포함해도 정답\n- 괄호 안의 선택적 표현이 포함되거나 생략되어도 정답\n- 영어↔한글 의미 동일 표현 허용\n- 동의어·유사 표현이 문맥상 동일 의미면 정답\n- 고유명사(인명·지명 등)의 영어↔한글 음역 표기 허용 (예: "Tom"="톰", "Patrick"="페트릭", "Jack"="잭", "Clinton"="클린턴")\n- 한국어 조사·어미의 미세한 차이는 의미상 동일하면 정답\n- 동의어·유사 표현이 문맥상 동일 의미면 정답 (예: "무심코 말이나오다"="무심코 말하다"="무심코 말해지다", "보다 좋은"="더 좋은" → 정답)\n- 숫자↔한글 표기 혼용 허용\n- 아포스트로피(')와 백틱(\`)은 동일 문자로 간주\n- 단수/복수 차이 허용 (예: "sandwich" = "sandwiches")\n- 관사(a/the) 추가·생략 허용\n\n[엄격 규칙 — 오답 처리]\n- 핵심 단어의 철자가 틀린 경우 오답\n\n반드시 JSON만: {"score": 숫자}`;
                 return withTimeout2(
