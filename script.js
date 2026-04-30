@@ -4417,54 +4417,49 @@ async function submitExam() {
         // Send to Backend
         await sendReliableRequest(apiPayload, false, 3); // 30초×3회
 
-        // [제출 성공] 답안 로컬 백업 보존 (localStorage)
-        try {
-            const cacheKey = `submitted_${examSession.categoryId}_${examSession.studentId}`;
-            localStorage.setItem(cacheKey, JSON.stringify({
-                savedAt: new Date().toISOString(),
-                studentName: examSession.studentName,
-                categoryName: category?.name || '',
-                testDate: (examSession.date || '').substring(0, 10),
-                questionScores
-            }));
-        } catch(cacheErr) { console.warn('[캐시] 로컬 백업 저장 실패:', cacheErr.message); }
+        // [제출 성공] TXT 백업 조용히 다운로드
+        _downloadAnswerTxt(examSession, category, questionScores);
 
         // [ExamDraft] 제출 완료 → 임시저장 삭제
         clearExamDraft(examSession.categoryId, examSession.studentName);
 
-        // 완료 화면 (채점 전 저장 완료 메시지)
+        // 완료 화면
         renderExamAnswerSaved();
 
     } catch (e) {
         console.error(e);
 
-        // [비상 백업] 온라인 제출 실패 시 → TXT 파일로 다운로드
-        try {
-            const testDate = (examSession.date || '').substring(0, 10);
-            const fileName = `${examSession.studentName}(${testDate}).txt`;
-            const header = [
-                '[비상 답안 백업]',
-                `학생명: ${examSession.studentName}`,
-                `학생ID: ${examSession.studentId}`,
-                `시험지: ${category?.name || ''}`,
-                `시험일: ${testDate}`,
-                `저장시각: ${new Date().toLocaleString('ko-KR')}`,
-                '',
-                '=== 아래 JSON을 학생DB 시트 E열(문항별상세)에 붙여넣기 ===',
-                '',
-            ].join('\n');
-            const blob = new Blob([header + JSON.stringify(questionScores)], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = fileName; a.click();
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-        } catch(dlErr) { console.warn('[비상백업] TXT 저장 실패:', dlErr.message); }
-
+        // [비상 백업] 온라인 제출 실패 시 → TXT + 경고창
+        _downloadAnswerTxt(examSession, category, questionScores);
         alert('⚠️ 온라인 저장이 실패하여 다운로드 폴더에 로컬로 저장되었습니다.\n꼭 선생님께 로컬로 저장되었다는 사실을 알려주세요!');
         renderExamAnswerSaved();
     } finally {
         toggleLoading(false);
     }
+}
+
+// [공통] 답안 TXT 파일 다운로드 헬퍼
+function _downloadAnswerTxt(session, category, questionScores) {
+    try {
+        const testDate = (session.date || '').substring(0, 10);
+        const fileName = `${session.studentName}(${testDate}).txt`;
+        const header = [
+            '[답안 백업]',
+            `학생명: ${session.studentName}`,
+            `학생ID: ${session.studentId}`,
+            `시험지: ${category?.name || ''}`,
+            `시험일: ${testDate}`,
+            `저장시각: ${new Date().toLocaleString('ko-KR')}`,
+            '',
+            '=== 아래 JSON을 학생DB 시트 E열(문항별상세)에 붙여넣기 ===',
+            '',
+        ].join('\n');
+        const blob = new Blob([header + JSON.stringify(questionScores)], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = fileName; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch(dlErr) { console.warn('[백업TXT] 저장 실패:', dlErr.message); }
 }
 
 // ─────────────────────────────────────────────
