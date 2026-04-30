@@ -4762,11 +4762,23 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
             }
         }
 
-        // 2단계: AI 채점
+        // 1.75단계: 단어번역 문항 사전 처리 (AI 불필요 — 모범답안 "올바르면 정답" 설정)
+        aiNeeded.forEach(q => {
+            const _wt = qMap[String(q.no)] || {};
+            if ((_wt.modelAnswer || '').includes('올바르면 정답') && (q.studentAnswer || '').trim()) {
+                q.score = q.maxScore || 0;
+                q.correct = true;
+                q._graded = true;
+                q._wordTransAuto = true;
+                console.log(`[AI채점] ✅ 확정 no.${q.no} 단어번역 자동정답 (AI 건너뜀) | "${q.studentAnswer}"`);
+            }
+        });
+
+        // 2단계: AI 채점 (단어번역 자동정답 제외)
         if (aiNeeded.length > 0 && globalConfig.masterUrl) {
             if (btn) btn.textContent = '⏳ AI 채점 중...';
             const withTimeout = (p, ms) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
-            const aiResults = await Promise.allSettled(aiNeeded.map(q => {
+            const aiResults = await Promise.allSettled(aiNeeded.filter(q => !q._wordTransAuto).map(q => {
                 const srcQ = qMap[String(q.no)] || {};
                 const gradeQ = { type: q.type, questionType: q.type, section: q.section, answer: q.correctAnswer, modelAnswer: srcQ.modelAnswer || null, score: q.maxScore, questionTitle: stripHtml(srcQ.title || srcQ.questionTitle || ''), text: stripHtml(srcQ.text || ''), bundlePassageText: (srcQ.setId && bundleMap[String(srcQ.setId)]) ? bundleMap[String(srcQ.setId)] : '' };
                 // [디버그] AI 채점 직전 문항 정보 콘솔 출력
@@ -4796,7 +4808,7 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
 
         // 3단계: AI 검증
         // AI 채점이 실제로 필요했던 문항만 검증 (키워드 매칭 정답 문항 제외 → 타임아웃 방지)
-        const aiNeededSet = new Set(aiNeeded); // aiNeeded는 q 객체 자체의 배열
+        const aiNeededSet = new Set(aiNeeded.filter(q => !q._wordTransAuto)); // 단어번역 자동정답 제외
         const toVerify = questionScores.filter(q => aiNeededSet.has(q));
         const withTimeout2 = (p, ms) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
         if (toVerify.length > 0 && globalConfig.masterUrl) {
