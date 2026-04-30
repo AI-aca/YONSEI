@@ -304,11 +304,11 @@ function renderEmptyState(c, title) {
 
 
 // [중요] 절대 실패하지 않는 저장소: 재시도 로직 강화 (최대 10회)
-async function sendReliableRequest(payload, silent = false) {
+async function sendReliableRequest(payload, silent = false, maxRetries = 5) {
     console.log("🚀 sendReliableRequest started", payload);
 
     const masterUrl = globalConfig.masterUrl || DEFAULT_MASTER_URL;
-    const MAX_RETRIES = 5;
+    const MAX_RETRIES = maxRetries;
 
     // 내부 헬퍼: 타임아웃 페치
     const fetchWithTimeout = (url, opts, time = 30000) => {
@@ -4415,7 +4415,19 @@ async function submitExam() {
         console.log("studentId:", examSession.studentId, "| 문항 수:", questionScores.length);
 
         // Send to Backend
-        await sendReliableRequest(apiPayload);
+        await sendReliableRequest(apiPayload, false, 3); // 30초×3회
+
+        // [제출 성공] 답안 로컬 백업 보존 (localStorage)
+        try {
+            const cacheKey = `submitted_${examSession.categoryId}_${examSession.studentId}`;
+            localStorage.setItem(cacheKey, JSON.stringify({
+                savedAt: new Date().toISOString(),
+                studentName: examSession.studentName,
+                categoryName: category?.name || '',
+                testDate: (examSession.date || '').substring(0, 10),
+                questionScores
+            }));
+        } catch(cacheErr) { console.warn('[캐시] 로컬 백업 저장 실패:', cacheErr.message); }
 
         // [ExamDraft] 제출 완료 → 임시저장 삭제
         clearExamDraft(examSession.categoryId, examSession.studentName);
@@ -4425,8 +4437,31 @@ async function submitExam() {
 
     } catch (e) {
         console.error(e);
-        showToast('❌ 제출 실패: ' + e.message);
-        alert('제출 중 오류가 발생했습니다.\n\n✅ 답안은 임시저장되어 있습니다.\nSubmit 버튼을 다시 눌러 재시도해주세요.');
+
+        // [비상 백업] 온라인 제출 실패 시 → TXT 파일로 다운로드
+        try {
+            const testDate = (examSession.date || '').substring(0, 10);
+            const fileName = `${examSession.studentName}(${testDate}).txt`;
+            const header = [
+                '[비상 답안 백업]',
+                `학생명: ${examSession.studentName}`,
+                `학생ID: ${examSession.studentId}`,
+                `시험지: ${category?.name || ''}`,
+                `시험일: ${testDate}`,
+                `저장시각: ${new Date().toLocaleString('ko-KR')}`,
+                '',
+                '=== 아래 JSON을 학생DB 시트 E열(문항별상세)에 붙여넣기 ===',
+                '',
+            ].join('\n');
+            const blob = new Blob([header + JSON.stringify(questionScores)], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = fileName; a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch(dlErr) { console.warn('[비상백업] TXT 저장 실패:', dlErr.message); }
+
+        alert('⚠️ 온라인 저장이 실패하여 다운로드 폴더에 로컬로 저장되었습니다.\n꼭 선생님께 로컬로 저장되었다는 사실을 알려주세요!');
+        renderExamAnswerSaved();
     } finally {
         toggleLoading(false);
     }
