@@ -4459,7 +4459,7 @@ function _downloadAnswerTxt(session, category, questionScores) {
         const a = document.createElement('a');
         a.href = url; a.download = fileName; a.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch(dlErr) { console.warn('[백업TXT] 저장 실패:', dlErr.message); }
+    } catch (dlErr) { console.warn('[백업TXT] 저장 실패:', dlErr.message); }
 }
 
 // ─────────────────────────────────────────────
@@ -4738,7 +4738,7 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
                 // 묶음 지문 매핑 (setId → bundleText)
                 const bundleDbList = (qDbResult && qDbResult.bundles) ? qDbResult.bundles : [];
                 bundleDbList.forEach(b => { bundleMap[String(b.id)] = stripHtml(b.text || ''); });
-            } catch(e) {
+            } catch (e) {
                 console.warn('[AI채점] GET_FULL_DB 로드 실패 (지문 없이 채점 진행):', e.message);
             }
         }
@@ -4803,8 +4803,9 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
         const deducted = questionScores.filter(q => q.score < q.maxScore);
         if (deducted.length > 0) {
             console.log(`[AI채점] 감점 문항 (${deducted.length}개):`);
-            deducted.forEach(q => console.log(`  no.${q.no} | 배점:${q.maxScore} | 획득:${q.score} | 학생:"${q.studentAnswer}" | 정답:"${q.correctAnswer}"`));
+            deducted.forEach(q => console.log(`  no.${q.no} | 배점:${q.maxScore} | 획득:${q.score} | 학생:"${q.studentAnswer}" | 정답:"${q.correctAnswer}" | 감점사유:"${q.feedback || '없음'}"`));
         }
+        console.log(`[AI채점] 학생 총 획득점수: ${total}/${max}점 (${max > 0 ? ((total/max)*100).toFixed(1) : 0}%)`);
 
         showToast('✅ 채점이 완료되었습니다. 확인 버튼을 눌러주세요.');
         if (btn) {
@@ -5280,7 +5281,7 @@ ${sectionSummary}
         전체백분위: `상위 ${oaUpperPercentile}% (${_pctLabel(oaUpperPercentile)})`,
         권장학급백분위: clsTotalPercentile !== null ? `상위 ${clsTotalPercentile}%` : '없음',
         전체평균대비: `${_oaDiff >= 0 ? '+' : ''}${_oaDiff.toFixed(1)}점`,
-        영역별백분위: _secPcts.map(x => `${_secKR[x.s]||(x.s)}:상위${x.pct}%`).join(', '),
+        영역별백분위: _secPcts.map(x => `${_secKR[x.s] || (x.s)}:상위${x.pct}%`).join(', '),
         편차: _gapInfo.편차,
         최고영역: _gapInfo.최고영역,
         최저영역: _gapInfo.최저영역,
