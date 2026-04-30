@@ -4707,6 +4707,8 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
         // 1.5단계: aiNeeded 문항 원문/지문 로드 (AI 채점 필요한 경우만)
         const qMap = {};
         const bundleMap = {};
+        // HTML → 순수 텍스트 변환 (AI 채점 프롬프트용)
+        const stripHtml = html => (html || '').replace(/<source-footnote[\s\S]*?<\/source-footnote>/gi, '').replace(/<sources-carousel[\s\S]*?<\/sources-carousel[^>]*>/gi, '').replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/<!--[\s\S]*?-->/g, '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
         if (aiNeeded.length > 0 && globalConfig.masterUrl) {
             const qDbResult = await sendReliableRequest({ type: 'GET_FULL_DB', parentFolderId: folderId, categoryName: category.name }, true);
             const qDbList = (qDbResult && qDbResult.questions) ? qDbResult.questions : [];
@@ -4714,7 +4716,7 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
             // 묶음 지문 매핑 (setId → bundleText)
             const bundleDbList = (qDbResult && qDbResult.bundles) ? qDbResult.bundles : [];
             const bundleMap = {};
-            bundleDbList.forEach(b => { bundleMap[String(b.id)] = b.text || ''; });
+            bundleDbList.forEach(b => { bundleMap[String(b.id)] = stripHtml(b.text || ''); });
         }
 
         // 2단계: AI 채점
@@ -4723,7 +4725,7 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
             const withTimeout = (p, ms) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
             const aiResults = await Promise.allSettled(aiNeeded.map(q => {
                 const srcQ = qMap[String(q.no)] || {};
-                const gradeQ = { type: q.type, questionType: q.type, section: q.section, answer: q.correctAnswer, modelAnswer: srcQ.modelAnswer || null, score: q.maxScore, questionTitle: srcQ.title || srcQ.questionTitle || '', text: srcQ.text || '', passage1: srcQ.passage1 || '', bundlePassageText: (srcQ.setId && bundleMap[String(srcQ.setId)]) ? bundleMap[String(srcQ.setId)] : '' };
+                const gradeQ = { type: q.type, questionType: q.type, section: q.section, answer: q.correctAnswer, modelAnswer: srcQ.modelAnswer || null, score: q.maxScore, questionTitle: stripHtml(srcQ.title || srcQ.questionTitle || ''), text: stripHtml(srcQ.text || ''), passage1: stripHtml(srcQ.passage1 || ''), bundlePassageText: (srcQ.setId && bundleMap[String(srcQ.setId)]) ? bundleMap[String(srcQ.setId)] : '' };
                 return withTimeout(gradeWithAI(gradeQ, q.studentAnswer), 10000).then(r => ({ q, r })).catch(() => ({ q, r: null }));
             }));
             aiResults.forEach(res => {
