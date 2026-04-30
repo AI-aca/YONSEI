@@ -5207,12 +5207,29 @@ async function generateOverallComment(record, averages, activeSections, sectionC
     }).filter(x => x.pct > 0);
 
     let _gapRule = '';
+    let _gapInfo = { 편차: '없음', 최고영역: '없음', 최저영역: '없음', 적용단계: '없음' };
     if (_secPcts.length >= 2) {
         const _best = _secPcts.reduce((a, b) => a.pct < b.pct ? a : b); // 백분위 낮을수록 우수
         const _worst = _secPcts.reduce((a, b) => a.pct > b.pct ? a : b); // 백분위 높을수록 부족
         const _gap = _worst.pct - _best.pct;
-        if (_gap >= 30) {
-            _gapRule = `\n5) ⚠️ 영역 간 백분위 편차 필수 언급: 최고 영역은 ${_secKR[_best.s] || _best.s}(전체 상위 ${_best.pct}% — ${_pctLabel(_best.pct)})이고, 최저 영역은 ${_secKR[_worst.s] || _worst.s}(전체 상위 ${_worst.pct}% — ${_pctLabel(_worst.pct)})으로 편차가 ${_gap}%p입니다. 이 불균형을 종합 코멘트에서 반드시 명시적으로 언급하세요.`;
+        _gapInfo.편차 = `${_gap}%p`;
+        _gapInfo.최고영역 = `${_secKR[_best.s] || _best.s}(상위 ${_best.pct}%)`;
+        _gapInfo.최저영역 = `${_secKR[_worst.s] || _worst.s}(상위 ${_worst.pct}%)`;
+        if (_gap <= 10) {
+            _gapRule = `\n5) ✅ [편차 평가 필수 언급] 영역별 성취 균형이 고르게 분포되어 있습니다(편차 ${_gap}%p). 이를 강점으로 언급하세요.`;
+            _gapInfo.적용단계 = '~10%p: 균형 장점 언급';
+        } else if (_gap <= 20) {
+            _gapRule = `\n5) ✅ [편차 평가 필수 언급] 영역별 성취가 비교적 고르게 분포되어 있습니다(편차 ${_gap}%p). 이를 장점으로 언급하세요.`;
+            _gapInfo.적용단계 = '11~20%p: 비교적 균형 장점 언급';
+        } else if (_gap <= 30) {
+            _gapRule = `\n5) ⚠️ [편차 극복 필수 언급] 최고 영역 ${_secKR[_best.s] || _best.s}(상위 ${_best.pct}%)와 최저 영역 ${_secKR[_worst.s] || _worst.s}(상위 ${_worst.pct}%) 간 편차가 ${_gap}%p입니다. 꾸준한 노력으로 영역별 편차를 극복할 필요가 있음을 코멘트에 반드시 언급하세요.`;
+            _gapInfo.적용단계 = '21~30%p: 편차 극복 필요 언급';
+        } else if (_gap <= 50) {
+            _gapRule = `\n5) ⚠️ [편차 투자 필수 경고] 최고 영역 ${_secKR[_best.s] || _best.s}(상위 ${_best.pct}%)와 최저 영역 ${_secKR[_worst.s] || _worst.s}(상위 ${_worst.pct}%) 간 편차가 ${_gap}%p로 큰 관계입니다. 영역별 편차를 줄이기 위한 많은 시간을 반드시 투자해야 한다는 내용을 코멘트에 강하게 언급하세요.`;
+            _gapInfo.적용단계 = '31~50%p: 투자 필요 강하게 경고';
+        } else {
+            _gapRule = `\n5) 🚨 [위험 수준 편차 경고] 최고 영역 ${_secKR[_best.s] || _best.s}(상위 ${_best.pct}%)와 최저 영역 ${_secKR[_worst.s] || _worst.s}(상위 ${_worst.pct}%) 간 편차가 ${_gap}%p로 매우 심각합니다. "${_secKR[_worst.s] || _worst.s} 영역에 많은 시간을 반드시 투자하지 않으면 위험하다"는 내용을 코멘트에서 반드시 명시적으로 강하게 경고하세요.`;
+            _gapInfo.적용단계 = '51%p~: 위험 수준 경고 필수';
         }
     }
 
@@ -5259,8 +5276,11 @@ ${sectionSummary}
         전체백분위: `상위 ${oaUpperPercentile}% (${_pctLabel(oaUpperPercentile)})`,
         권장학급백분위: clsTotalPercentile !== null ? `상위 ${clsTotalPercentile}%` : '없음',
         전체평균대비: `${_oaDiff >= 0 ? '+' : ''}${_oaDiff.toFixed(1)}점`,
-        영역별백분위: _secPcts.map(x => `${x.s}:${x.pct}%`).join(', '),
-        편차규칙: _gapRule ? '⚠️ 30%p 이상 편차 필수 언급 삽입됨' : '없음',
+        영역별백분위: _secPcts.map(x => `${_secKR[x.s]||(x.s)}:상위${x.pct}%`).join(', '),
+        편차: _gapInfo.편차,
+        최고영역: _gapInfo.최고영역,
+        최저영역: _gapInfo.최저영역,
+        편차규칙단계: _gapInfo.적용단계,
     });
 
     return await callGeminiAPI(prompt, true);
