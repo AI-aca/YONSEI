@@ -4499,7 +4499,7 @@ function renderAIGradeManager(c) {
                         <button id="ai-tab-pending" onclick="switchAIGradeTab('pending')"
                             class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2" style="width:150px; justify-content:center;">🔴 AI 미채점</button>
                         <button id="ai-tab-done" onclick="switchAIGradeTab('done')"
-                            class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2" style="width:150px; justify-content:center;">✅ AI 채점 완료</button>
+                            class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2" style="width:150px; justify-content:center;" onclick="if(window._aiGradeTemp && Object.keys(window._aiGradeTemp).length > 0 && !confirm('채점 완료 후 확인 버튼을 누르지 않은 학생이 있습니다.\n탭을 이동하면 채점 결과가 저장되지 않습니다.\n계속하시겠습니까?')) return; switchAIGradeTab('done')">✅ AI 채점 완료</button>
                     </div>
                 </div>
             </div>
@@ -4602,7 +4602,7 @@ async function loadAIGradeList(silentLoad = false) {
             const answered = r._qs.filter(q => (q.studentAnswer || '').trim()).length;
             const total = r._qs.length;
             const actionBtn = mode === 'pending'
-                ? `<button id="ai-btn-${sid}" onclick="runAIGradeAndVerify('${sid}','${catId}')" class="px-3 py-1.5 rounded-xl bg-[#013976] text-white font-bold hover:bg-[#012456] transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:16px;">🤖 AI 채점 및 검증</button>
+                ? `<button id="ai-btn-${sid}" onclick="runAIGradeAndVerify('${sid}','${catId}')" class="px-3 py-1.5 rounded-xl bg-[#013976] text-white font-bold hover:bg-[#012456] transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:16px;">🤖 AI 채점</button>
                    <button id="ai-confirm-btn-${sid}" onclick="confirmAIGrade('${sid}','${catId}')" class="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:16px;">✅ 확인</button>`
                 : `<span class="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 font-bold whitespace-nowrap flex-none" style="font-size:16px;">✅ 완료 (${r['총점'] || 0}/${r['만점'] || 0}점)</span>
                    <button id="ai-btn-${sid}" onclick="if(!confirm('다시 채점하면 기존 채점 결과가 초기화됩니다.\n계속하시겠습니까?')) return; runAIGradeAndVerify('${sid}','${catId}',true)" class="px-3 py-1.5 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:16px;">🔄 다시 채점</button>`;
@@ -4712,7 +4712,7 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
 
         // 2단계: AI 채점
         if (aiNeeded.length > 0 && globalConfig.masterUrl) {
-            if (btn) btn.textContent = '⏳ AI 채점 중...';
+            if (btn) btn.disabled = true; // 텍스트 고정, disabled만 처리
 
             const aiResults = await Promise.allSettled(aiNeeded.map(q => {
                 const srcQ = qMap[String(q.no)] || {};
@@ -4786,7 +4786,7 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
     } catch (e) {
         console.error('AI 채점 실패:', e);
         showToast('❌ AI 채점 실패: ' + e.message);
-        if (btn) { btn.disabled = false; btn.textContent = '🤖 AI 채점 및 검증'; }
+        if (btn) { btn.disabled = false; }
         if (confirmBtn) { confirmBtn.disabled = false; }
     } finally {
         toggleLoading(false);
@@ -4795,7 +4795,7 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
 
 async function confirmAIGrade(studentId, catId) {
     const temp = window._aiGradeTemp && window._aiGradeTemp[studentId];
-    if (!temp) { showToast('⚠️ AI 채점 및 검증을 먼저 진행해주세요!'); return; }
+    if (!temp) { showToast('⚠️ AI 채점을 먼저 진행해주세요!'); return; }
     const confirmBtn = document.getElementById('ai-confirm-btn-' + studentId);
     if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.textContent = '⏳ 저장 중...'; }
     try {
