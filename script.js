@@ -6290,7 +6290,7 @@ function printReport(orientation = 'portrait') {
     h4 { page-break-after: avoid; }
     canvas { max-width: 100% !important; height: auto !important; }
     .print-banner { display: block !important; }
-    .card > * + * { margin-top: ${orientation === 'portrait' ? '40px' : '16px'} !important; }
+    .card > * + * { margin-top: ${orientation === 'portrait' ? '48px' : '16px'} !important; }
     #sections-container > * + * { margin-top: 16px !important; }
   }
 </style>
