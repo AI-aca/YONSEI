@@ -4497,9 +4497,9 @@ function renderAIGradeManager(c) {
                     </select>
                     <div class="flex items-center gap-2 ml-4">
                         <button id="ai-tab-pending" onclick="switchAIGradeTab('pending')"
-                            class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2" style="width:150px; justify-content:center;">🔴 AI 미채점</button>
-                        <button id="ai-tab-done" onclick="switchAIGradeTab('done')"
-                            class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2" style="width:150px; justify-content:center;" onclick="if(window._aiGradeTemp && Object.keys(window._aiGradeTemp).length > 0 && !confirm('채점 완료 후 확인 버튼을 누르지 않은 학생이 있습니다.\n탭을 이동하면 채점 결과가 저장되지 않습니다.\n계속하시겠습니까?')) return; switchAIGradeTab('done')">✅ AI 채점 완료</button>
+                            class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2" style="width:150px; justify-content:center;">🔴 AI 미채점자</button>
+                        <button id="ai-tab-done"
+                            class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2" style="width:150px; justify-content:center;" onclick="if(window._aiGradeTemp && Object.keys(window._aiGradeTemp).length > 0 && !confirm('채점 완료 후 확인 버튼을 누르지 않은 학생이 있습니다.\n탭을 이동하면 채점 결과가 저장되지 않습니다.\n계속하시겠습니까?')) return; switchAIGradeTab('done')">✅ AI 채점완료자</button>
                     </div>
                 </div>
             </div>
@@ -4614,8 +4614,8 @@ async function loadAIGradeList(silentLoad = false) {
         }).join('');
         if (!silentLoad) toggleLoading(false);
         const headerText = mode === 'pending'
-            ? `🔴 AI 미채점 명단 : ${filtered.length}명`
-            : `✅ AI 채점 완료 명단 : ${filtered.length}명`;
+            ? `🔴 AI 미채점자 명단 : ${filtered.length}명`
+            : `✅ AI 채점완료자 명단 : ${filtered.length}명`;
         listEl.innerHTML = `<div style="display:flex; flex-direction:column; gap:12px;"><div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;"><span style="font-size:17px;font-weight:800;color:#013976;line-height:1;">${headerText}</span><label style="display:flex;align-items:center;gap:5px;font-size:15px;font-weight:700;color:#013976;cursor:pointer;"><input type="checkbox" id="ai-recent-1month" ${recentOnly ? 'checked' : ''} onchange="loadAIGradeList()" style="width:16px;height:16px;cursor:pointer;"> 최근 1개월</label></div>${rows}</div>`;
         window._hasLoadedData = true;
     } catch (e) {
