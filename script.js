@@ -4602,8 +4602,8 @@ async function loadAIGradeList(silentLoad = false) {
             const answered = r._qs.filter(q => (q.studentAnswer || '').trim()).length;
             const total = r._qs.length;
             const actionBtn = mode === 'pending'
-                ? `<button id="ai-btn-${sid}" onclick="runAIGradeAndVerify('${sid}','${catId}')" class="px-3 py-1.5 rounded-xl bg-[#013976] text-white font-bold hover:bg-[#012456] transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:16px;">🤖 AI 채점</button>
-                   <button id="ai-confirm-btn-${sid}" onclick="confirmAIGrade('${sid}','${catId}')" class="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:16px;">✅ 확인</button>`
+                ? `<button id="ai-btn-${sid}" onclick="runAIGradeAndVerify('${sid}','${catId}')" class="px-3 py-1.5 rounded-xl bg-[#013976] text-white font-bold hover:bg-[#012456] transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:16px; min-width:90px; text-align:center;">🤖 AI 채점</button>
+                   <button id="ai-confirm-btn-${sid}" onclick="confirmAIGrade('${sid}','${catId}')" class="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:16px; min-width:90px; text-align:center;">✅ 확인</button>`
                 : `<span class="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 font-bold whitespace-nowrap flex-none" style="font-size:16px;">✅ 완료 (${r['총점'] || 0}/${r['만점'] || 0}점)</span>
                    <button id="ai-btn-${sid}" onclick="if(!confirm('다시 채점하면 기존 채점 결과가 초기화됩니다.\n계속하시겠습니까?')) return; runAIGradeAndVerify('${sid}','${catId}',true)" class="px-3 py-1.5 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 transition-all active:scale-95 shadow whitespace-nowrap flex-none" style="font-size:16px;">🔄 다시 채점</button>`;
             return `<div class="flex justify-between items-center bg-slate-50 px-6 py-4 rounded-xl border-2 border-slate-200 hover:shadow-md hover:bg-white hover:border-blue-300 transition-all">
@@ -4741,6 +4741,8 @@ async function runAIGradeAndVerify(studentId, catId, autoConfirm = false) {
                 if (r && r.score !== undefined) { q.score = Math.min(Math.max(0, Math.round(r.score)), maxQ); q.correct = q.score >= maxQ; q._aiGraded = true; }
                 else { q.score = 0; q.correct = false; }
                 q._graded = true;
+                // [디버그] AI 채점 결과 출력
+                console.log(`→ [AI채점결과] no.${q.no} | 획득:${q.score}/${maxQ}점 | feedback: "${r && r.feedback ? r.feedback : 'N/A'}"`);
             });
         }
         questionScores.forEach(q => { if (!q._graded) { q.score = 0; q.correct = false; q._graded = true; } });
