@@ -2801,10 +2801,11 @@ async function generateUniqueStudentId(dateStr, gradeStr) {
 
     // 2. 학년 코드 변환
     // 초4~초6: E4~E6, 중1~중3: M1~M3, 고1~고3: H1~H3
+    const cleanGrade = normalizeGrade(gradeStr);
     let gradeCode = "E";
-    if (gradeStr.includes('초')) gradeCode = "E" + gradeStr.replace('초', '');
-    else if (gradeStr.includes('중')) gradeCode = "M" + gradeStr.replace('중', '');
-    else if (gradeStr.includes('고')) gradeCode = "H" + gradeStr.replace('고', '');
+    if (cleanGrade.includes('초')) gradeCode = "E" + cleanGrade.replace('초', '');
+    else if (cleanGrade.includes('중')) gradeCode = "M" + cleanGrade.replace('중', '');
+    else if (cleanGrade.includes('고')) gradeCode = "H" + cleanGrade.replace('고', '');
 
     const groupKey = dateCode + gradeCode; // 예: 260129M2
 
@@ -12017,7 +12018,7 @@ async function saveClassAvgSettings() {
     });
 
     // 전역 캐시 업데이트
-    const otherGrades = (window.cachedClassAvgSettings || []).filter(s => s.grade !== window._currentConfigGrade);
+    const otherGrades = (window.cachedClassAvgSettings || []).filter(s => normalizeGrade(s.grade) !== normalizeGrade(window._currentConfigGrade));
     window.cachedClassAvgSettings = [...otherGrades, ...configList];
 
     toggleLoading(true);
