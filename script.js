@@ -1934,17 +1934,16 @@ function recommendClassByScore(totalScore, grade) {
         classMap[cls].sum += total;
         classMap[cls].cnt++;
     });
-    let bestClass = null, bestDiff = Infinity, minAvg = Infinity;
+    let bestClass = null, bestDiff = Infinity, minAvg = Infinity, lowestClass = null;
     Object.entries(classMap).forEach(([cls, data]) => {
         const avg = data.sum / data.cnt;
         const diff = Math.abs(totalScore - avg);
         if (diff < bestDiff) { bestDiff = diff; bestClass = cls; }
-        if (avg < minAvg) minAvg = avg;
+        if (avg < minAvg) { minAvg = avg; lowestClass = cls; }
     });
-    // 미달반 제외 최저반 평균의 70% 미만 → 미달반 직접 반환
+    // 미달반 제외 최저반 평균의 70% 미만 → 미달반 직접 반환 대신 최저학급 반환
     if (minAvg < Infinity && totalScore < minAvg * 0.7) {
-        const gradeClasses = getClassesForGrade(grade) || [];
-        return gradeClasses.find(function (c) { return c.includes('미달'); }) || bestClass;
+        return lowestClass || bestClass;
     }
     return bestClass;
 }
