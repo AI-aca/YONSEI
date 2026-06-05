@@ -2034,9 +2034,10 @@ function recommendClassByScore(totalScore, grade) {
         if (diff < bestDiff) { bestDiff = diff; bestClass = cls; }
         if (avg < minAvg) { minAvg = avg; lowestClass = cls; }
     });
-    // 미달반 제외 최저반 평균의 70% 미만 → 미달반 직접 반환 대신 최저학급 반환
+    // 미달반 제외 최저반 평균의 70% 미만 → 미달반 직접 반환
     if (minAvg < Infinity && totalScore < minAvg * 0.7) {
-        return lowestClass || bestClass;
+        const gradeClasses = getClassesForGrade(grade) || [];
+        return gradeClasses.find(function (c) { return c.includes('미달'); }) || lowestClass || bestClass;
     }
     return bestClass;
 }
@@ -5349,15 +5350,70 @@ async function generateOverallComment(record, averages, activeSections, sectionC
     // 권장학급 총점 평균 + 학급 내 백분위
     const _oaGrd = record.grade || record['학년'] || '';
     const _oaCls = record.studentClass || record['등록학급'] || '';
-    const _oaClsData = (_oaCls && _oaGrd) ? computeClassAvg(_oaCls, _oaGrd, null) : null;
+
+    // 학년 내 실제 최저학급 구하기 (미달반 제외 최저 평균 학급)
+    let lowestClass = null;
+    let minAvg = Infinity;
+    const recordsOA = window.cachedStudentRecords || [];
+    const gradeRecsOA = recordsOA.filter(r => {
+        const rGrade = r['학년'] || r.grade || '';
+        const rClass = r.studentClass || r['등록학급'] || '';
+        return normalizeGrade(rGrade) === normalizeGrade(_oaGrd) && rClass && !rClass.includes('미달');
+    });
+    if (gradeRecsOA.length > 0) {
+        const classMap = {};
+        gradeRecsOA.forEach(r => {
+            const cls = r.studentClass || r['등록학급'];
+            const total = parseFloat(r['완스코어'] || r['총점'] || r.totalScore || r.score || 0);
+            if (!classMap[cls]) classMap[cls] = { sum: 0, cnt: 0 };
+            classMap[cls].sum += total;
+            classMap[cls].cnt++;
+        });
+        Object.entries(classMap).forEach(([cls, data]) => {
+            let avg = data.sum / data.cnt;
+            if (window.cachedClassAvgSettings && Array.isArray(window.cachedClassAvgSettings)) {
+                const setting = window.cachedClassAvgSettings.find(s => 
+                    normalizeGrade(s.grade) === normalizeGrade(_oaGrd) && 
+                    String(s.className).trim() === String(cls).trim()
+                );
+                if (setting && setting.total !== undefined && setting.total !== null && setting.total !== '') {
+                    avg = parseFloat(setting.total || 0);
+                }
+            }
+            if (avg < minAvg) { minAvg = avg; lowestClass = cls; }
+        });
+    }
+
+    const isLowestMode = _oaCls && (_oaCls.includes('미달') || _oaCls.includes('미달반'));
+    const targetCompareClass = isLowestMode ? lowestClass : _oaCls;
+    const classLabelText = isLowestMode ? '최저학급' : '권장학급';
+
+    const _oaClsData = (targetCompareClass && _oaGrd) ? computeClassAvg(targetCompareClass, _oaGrd, null) : null;
     const clsTotalAvg = _oaClsData ? parseFloat(_oaClsData['총점'] || 0) : null;
-    const _clsTotalRecs = (_oaCls && _oaGrd) ? _allRecordsOA.filter(r =>
-        normalizeGrade(r['학년'] || r.grade || '') === normalizeGrade(_oaGrd) && String(r.studentClass || r['등록학급'] || '').trim() === String(_oaCls).trim()
+    const _clsTotalRecs = (targetCompareClass && _oaGrd) ? _allRecordsOA.filter(r =>
+        normalizeGrade(r['학년'] || r.grade || '') === normalizeGrade(_oaGrd) && String(r.studentClass || r['등록학급'] || '').trim() === String(targetCompareClass).trim()
     ) : [];
     const _clsTotalScores = _clsTotalRecs.map(r => parseFloat(r['총점'] || r.totalScore || 0)).filter(v => !isNaN(v) && v > 0);
 
-    // [New] 수동 평균 보정(Shift) 적용
-    const _clsTotalScoresShifted = _clsTotalScores.map(v => v + shiftTotal);
+    // [New] 수동 평균 보정(Shift) 적용 (미달반 스위칭된 최저학급의 편차를 새로 계산)
+    let finalShiftTotal = shiftTotal;
+    if (isLowestMode && targetCompareClass) {
+        const realClsAvgData = computeClassAvg(targetCompareClass, _oaGrd, null);
+        const realClsTotalAvg = realClsAvgData ? parseFloat(realClsAvgData['총점'] || 0) : 0;
+        let configTotalAvg = realClsTotalAvg;
+        if (window.cachedClassAvgSettings && Array.isArray(window.cachedClassAvgSettings)) {
+            const setting = window.cachedClassAvgSettings.find(s => 
+                normalizeGrade(s.grade) === normalizeGrade(_oaGrd) && 
+                String(s.className).trim() === String(targetCompareClass).trim()
+            );
+            if (setting && setting.total !== undefined && setting.total !== null && setting.total !== '') {
+                configTotalAvg = parseFloat(setting.total || 0);
+            }
+        }
+        finalShiftTotal = configTotalAvg - realClsTotalAvg;
+    }
+
+    const _clsTotalScoresShifted = _clsTotalScores.map(v => v + finalShiftTotal);
 
     const _clsTotalAbove = _clsTotalScoresShifted.filter(s => s > totalScore).length;
     const clsTotalPercentile = _clsTotalScoresShifted.length > 0 ? Math.min(100, Math.round((_clsTotalAbove / _clsTotalScoresShifted.length) * 100) + 1) : null;
@@ -5422,16 +5478,16 @@ async function generateOverallComment(record, averages, activeSections, sectionC
 ${sectionSummary}
 
 [총점 현황]
-개인 총점: ${totalScore}점 / 시험지 만점: ${totalMax}점 / 전체 평균: ${totalAvg.toFixed(1)}점(전체 대비 ${_oaDiff >= 0 ? '+' : ''}${_oaDiff.toFixed(1)}점) / 정답률: ${totalRate}% / 성취레벨: ${totalLevel} / 전체 백분위: 약 ${oaUpperPercentile}%(즉, ${_pctLabel(oaUpperPercentile)})${clsTotalAvg !== null ? ' / 권장학급(' + _oaCls + ') 총점 평균: ' + clsTotalAvg.toFixed(1) + '점(학급 평균 대비 ' + (totalScore - clsTotalAvg >= 0 ? '+' : '') + (totalScore - clsTotalAvg).toFixed(1) + '점)' + (clsTotalPercentile !== null ? ' / 권장학급 내 백분위: 약 ' + clsTotalPercentile + '%(권장학급에서는 ' + _pctLabel(clsTotalPercentile, '권장학급 내') + ')' : '') : ''}
+개인 총점: ${totalScore}점 / 시험지 만점: ${totalMax}점 / 전체 평균: ${totalAvg.toFixed(1)}점(전체 대비 ${_oaDiff >= 0 ? '+' : ''}${_oaDiff.toFixed(1)}점) / 정답률: ${totalRate}% / 성취레벨: ${totalLevel} / 전체 백분위: 약 ${oaUpperPercentile}%(즉, ${_pctLabel(oaUpperPercentile)})${clsTotalAvg !== null ? ' / ' + classLabelText + '(' + targetCompareClass + ') 총점 평균: ' + clsTotalAvg.toFixed(1) + '점(' + classLabelText + ' 평균 대비 ' + (totalScore - clsTotalAvg >= 0 ? '+' : '') + (totalScore - clsTotalAvg).toFixed(1) + '점)' + (clsTotalPercentile !== null ? ' / ' + classLabelText + ' 내 백분위: 약 ' + clsTotalPercentile + '%(' + classLabelText + '에서는 ' + _pctLabel(clsTotalPercentile, classLabelText + ' 내') + ')' : '') : ''}
 
 [전체 성취 수준 — 기계적 문구 그대로가 아닌, 한국어 흐름에 맞게 부드럽게 풀어서 반영할 것]
-전체 수준: ${_pctLabel(oaUpperPercentile)} / 성취레벨: ${totalLevel} / 전체 평균 대비: ${_oaDiff >= 0 ? '+' : ''}${_oaDiff.toFixed(1)}점(${_oaDiff >= 0 ? '평균 이상' : '평균 미달'})${clsTotalPercentile !== null ? ' / 권장학급 수준: ' + _pctLabel(clsTotalPercentile, '권장학급 내') : ''}
+전체 수준: ${_pctLabel(oaUpperPercentile)} / 성취레벨: ${totalLevel} / 전체 평균 대비: ${_oaDiff >= 0 ? '+' : ''}${_oaDiff.toFixed(1)}점(${_oaDiff >= 0 ? '평균 이상' : '평균 미달'})${clsTotalPercentile !== null ? ' / ' + classLabelText + ' 수준: ' + _pctLabel(clsTotalPercentile, classLabelText + ' 내') : ''}
 
 ⚠️ 백분위 해석 주의 (절대 엄수): 백분위(%) 숫자는 작을수록 우수합니다. 상위 1%=최상위 / 상위 100%=최하위. 예시: 상위 75%는 하위권이므로 "높은 백분위", "우수한 실력" 절대 사용 금지.
 
 [작성 규칙]
 1) 각 영역 코멘트에서 이미 언급된 세부 내용(특정 표현, 문법 항목, 단어 유형 등)은 그대로 반복하지 마세요.
-2) 전체 백분위(약 ${oaUpperPercentile}%)${clsTotalPercentile !== null ? '·권장학급 내 백분위(약 ' + clsTotalPercentile + '%)' : ''}를 활용하여 영역들을 가로질러 보이는 전체적 패턴이나 공통 특징을 종합적으로 언급하세요 (1~2문장)
+2) 전체 백분위(약 ${oaUpperPercentile}%)${clsTotalPercentile !== null ? '·' + classLabelText + ' 내 백분위(약 ' + clsTotalPercentile + '%)' : ''}를 활용하여 영역들을 가로질러 보이는 전체적 패턴이나 공통 특징을 종합적으로 언급하세요 (1~2문장)
 3) 부족한 영역의 핵심 학습 방향을 종합 관점에서 간결하게 제안하세요 (1~2문장)
 4) 전체적 격려 메시지로 마무리하세요 (1문장)${_gapRule}
 
@@ -5442,11 +5498,12 @@ ${sectionSummary}
 - 영역명을 영어(Grammar, Reading 등)로 쓰지 마세요. 한국어(문법, 독해 등)로만 쓰세요.
 - 학생을 묘사할 때 경어(-시- 존칭: 받으신, 획득하신, 기록하셨으므로 등) 절대 사용 금지. "획득하여", "기록했으므로" 형식으로 쓰세요.
 - 실제 총점과 만점을 반드시 언급하세요. 호칭이 필요하면 "${sName} 학생은" 형식만 사용하세요.
-- 전체 백분위(약 ${oaUpperPercentile}%)${clsTotalPercentile !== null ? '와 권장학급 내 백분위(약 ' + clsTotalPercentile + '%)' : ''}를 코멘트에 반드시 활용하여 서술하세요.
+- 전체 백분위(약 ${oaUpperPercentile}%)${clsTotalPercentile !== null ? '와 ' + classLabelText + ' 내 백분위(약 ' + clsTotalPercentile + '%)' : ''}를 코멘트에 반드시 활용하여 서술하세요.
 - 학원명, 교재명, 브랜드명 절대 금지. 모든 답변은 순수 한국어로 작성하세요.
 - ⛔ "수업을 잘 따라오고 있습니다", "수업에 적응하고 있습니다", "학원 생활" 등 재원생 대상 표현 절대 금지. (이 시험은 입학 전 레벨테스트임)
 - ⛔ 줄바꿈(\n, 개행) 절대 금지. 전체 코멘트를 하나의 연속된 문단으로 작성하세요. 마침표(.), 물음표(?), 느낌표(!) 뒤에는 반드시 띄어쓰기(공백)를 한 칸 포함하여 문장을 이어 나가세요.
 - 성취레벨 단어(예: 매우 우수, 많이 부족 등)를 코멘트에 서술할 때는 '성취레벨 많이 부족'처럼 기계적 용어를 그대로 꽂아 넣어 딱딱하고 부자연스러운 문장을 절대 만들지 마세요. 대신 '성취도가 많이 부족하여 기초를 다질 필요가 있습니다' 또는 '성취 수준이 많이 부족한 단계에 해당합니다'처럼 학부모에게 보내는 정성스럽고 부드러운 교사의 언어로 자연스럽게 다듬어 작성하세요.
+- 코멘트 내부에서 학급을 지칭할 때는 임의로 '최소학급', '최저학급' 등으로 혼용하지 말고, 제시된 명칭인 '${classLabelText}'라는 단어로만 일관되게 지칭하여 서술하세요. 단, 추천된 학급명이 '미달' 또는 '미달반'인 경우에는 '권장학급'이라는 용어 대신, 학생이 아직 정규 학급에 들어가기 전 추가적인 기초 학습 보완이 시급한 상태임을 한글 어순에 맞추어 자연스럽게 풀어서 서술하세요.
 - 🔢 전체 코멘트는 공백 포함 500자 이내로 작성하세요. 초과 절대 금지.`;
 
     // [디버그] 종합 코멘트 산출 정보 콘솔 출력
@@ -5683,18 +5740,79 @@ async function generateSectionComments(record, averages, activeSections) {
             // 권장학급 평균 + 학급 내 백분위 계산
             const _sGrd = record.grade || record['학년'] || '';
             const _recCls = record.studentClass || record['등록학급'] || '';
-            const _clsData = (_recCls && _sGrd) ? computeClassAvg(_recCls, _sGrd, secMap) : null;
+
+            // 학년 내 실제 최저학급 구하기 (미달반 제외 최저 평균 학급)
+            let lowestClass = null;
+            let minAvg = Infinity;
+            const records = window.cachedStudentRecords || [];
+            const gradeRecs = records.filter(r => {
+                const rGrade = r['학년'] || r.grade || '';
+                const rClass = r.studentClass || r['등록학급'] || '';
+                return normalizeGrade(rGrade) === normalizeGrade(_sGrd) && rClass && !rClass.includes('미달');
+            });
+            if (gradeRecs.length > 0) {
+                const classMap = {};
+                gradeRecs.forEach(r => {
+                    const cls = r.studentClass || r['등록학급'];
+                    const total = parseFloat(r['완스코어'] || r['총점'] || r.totalScore || r.score || 0);
+                    if (!classMap[cls]) classMap[cls] = { sum: 0, cnt: 0 };
+                    classMap[cls].sum += total;
+                    classMap[cls].cnt++;
+                });
+                Object.entries(classMap).forEach(([cls, data]) => {
+                    let avg = data.sum / data.cnt;
+                    if (window.cachedClassAvgSettings && Array.isArray(window.cachedClassAvgSettings)) {
+                        const setting = window.cachedClassAvgSettings.find(s => 
+                            normalizeGrade(s.grade) === normalizeGrade(_sGrd) && 
+                            String(s.className).trim() === String(cls).trim()
+                        );
+                        if (setting && setting.total !== undefined && setting.total !== null && setting.total !== '') {
+                            avg = parseFloat(setting.total || 0);
+                        }
+                    }
+                    if (avg < minAvg) { minAvg = avg; lowestClass = cls; }
+                });
+            }
+
+            const isLowestMode = _recCls && (_recCls.includes('미달') || _recCls.includes('미달반'));
+            const targetCompareClass = isLowestMode ? lowestClass : _recCls;
+            const classLabelText = isLowestMode ? '최저학급' : '권장학급';
+
+            const _clsData = (targetCompareClass && _sGrd) ? computeClassAvg(targetCompareClass, _sGrd, secMap) : null;
             const clsAvgScore = _clsData ? parseFloat(_clsData[section + '_점수'] || 0) : null;
             // 권장학급 내 백분위
-            const _clsRecordsAll = (_recCls && _sGrd) ? _allRecords.filter(r => {
+            const _clsRecordsAll = (targetCompareClass && _sGrd) ? _allRecords.filter(r => {
                 const rG = r['학년'] || r.grade || '';
                 const rC = r.studentClass || r['등록학급'] || '';
-                return normalizeGrade(rG) === normalizeGrade(_sGrd) && String(rC).trim() === String(_recCls).trim();
+                return normalizeGrade(rG) === normalizeGrade(_sGrd) && String(rC).trim() === String(targetCompareClass).trim();
             }) : [];
             const _clsSectionScores = _clsRecordsAll.map(r => parseFloat(r[section + '_점수'] || r[secMap[section]] || 0)).filter(v => !isNaN(v) && v > 0);
 
-            // [New] 수동 평균 보정(Shift) 적용
-            const _clsSectionScoresShifted = _clsSectionScores.map(v => v + shiftVal);
+            // [New] 수동 평균 보정(Shift) 적용 (미달반 스위칭된 최저학급의 편차를 새로 계산)
+            let finalShiftVal = shiftVal;
+            if (isLowestMode && targetCompareClass) {
+                const realClsAvgData = computeClassAvg(targetCompareClass, _sGrd, secMap);
+                const realClsAvgScore = realClsAvgData ? parseFloat(realClsAvgData[section + '_점수'] || 0) : 0;
+                let configAvgScore = realClsAvgScore;
+                if (window.cachedClassAvgSettings && Array.isArray(window.cachedClassAvgSettings)) {
+                    const setting = window.cachedClassAvgSettings.find(s => 
+                        normalizeGrade(s.grade) === normalizeGrade(_sGrd) && 
+                        String(s.className).trim() === String(targetCompareClass).trim()
+                    );
+                    if (setting) {
+                        const secKey = {
+                            'Grammar': 'grammar', 'Writing': 'writing',
+                            'Reading': 'reading', 'Listening': 'listening', 'Vocabulary': 'vocab'
+                        }[section] || section.toLowerCase();
+                        if (setting[secKey] !== undefined && setting[secKey] !== null && setting[secKey] !== '') {
+                            configAvgScore = parseFloat(setting[secKey] || 0);
+                        }
+                    }
+                }
+                finalShiftVal = configAvgScore - realClsAvgScore;
+            }
+
+            const _clsSectionScoresShifted = _clsSectionScores.map(v => v + finalShiftVal);
 
             const _clsAbove = _clsSectionScoresShifted.filter(s => s > studentScore).length;
             const clsUpperPercentile = _clsSectionScoresShifted.length > 0 ? Math.min(100, Math.round((_clsAbove / _clsSectionScoresShifted.length) * 100) + 1) : null;
@@ -5743,21 +5861,21 @@ async function generateSectionComments(record, averages, activeSections) {
             const _shortfall = maxScore > 0 ? (maxScore - studentScore) : null;
             let _weaknessRule;
             if (_isPerfect) {
-                _weaknessRule = '2) 현재 수준 유지 (1문장) — 만점이므로 부족한 점을 절대 쓰지 마세요. 전체 백분위(약 ' + upperPercentile + '%)' + (clsUpperPercentile !== null ? '·학급 내 백분위(약 ' + clsUpperPercentile + '%)' : '') + '를 활용하여 현재 실력을 유지하는 것의 중요성을 서술하세요.';
+                _weaknessRule = '2) 현재 수준 유지 (1문장) — 만점이므로 부족한 점을 절대 쓰지 마세요. 전체 백분위(약 ' + upperPercentile + '%)' + (clsUpperPercentile !== null ? '·' + classLabelText + ' 내 백분위(약 ' + clsUpperPercentile + '%)' : '') + '를 활용하여 현재 실력을 유지하는 것의 중요성을 서술하세요.';
             } else if (_aboveCls) {
-                _weaknessRule = '2) 보완 포인트 (1문장) — 학급 평균보다 높으므로 "미흡하다", "부족하다", "발전할 여지가 있다" 같은 부정 표현 절대 금지. 전체 백분위(약 ' + upperPercentile + '%)' + (clsUpperPercentile !== null ? '·학급 내 백분위(약 ' + clsUpperPercentile + '%)' : '') + '를 활용하여 만점(' + maxScore + '점) 대비 ' + _shortfall + '점 부족한 부분을 서술하세요.' + (subTypeInfo ? ' 세부 영역별 데이터를 활용해 가장 취약한 세부 영역도 명시하세요.' : '');
+                _weaknessRule = '2) 보완 포인트 (1문장) — ' + classLabelText + ' 평균보다 높으므로 "미흡하다", "부족하다", "발전할 여지가 있다" 같은 부정 표현 절대 금지. 전체 백분위(약 ' + upperPercentile + '%)' + (clsUpperPercentile !== null ? '·' + classLabelText + ' 내 백분위(약 ' + clsUpperPercentile + '%)' : '') + '를 활용하여 만점(' + maxScore + '점) 대비 ' + _shortfall + '점 부족한 부분을 서술하세요.' + (subTypeInfo ? ' 세부 영역별 데이터를 활용해 가장 취약한 세부 영역도 명시하세요.' : '');
             } else {
-                _weaknessRule = '2) 부족한 점 또는 약점 (1문장) — ' + (subTypeInfo ? '✅ 세부 영역별 점수 데이터 제공됨. 가장 취약한 세부 영역을 명시하고 전체 백분위(약 ' + upperPercentile + '%)와 학급 내 백분위(약 ' + clsUpperPercentile + '%)를 활용하세요.' : '⚠️ 세부 영역 데이터 없음. 전체 백분위(약 ' + upperPercentile + '%)와 학급 평균보다 낮은 점에 근거해 서술하세요. 세부 유형·문법 항목을 절대 추측하지 마세요.');
+                _weaknessRule = '2) 부족한 점 또는 약점 (1문장) — ' + (subTypeInfo ? '✅ 세부 영역별 점수 데이터 제공됨. 가장 취약한 세부 영역을 명시하고 전체 백분위(약 ' + upperPercentile + '%)와 ' + classLabelText + ' 내 백분위(약 ' + clsUpperPercentile + '%)를 활용하세요.' : '⚠️ 세부 영역 데이터 없음. 전체 백분위(약 ' + upperPercentile + '%)와 ' + classLabelText + ' 평균보다 낮은 점에 근거해 서술하세요. 세부 유형·문법 항목을 절대 추측하지 마세요.');
             }
 
             // 잘한 점 지시 — 성취레벨에 따라 분기 (핵심: 하위권·최하위권에서 억지 긍정 표현 방지)
             let _goodPointRule;
             if (upperPercentile <= 55) {
                 // 중위권 이상: 잘한 점 서술
-                _goodPointRule = '1) 잘한 점 (2문장) — 전체 백분위(약 ' + upperPercentile + '% = ' + _pctLabel(upperPercentile) + ')' + (clsUpperPercentile !== null ? '와 권장학급 내 백분위(약 ' + clsUpperPercentile + '%)' : '') + '를 활용하여 구체적으로 서술하세요. 성취레벨 ' + level + '에 맞는 적절한 수준의 표현을 사용하세요.';
+                _goodPointRule = '1) 잘한 점 (2문장) — 전체 백분위(약 ' + upperPercentile + '% = ' + _pctLabel(upperPercentile) + ')' + (clsUpperPercentile !== null ? '와 ' + classLabelText + ' 내 백분위(약 ' + clsUpperPercentile + '%)' : '') + '를 활용하여 구체적으로 서술하세요. 성취레벨 ' + level + '에 맞는 적절한 수준의 표현을 사용하세요.';
             } else {
                 // 중하위권 이하: 현재 수준 정직하게 기술 (잘했다/높다/우수하다 절대 금지)
-                _goodPointRule = '1) 현재 성취 수준 기술 (2문장) — 성취레벨 ' + level + ' / 전체 백분위 약 ' + upperPercentile + '%(= 전체 학생 중 ' + upperPercentile + '%가 이 학생보다 높은 점수 → ' + _pctLabel(upperPercentile) + ')' + (clsUpperPercentile !== null ? ' / 권장학급 내 백분위 약 ' + clsUpperPercentile + '%(' + _pctLabel(clsUpperPercentile, '권장학급 내') + ')' : '') + ' — ⛔ "잘했다", "높다", "우수하다", "높은 백분위" 같은 표현 절대 금지. 현재 수준을 정직하게 기술하되, 노력과 가능성에 초점을 맞추세요.';
+                _goodPointRule = '1) 현재 성취 수준 기술 (2문장) — 성취레벨 ' + level + ' / 전체 백분위 약 ' + upperPercentile + '%(= 전체 학생 중 ' + upperPercentile + '%가 이 학생보다 높은 점수 → ' + _pctLabel(upperPercentile) + ')' + (clsUpperPercentile !== null ? ' / ' + classLabelText + ' 내 백분위 약 ' + clsUpperPercentile + '%(' + _pctLabel(clsUpperPercentile, classLabelText + ' 내') + ')' : '') + ' — ⛔ "잘했다", "높다", "우수하다", "높은 백분위" 같은 표현 절대 금지. 현재 수준을 정직하게 기술하되, 노력과 가능성에 초점을 맞추세요.';
             }
 
             const prompt = `${gradeTone}
@@ -5773,10 +5891,10 @@ async function generateSectionComments(record, averages, activeSections) {
 이름: ${sName}
 
 [성적 데이터]
-개인 점수: ${studentScore}점 / 영역 만점: ${maxScore > 0 ? maxScore + '점' : '정보 없음'} / 전체 평균: ${overallAvgScore.toFixed(1)}점(전체 대비 ${diff >= 0 ? '+' : ''}${diff.toFixed(1)}점) / 성취레벨: ${level} / 전체 백분위: 약 ${upperPercentile}%(= 전체 학생 중 ${upperPercentile}%가 이 학생보다 높은 점수 → ${_pctLabel(upperPercentile)})${clsAvgScore !== null ? ' / 권장학급(' + _recCls + ') 평균: ' + clsAvgScore.toFixed(1) + '점(학급 평균 대비 ' + (studentScore - clsAvgScore >= 0 ? '+' : '') + (studentScore - clsAvgScore).toFixed(1) + '점)' : ''}${clsUpperPercentile !== null ? ' / 권장학급 내 백분위: 약 ' + clsUpperPercentile + '%(= 권장학급에서도 ' + clsUpperPercentile + '%가 이 학생보다 높음 → ' + _pctLabel(clsUpperPercentile, '권장학급 내') + ')' : ''}${subTypeInfo}${wrongInfo}
+개인 점수: ${studentScore}점 / 영역 만점: ${maxScore > 0 ? maxScore + '점' : '정보 없음'} / 전체 평균: ${overallAvgScore.toFixed(1)}점(전체 대비 ${diff >= 0 ? '+' : ''}${diff.toFixed(1)}점) / 성취레벨: ${level} / 전체 백분위: 약 ${upperPercentile}%(= 전체 학생 중 ${upperPercentile}%가 이 학생보다 높은 점수 → ${_pctLabel(upperPercentile)})${clsAvgScore !== null ? ' / ' + classLabelText + '(' + targetCompareClass + ') 평균: ' + clsAvgScore.toFixed(1) + '점(' + classLabelText + ' 평균 대비 ' + (studentScore - clsAvgScore >= 0 ? '+' : '') + (studentScore - clsAvgScore).toFixed(1) + '점)' : ''}${clsUpperPercentile !== null ? ' / ' + classLabelText + ' 내 백분위: 약 ' + clsUpperPercentile + '%(= ' + classLabelText + '에서도 ' + clsUpperPercentile + '%가 이 학생보다 높음 → ' + _pctLabel(clsUpperPercentile, classLabelText + ' 내') + ')' : ''}${subTypeInfo}${wrongInfo}
 
 [이 영역 성취 수준 — 기계적 문구 그대로가 아닌, 한국어 흐름에 맞게 부드럽게 풀어서 반영할 것]
-전체 수준: ${_pctLabel(upperPercentile)} / 성취레벨: ${level} / 전체 평균 대비: ${diff >= 0 ? '+' : ''}${diff.toFixed(1)}점(${diff >= 0 ? '평균 이상' : '평균 미달'})${clsUpperPercentile !== null ? ' / 권장학급 수준: ' + _pctLabel(clsUpperPercentile, '권장학급 내') : ''}
+전체 수준: ${_pctLabel(upperPercentile)} / 성취레벨: ${level} / 전체 평균 대비: ${diff >= 0 ? '+' : ''}${diff.toFixed(1)}점(${diff >= 0 ? '평균 이상' : '평균 미달'})${clsUpperPercentile !== null ? ' / ' + classLabelText + ' 수준: ' + _pctLabel(clsUpperPercentile, classLabelText + ' 내') : ''}
 ⚠️ 백분위 해석 주의 (절대 엄수): 백분위(%) 숫자는 작을수록 우수합니다. 상위 1%=최상위 / 상위 100%=최하위. 예시: 상위 75%는 하위권이므로 "높은 백분위", "우수한 실력"  절대 사용 금지. 상위 5%이면 영역에서 실력이 뛰어남을 시사합니다.
 
 [작성 규칙]
@@ -5791,11 +5909,12 @@ ${_weaknessRule}
 - 영역명을 영어(Grammar, Reading 등)로 쓰지 마세요. 한국어(문법, 독해 등)로만 쓰세요.
 - 학생을 묘사할 때 경어(-시- 존칭: 받으신, 획득하신, 기록하셨으므로 등) 절대 사용 금지. "획득하여", "기록했으므로" 형식으로 쓰세요.
 - 실제 점수와 만점을 반드시 언급하세요. 호칭이 필요하면 "${sName} 학생은" 형식만 사용하세요.
-- 전체 백분위(약 ${upperPercentile}%)${clsUpperPercentile !== null ? '와 권장학급 내 백분위(약 ' + clsUpperPercentile + '%)' : ''}를 코멘트 어딘가에 반드시 언급하세요.
+- 전체 백분위(약 ${upperPercentile}%)${clsUpperPercentile !== null ? '와 ' + classLabelText + ' 내 백분위(약 ' + clsUpperPercentile + '%)' : ''}를 코멘트 어딘가에 반드시 언급하세요.
 - 학원명, 교재명, 브랜드명 절대 금지. 모든 답변은 순수 한국어로 작성하세요.
 - ⛔ "수업을 잘 따라오고 있습니다", "수업에 적응하고 있습니다", "학원 생활" 등 재원생 대상 표현 절대 금지. (이 시험은 입학 전 레벨테스트임)
 - ⛔ 줄바꿈(\n, 개행) 절대 금지. 전체 코멘트를 하나의 연속된 문단으로 작성하세요. 마침표(.), 물음표(?), 느낌표(!) 뒤에는 반드시 띄어쓰기(공백)를 한 칸 포함하여 문장을 이어 나가세요.
 - 성취레벨 단어(예: 매우 우수, 많이 부족 등)를 코멘트에 서술할 때는 '성취레벨 많이 부족'처럼 기계적 용어를 그대로 꽂아 넣어 딱딱하고 부자연스러운 문장을 절대 만들지 마세요. 대신 '성취도가 많이 부족하여 기초를 다질 필요가 있습니다' 또는 '성취 수준이 많이 부족한 단계에 해당합니다'처럼 학부모에게 보내는 정성스럽고 부드러운 교사의 언어로 자연스럽게 다듬어 작성하세요.
+- 코멘트 내부에서 학급을 지칭할 때는 임의로 '최소학급', '최저학급' 등으로 혼용하지 말고, 제시된 명칭인 '${classLabelText}'라는 단어로만 일관되게 지칭하여 서술하세요. 단, 추천된 학급명이 '미달' 또는 '미달반'인 경우에는 '권장학급'이라는 용어 대신, 학생이 아직 정규 학급에 들어가기 전 추가적인 기초 학습 보완이 시급한 상태임을 한글 어순에 맞추어 자연스럽게 풀어서 서술하세요.
 - 🔢 전체 코멘트는 공백 포함 280자 이내로 작성하세요. 초과 절대 금지.`;
 
             // [디버그] 영역 코멘트 산출 정보 콘솔 출력
