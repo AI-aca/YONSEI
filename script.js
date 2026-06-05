@@ -6214,6 +6214,48 @@ function saveReportData() {
         .finally(() => { if (btn) { btn.disabled = false; btn.textContent = '💾 저장'; } });
 }
 
+// AI 코멘트 및 학급 정보 백그라운드 자동 저장 헬퍼
+async function autoSaveReportData(overallComment, sectionComments) {
+    const catVal = document.getElementById('report-category')?.value;
+    const stuVal = document.getElementById('report-student')?.value;
+    if (!catVal || !stuVal) return;
+
+    const cat = globalConfig.categories?.find(c => c.id === catVal);
+    const folderId = cat ? extractFolderId(cat.targetFolderUrl) : null;
+    if (!folderId) return;
+
+    const promises = [
+        sendReliableRequest({
+            type: 'SAVE_AI_COMMENT',
+            parentFolderId: folderId,
+            studentId: stuVal,
+            overallComment: overallComment || '',
+            sectionComments: sectionComments || {},
+            notes: window.currentReportData?.notes || ''
+        })
+    ];
+
+    const clsEl = document.getElementById('report-student-class');
+    const clsVal = clsEl?.value;
+    if (window._dirtyClass && clsVal && clsVal !== '__RECOMMEND__') {
+        promises.push(sendReliableRequest({
+            type: 'SAVE_STUDENT_CLASS',
+            parentFolderId: folderId,
+            studentId: stuVal,
+            studentClass: clsVal
+        }));
+    }
+
+    try {
+        await Promise.all(promises);
+        window._dirtyClass = false;
+        window._dirtyComment = false;
+        showToast('💾 AI 코멘트 및 학급 정보 자동 저장 완료');
+    } catch (e) {
+        console.warn('AI 자동 저장 실패:', e);
+    }
+}
+
 function printReport(orientation = 'portrait') {
     const catVal = document.getElementById('report-category')?.value;
     const stuVal = document.getElementById('report-student')?.value;
@@ -6608,6 +6650,7 @@ async function regenerateSectionComment(section) {
         renderReportCard(record, averages, updated, overallComment, activeSections);
         window._dirtyComment = true;
         showToast(`✅ ${section} 코멘트 재생성 완료!`);
+        await autoSaveReportData(overallComment, updated);
     } catch (e) {
         showToast('❌ 재생성 실패: ' + e.message);
         if (btn) { btn.disabled = false; btn.textContent = '🔄 재생성'; }
@@ -6747,6 +6790,7 @@ async function regenerateOverallComment() {
         if (wrap) wrap.innerHTML = `<p class="text-slate-700 leading-relaxed fs-15" id="overall-comment-text" style="cursor:pointer;" onclick="editComment('overall')" title="클릭하여 수정">${(newComment || '').split(/\n+/).map(l => l.trim()).filter(l => l).join('<br>')}</p>`;
         window._dirtyComment = true;
         showToast('✅ 종합 코멘트가 재생성되었습니다.');
+        await autoSaveReportData(newComment, sectionComments || {});
     } catch (e) { showToast('❌ 재생성 실패: ' + e.message); }
     finally {
         toggleLoading(false);
@@ -6787,6 +6831,7 @@ async function regenerateAllComments() {
         renderReportCard(record, averages, window.currentReportData.sectionComments, newOverall, activeSections);
         window._dirtyComment = true;
         showToast('✅ 영역별 + 종합 코멘트 전체 재생성 완료!');
+        await autoSaveReportData(newOverall, window.currentReportData.sectionComments);
     } catch (e) { showToast('❌ 재생성 실패: ' + e.message); }
     finally {
         toggleLoading(false);
@@ -6838,45 +6883,7 @@ async function triggerAIAnalysis() {
         window._dirtyComment = true;
         showToast('✅ AI 분석 완료!');
 
-        // GAS 자동 저장 (비동기 실행으로 UI 블로킹 없음)
-        const catVal2 = document.getElementById('report-category')?.value;
-        const stuVal2 = document.getElementById('report-student')?.value;
-        if (catVal2 && stuVal2) {
-            const _aiCat = globalConfig.categories?.find(c => c.id === catVal2);
-            const _aiFolId = _aiCat ? extractFolderId(_aiCat.targetFolderUrl) : null;
-            if (_aiFolId) {
-                const promises = [
-                    sendReliableRequest({
-                        type: 'SAVE_AI_COMMENT',
-                        parentFolderId: _aiFolId,
-                        studentId: stuVal2,
-                        overallComment,
-                        sectionComments,
-                        notes: window.currentReportData?.notes
-                    })
-                ];
-                
-                // 학급명도 동기화되었으므로 같이 자동 백그라운드 저장 진행
-                const clsEl = document.getElementById('report-student-class');
-                const clsVal = clsEl?.value;
-                if (window._dirtyClass && clsVal && clsVal !== '__RECOMMEND__') {
-                    promises.push(sendReliableRequest({
-                        type: 'SAVE_STUDENT_CLASS',
-                        parentFolderId: _aiFolId,
-                        studentId: stuVal2,
-                        studentClass: clsVal
-                    }));
-                }
-
-                Promise.all(promises)
-                    .then(() => {
-                        window._dirtyClass = false;
-                        window._dirtyComment = false;
-                        showToast('💾 AI 코멘트 및 학급 정보 저장 완료');
-                    })
-                    .catch(e => console.warn('AI 코멘트/학급 GAS 자동 저장 실패:', e));
-            }
-        }
+        await autoSaveReportData(overallComment, sectionComments);
     } catch (e) {
         console.error(e);
         showToast('❌ AI 분석 실패: ' + e.message);
