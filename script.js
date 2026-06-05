@@ -1938,28 +1938,25 @@ function recalculateStudentReportShifts(record, averages) {
             String(s.className).trim() === String(studentClass).trim()
         );
         if (setting) {
-            // 편차 계산 (수동 - 실제)
-            averages.shifts.total = parseFloat(setting.total || 0) - originalAverages.total;
-            averages.shifts.grammar = parseFloat(setting.grammar || 0) - originalAverages.grammar;
-            averages.shifts.writing = parseFloat(setting.writing || 0) - originalAverages.writing;
-            averages.shifts.reading = parseFloat(setting.reading || 0) - originalAverages.reading;
-            averages.shifts.listening = parseFloat(setting.listening || 0) - originalAverages.listening;
-            averages.shifts.vocab = parseFloat(setting.vocab || 0) - originalAverages.vocab;
+            // [Fix] 편차 계산 시 전체 평균(originalAverages) 대신 학급의 진짜 실제 평균(classRealAvg)을 빼도록 수정합니다.
+            const realAvgMap = getRealClassAvgMap(studentGrade, allRecords);
+            const classRealAvg = (realAvgMap && realAvgMap[studentClass]) ? realAvgMap[studentClass] : null;
 
-            // averages 객체 수동 평균으로 덮어쓰기
-            averages['총점'] = parseFloat(setting.total || 0);
-            averages.grammarScore = parseFloat(setting.grammar || 0);
-            averages.writingScore = parseFloat(setting.writing || 0);
-            averages.readingScore = parseFloat(setting.reading || 0);
-            averages.listeningScore = parseFloat(setting.listening || 0);
-            averages.vocabScore = parseFloat(setting.vocab || 0);
+            const getShift = (settingVal, classAvgVal, originalAvgVal) => {
+                const manualVal = parseFloat(settingVal || 0);
+                const realClassVal = (classAvgVal !== null && classAvgVal !== undefined) ? parseFloat(classAvgVal) : parseFloat(originalAvgVal || 0);
+                return manualVal - realClassVal;
+            };
 
-            averages['Grammar_점수'] = averages.grammarScore;
-            averages['Writing_점수'] = averages.writingScore;
-            averages['Reading_점수'] = averages.readingScore;
-            averages['Listening_점수'] = averages.listeningScore;
-            averages['Vocabulary_점수'] = averages.vocabScore;
-            console.log("✏️ [공통 헬퍼] averages 수동 설정 및 편차(shifts) 계산 완료:", averages);
+            averages.shifts.total = getShift(setting.total, classRealAvg?.total, originalAverages.total);
+            averages.shifts.grammar = getShift(setting.grammar, classRealAvg?.grammar, originalAverages.grammar);
+            averages.shifts.writing = getShift(setting.writing, classRealAvg?.writing, originalAverages.writing);
+            averages.shifts.reading = getShift(setting.reading, classRealAvg?.reading, originalAverages.reading);
+            averages.shifts.listening = getShift(setting.listening, classRealAvg?.listening, originalAverages.listening);
+            averages.shifts.vocab = getShift(setting.vocab, classRealAvg?.vocab, originalAverages.vocab);
+
+            // [Fix] 전체 평균은 아무 영향이 없어야 하므로, averages 객체의 전체 평균 점수 자체를 수동 값으로 덮어쓰는 코드는 완전히 제거합니다.
+            console.log("✏️ [공통 헬퍼] averages 수동 설정에 따른 학급 편차(shifts) 계산 완료:", averages.shifts);
         }
     }
 }
@@ -5326,12 +5323,11 @@ async function generateOverallComment(record, averages, activeSections, sectionC
     const _allRecordsOA = window.cachedStudentRecords || [];
     const _allTotalScores = _allRecordsOA.map(r => parseFloat(r['총점'] || r.totalScore || 0)).filter(v => !isNaN(v) && v > 0);
 
-    // [New] 수동 평균 보정(Shift) 적용
+    // [Fix] 총점 전체 백분위는 학급 수동 평균 편차(shiftTotal)의 영향을 전혀 받지 않도록 순수 실제 점수 분포로만 계산합니다.
     const shiftTotal = (averages.shifts && averages.shifts.total) ? parseFloat(averages.shifts.total) : 0;
-    const _allTotalScoresShifted = _allTotalScores.map(v => v + shiftTotal);
 
-    const _oaAbove = _allTotalScoresShifted.filter(s => s > totalScore).length;
-    const oaUpperPercentile = _allTotalScoresShifted.length > 0 ? Math.min(100, Math.round((_oaAbove / _allTotalScoresShifted.length) * 100) + 1) : 50;
+    const _oaAbove = _allTotalScores.filter(s => s > totalScore).length;
+    const oaUpperPercentile = _allTotalScores.length > 0 ? Math.min(100, Math.round((_oaAbove / _allTotalScores.length) * 100) + 1) : 50;
     const _oaDiff = totalAvg > 0 ? totalScore - totalAvg : 0;
     let totalLevel;
     if (oaUpperPercentile <= 10) totalLevel = '매우 우수';
@@ -5652,16 +5648,15 @@ async function generateSectionComments(record, averages, activeSections) {
                 .map(r => parseFloat(r[section + '_점수'] || r[secMap[section]] || 0))
                 .filter(v => !isNaN(v) && v > 0);
 
-            // [New] 수동 평균 보정(Shift) 적용
+            // [Fix] 전체 백분위는 학급 수동 평균 편차(shiftVal)의 영향을 전혀 받지 않도록 순수 실제 점수 분포로만 계산합니다.
             const secKey = {
                 'Grammar': 'grammar', 'Writing': 'writing',
                 'Reading': 'reading', 'Listening': 'listening', 'Vocabulary': 'vocab'
             }[section] || section.toLowerCase();
             const shiftVal = (averages.shifts && averages.shifts[secKey]) ? parseFloat(averages.shifts[secKey]) : 0;
-            const _allSectionScoresShifted = _allSectionScores.map(v => v + shiftVal);
 
-            const _aboveCount = _allSectionScoresShifted.filter(s => s > studentScore).length;
-            const _totalCount = _allSectionScoresShifted.length;
+            const _aboveCount = _allSectionScores.filter(s => s > studentScore).length;
+            const _totalCount = _allSectionScores.length;
             const upperPercentile = _totalCount > 0 ? Math.min(100, Math.round((_aboveCount / _totalCount) * 100) + 1) : 50;
 
             // 백분위 기반 성취레벨 (7단계) + 전체 평균 대비 보정
