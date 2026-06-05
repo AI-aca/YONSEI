@@ -370,8 +370,8 @@ async function sendReliableRequest(payload, silent = false, maxRetries = 5) {
             console.warn(`Sync Attempt ${i} Failed:`, e);
             if (i === MAX_RETRIES) {
                 // If standard fetch fails (likely CORS or network), try no-cors as last resort
-                // [Fix] GET_ 및 SAVE_FULL_TEST_DATA는 no-cors 금지 (응답 확인 필수)
-                if (payload.type && (payload.type.startsWith('GET_') || payload.type === 'SAVE_FULL_TEST_DATA')) {
+                // [Fix] GET_ 및 SAVE_FULL_TEST_DATA, STUDENT_SAVE, CALL_GEMINI는 no-cors 금지 (응답/결과 확인 필수)
+                if (payload.type && (payload.type.startsWith('GET_') || payload.type === 'SAVE_FULL_TEST_DATA' || payload.type === 'STUDENT_SAVE' || payload.type === 'CALL_GEMINI')) {
                     throw new Error("저장 실패: 네트워크 오류. 빌더 내용은 유지됩니다.");
                 }
 
@@ -4388,7 +4388,7 @@ async function submitExam() {
 
         const apiPayload = {
             type: 'STUDENT_SAVE',
-            timeout: 20000,
+            timeout: 90000, // [Fix] 구글 시트 쓰기 대기 시간을 90초로 넉넉히 연장
             categoryId: examSession.categoryId,
             categoryName: category?.name || "Unknown",
             parentFolderId: targetFolderId,
