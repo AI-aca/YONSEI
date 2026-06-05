@@ -700,7 +700,7 @@ function startStudentMode() {
 
 
 function renderSidebarNav() {
-    let b = `<button onclick="changeTab('ai_grade')" id="btn-ai_grade" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">🤖 AI 채점 관리</button><button onclick="changeTab('records')" id="btn-records" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📊 학생 성적표 확인</button><button onclick="changeTab('score_input')" id="btn-score_input" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">✏️ 학생 성적 수동 입력</button><button onclick="changeTab('class_avg')" id="btn-class_avg" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">⚙️ 학급 평균 설정</button><button onclick="changeTab('stats')" id="btn-stats" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📈 문항 및 학생 통계</button><button onclick="changeTab('bank')" id="btn-bank" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📋 문항 리스트 등록·수정</button>`;
+    let b = `<button onclick="changeTab('ai_grade')" id="btn-ai_grade" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">🤖 AI 채점 관리</button><button onclick="changeTab('records')" id="btn-records" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📊 학생 성적표 확인</button><button onclick="changeTab('score_input')" id="btn-score_input" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">✏️ 학생 성적 수동 입력</button><button onclick="changeTab('class_avg')" id="btn-class_avg" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">⚙️ Class Averages</button><button onclick="changeTab('stats')" id="btn-stats" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📈 문항 및 학생 통계</button><button onclick="changeTab('bank')" id="btn-bank" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📋 문항 리스트 등록·수정</button>`;
     b += `<button onclick="changeTab('cat_manage')" id="btn-cat_manage" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📂 시험지 관리</button>`;
     document.getElementById('sidebar-nav').innerHTML = b;
     applyBranding();
@@ -11992,7 +11992,7 @@ async function renderClassAvgConfig(c) {
 
     let tableRowsHtml = "";
     if (classes.length === 0) {
-        tableRowsHtml = `<tr><td colspan="8" class="px-6 py-10 text-center text-slate-400 italic">해당 학년에 등록된 학급이 없습니다.<br><span class="text-xs text-slate-400">([시험지 관리] 탭에서 학년별 학급을 먼저 추가해 주세요)</span></td></tr>`;
+        tableRowsHtml = `<tr><td colspan="8" class="px-6 py-10 text-center text-slate-400 italic">No classes registered in this grade.<br><span class="text-xs text-slate-400">(Please add classes in the [Exam Paper Management] tab first)</span></td></tr>`;
     } else {
         classes.forEach(className => {
             // 기존 설정 검색
@@ -12020,7 +12020,7 @@ async function renderClassAvgConfig(c) {
                         <input type="number" step="0.1" min="0" value="${setting.writing}" class="input-writing ys-field text-center font-bold !py-1" oninput="calcRowTotal(this)">
                     </td>
                     <td class="px-6 py-4 text-center">
-                        <span class="span-total font-black text-indigo-600 fs-18">${parseFloat(setting.total || 0).toFixed(1)}</span>점
+                        <span class="span-total font-black text-indigo-600 fs-18">${parseFloat(setting.total || 0).toFixed(1)}</span>
                     </td>
                 </tr>
             `;
@@ -12028,47 +12028,44 @@ async function renderClassAvgConfig(c) {
     }
 
     c.innerHTML = `
-        <div class="card space-y-6 animate-fade-in mt-5">
-            <div class="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 gap-4">
-                <div>
-                    <h2 class="fs-24 font-black text-[#013976]">⚙️ 학급 평균 설정</h2>
-                    <p class="fs-14 text-slate-500 mt-1">성적표 그래프 및 AI 피드백에 활용될 학급별 목표 기준 평균치를 튜닝합니다.</p>
+        <div class="animate-fade-in-safe space-y-6 pb-10 mt-5">
+            <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">⚙️ CLASS AVERAGE CONFIG</h2>
+
+            <!-- 1. Grade & Action Control Bar -->
+            <div class="card !py-3.5 !px-6 !flex-row !flex-nowrap items-center justify-between shadow-lg relative overflow-hidden flex-none gap-4" style="background: linear-gradient(135deg, #ffffff 0%, #eef4ff 100%); border: 2px solid rgba(1,57,118,0.15);">
+                <div style="position:absolute; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg, #60a5fa, #6366f1, #a855f7);"></div>
+                <div class="flex items-center gap-4 flex-grow">
+                    <span style="font-size:17px;font-weight:700;color:#013976;white-space:nowrap;">🏫 학년 선택</span>
+                    <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar no-print">
+                        ${["초5", "초6", "중1", "중2", "중3"].map(g => {
+                            const isActive = g === currentGrade;
+                            return `
+                                <button onclick="changeConfigGrade('${g}')" 
+                                    class="px-4 py-2.5 rounded-xl font-bold fs-14 whitespace-nowrap transition-all ${isActive ? 'bg-[#013976] text-white shadow-md' : 'bg-white text-slate-500 border border-slate-300 hover:border-[#013976] hover:text-[#013976]'}" style="height:45px; display:flex; align-items:center; justify-content:center;">
+                                    ${gradeTitleMap[g] || g}
+                                </button>
+                            `;
+                        }).join("")}
+                    </div>
                 </div>
-                <div class="flex items-center gap-3 self-end md:self-auto no-print">
-                    <button onclick="loadRealAveragesToInputs()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 border text-slate-700 font-bold fs-14 hover:bg-slate-200 transition-all active:scale-95 shadow-sm">
-                        📊 실제 평균 채우기
-                    </button>
-                    <button onclick="saveClassAvgSettings()" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-[#013976] text-white font-bold fs-14 hover:bg-[#012456] transition-all active:scale-95 shadow">
-                        💾 설정 저장
-                    </button>
+                <div class="flex items-center gap-2 shrink-0 no-print">
+                    <button onclick="loadRealAveragesToInputs()" class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2" style="height:45px;">📊 Load Real Averages</button>
+                    <button onclick="saveClassAvgSettings()" class="btn-ys !bg-[#013976] !text-white !border-2 !border-[#013976] hover:!bg-[#012456] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2" style="height:45px;">💾 Save Config</button>
                 </div>
             </div>
 
-            <!-- 학년 탭 선택 -->
-            <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar no-print">
-                ${["초5", "초6", "중1", "중2", "중3"].map(g => {
-                    const isActive = g === currentGrade;
-                    return `
-                        <button onclick="changeConfigGrade('${g}')" 
-                            class="px-5 py-2.5 rounded-xl font-bold fs-15 whitespace-nowrap transition-all ${isActive ? 'bg-[#013976] text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
-                            ${gradeTitleMap[g] || g}
-                        </button>
-                    `;
-                }).join("")}
-            </div>
-
-            <!-- 테이블 그리드 편집 영역 -->
-            <div class="border rounded-2xl overflow-hidden shadow-sm bg-white">
+            <!-- 2. Grid Table Area -->
+            <div class="border rounded-2xl overflow-hidden shadow-sm bg-white mt-4">
                 <table class="w-full text-left border-collapse" id="class-avg-config-table">
                     <thead>
                         <tr class="bg-slate-100 text-slate-700 font-bold border-b fs-15">
-                            <th class="px-6 py-4 w-[15%]">학급명</th>
-                            <th class="px-4 py-4 text-center w-[14%]">🎧 Listening (듣기)</th>
-                            <th class="px-4 py-4 text-center w-[14%]">📚 Vocabulary (어휘)</th>
-                            <th class="px-4 py-4 text-center w-[14%]">📖 Reading (독해)</th>
-                            <th class="px-4 py-4 text-center w-[14%]">✏️ Grammar (문법)</th>
-                            <th class="px-4 py-4 text-center w-[14%]">✍️ Writing (영작)</th>
-                            <th class="px-6 py-4 text-center w-[15%] bg-indigo-50/50">📊 Total (총점)</th>
+                            <th class="px-6 py-4 w-[15%]">Class</th>
+                            <th class="px-4 py-4 text-center w-[14%]">Listening</th>
+                            <th class="px-4 py-4 text-center w-[14%]">Vocabulary</th>
+                            <th class="px-4 py-4 text-center w-[14%]">Reading</th>
+                            <th class="px-4 py-4 text-center w-[14%]">Grammar</th>
+                            <th class="px-4 py-4 text-center w-[14%]">Writing</th>
+                            <th class="px-6 py-4 text-center w-[15%] bg-indigo-50/50">Total</th>
                         </tr>
                     </thead>
                     <tbody>
