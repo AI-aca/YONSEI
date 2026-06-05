@@ -207,6 +207,9 @@ async function loadConfigFromCloud(silent = false) {
                 } catch (e) { console.warn("Questions Parse Error", e); }
             }
 
+            // [New] 학급 평균 설정값 백그라운드 자동 로딩
+            await loadClassAvgSettings(true);
+
             save(); // 로컬 반영
             if (!silent) showToast("☁️ 설정 동기화 완료! (화면 갱신됨)");
             // [Fix] 중요: 설정 로드 후 즉시 화면 갱신 트리거
@@ -3306,11 +3309,24 @@ function rerenderReportCharts() {
 }
 
 function updateSectionHeaders() {
+    const d = window.currentReportData;
+    if (!d || !d.secMap) return;
     const mode = window._reportAvgMode || 'all';
+    const lowestChk = document.getElementById('avg-lowest-class-chk');
+    let clsAvg = null;
+    if (lowestChk && lowestChk.checked) {
+        clsAvg = getLowestClassAvg(d.sGrade, d.secMap);
+    } else {
+        const selCls = document.getElementById('report-student-class')?.value || '';
+        clsAvg = (selCls && selCls !== '__RECOMMEND__') ? computeClassAvg(selCls, d.sGrade, d.secMap) : null;
+    }
+
     document.querySelectorAll('[id^="sec-hdr-avg-"]').forEach(function (el) {
         const personal = el.dataset.personal;
         const overall = el.dataset.overall;
-        const cls = el.dataset.class;
+        const section = el.id.replace('sec-hdr-avg-', '');
+        const cls = clsAvg && clsAvg[section + '_점수'] != null ? parseFloat(clsAvg[section + '_점수'] || 0).toFixed(1) : '';
+        el.dataset.class = cls;
         const max = parseFloat(el.dataset.max || 0);
         let avgPart = '';
         if (mode === 'all') {
@@ -6474,10 +6490,18 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap, clas
                     bodyFont: { size: 16 }, titleFont: { size: 16 },
                     callbacks: {
                         label: (ctx) => {
-                            const i = ctx.dataIndex, ds = ctx.datasetIndex;
-                            const raw = ds === 0 ? rawPersonal[i] : rawAvg[i];
+                            const i = ctx.dataIndex;
+                            const label = ctx.dataset.label;
+                            let raw = 0;
+                            if (label === '개인 정답률(%)') {
+                                raw = rawPersonal[i];
+                            } else if (label === '평균 정답률(%)') {
+                                raw = rawAvg[i];
+                            } else if (label === '학급 평균 정답률(%)') {
+                                raw = rawClass ? rawClass[i] : 0;
+                            }
                             const mx = maxScores[i];
-                            return ` ${ctx.dataset.label}: ${parseFloat(ctx.raw).toFixed(1)}% (${parseFloat(raw).toFixed(1)}/${mx}점)`;
+                            return ` ${label}: ${parseFloat(ctx.raw).toFixed(1)}% (${parseFloat(raw).toFixed(1)}/${mx}점)`;
                         }
                     }
                 }
