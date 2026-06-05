@@ -1898,6 +1898,14 @@ function normalizeGrade(grade) {
     return String(grade).replace(/학년/g, '').replace(/\s+/g, '').trim();
 }
 
+// AI 코멘트 문장 부호(., ?, !) 뒤 띄어쓰기 보정 헬퍼
+function cleanCommentSpacing(text) {
+    if (!text || typeof text !== 'string') return text;
+    // 마침표(.), 물음표(?), 느낌표(!) 뒤에 한글(가-힣) 또는 영문 대소문자(a-zA-Z)가 공백 없이 바로 붙어 나오는 경우 공백 삽입
+    return text.replace(/([\.!\?])([가-힣a-zA-Z])/g, '$1 $2');
+}
+
+
 // 현재 선택된 학급 및 학년에 맞춰 수동 평균 편차(shifts) 및 averages 덮어쓰기 재연산
 function recalculateStudentReportShifts(record, averages) {
     if (!record || !averages) return;
@@ -5437,7 +5445,7 @@ ${sectionSummary}
 - 전체 백분위(약 ${oaUpperPercentile}%)${clsTotalPercentile !== null ? '와 권장학급 내 백분위(약 ' + clsTotalPercentile + '%)' : ''}를 코멘트에 반드시 활용하여 서술하세요.
 - 학원명, 교재명, 브랜드명 절대 금지. 모든 답변은 순수 한국어로 작성하세요.
 - ⛔ "수업을 잘 따라오고 있습니다", "수업에 적응하고 있습니다", "학원 생활" 등 재원생 대상 표현 절대 금지. (이 시험은 입학 전 레벨테스트임)
-- ⛔ 줄바꿈(\n, 개행) 절대 금지. 전체 코멘트를 하나의 연속된 문단으로 작성하세요.
+- ⛔ 줄바꿈(\n, 개행) 절대 금지. 전체 코멘트를 하나의 연속된 문단으로 작성하세요. 마침표(.), 물음표(?), 느낌표(!) 뒤에는 반드시 띄어쓰기(공백)를 한 칸 포함하여 문장을 이어 나가세요.
 - 🔢 전체 코멘트는 공백 포함 500자 이내로 작성하세요. 초과 절대 금지.`;
 
     // [디버그] 종합 코멘트 산출 정보 콘솔 출력
@@ -5785,7 +5793,7 @@ ${_weaknessRule}
 - 전체 백분위(약 ${upperPercentile}%)${clsUpperPercentile !== null ? '와 권장학급 내 백분위(약 ' + clsUpperPercentile + '%)' : ''}를 코멘트 어딘가에 반드시 언급하세요.
 - 학원명, 교재명, 브랜드명 절대 금지. 모든 답변은 순수 한국어로 작성하세요.
 - ⛔ "수업을 잘 따라오고 있습니다", "수업에 적응하고 있습니다", "학원 생활" 등 재원생 대상 표현 절대 금지. (이 시험은 입학 전 레벨테스트임)
-- ⛔ 줄바꿈(\n, 개행) 절대 금지. 전체 코멘트를 하나의 연속된 문단으로 작성하세요.
+- ⛔ 줄바꿈(\n, 개행) 절대 금지. 전체 코멘트를 하나의 연속된 문단으로 작성하세요. 마침표(.), 물음표(?), 느낌표(!) 뒤에는 반드시 띄어쓰기(공백)를 한 칸 포함하여 문장을 이어 나가세요.
 - 🔢 전체 코멘트는 공백 포함 280자 이내로 작성하세요. 초과 절대 금지.`;
 
             // [디버그] 영역 코멘트 산출 정보 콘솔 출력
@@ -5841,7 +5849,7 @@ async function callGeminiAPI(prompt, silent = false, imageUrls = []) {
             const data = result.data;
             if (result.modelUsed) console.log(`[Gemini] 사용 모델: ${result.modelUsed}`);
             if (data.candidates && data.candidates.length > 0 && data.candidates[0].content) {
-                return data.candidates[0].content.parts[0].text;
+                return cleanCommentSpacing(data.candidates[0].content.parts[0].text);
             } else {
                 console.warn("Gemini API (Proxy) returned no candidates:", data);
                 return "AI 분석을 생성할 수 없습니다. (내용이 안전 정책에 의해 필터링됨)";
@@ -5995,7 +6003,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
         const sScore = parseFloat(record[section + '_점수'] || record[secMap[section]] || 0);
         const sMaxV = parseFloat(record[section + '_만점'] || record[maxMap[section]] || averages[maxMap[section]] || 0);
         const aScore = parseFloat(averages[section + '_점수'] || averages[secMap[section]] || 0);
-        const comment = sectionComments?.[section];
+        const comment = cleanCommentSpacing(sectionComments?.[section]);
         return `<div class="bg-slate-50 rounded-2xl border overflow-hidden">
                     <div class="px-6 py-2.5 flex items-center justify-between">
                         <div class="flex items-center gap-3 flex-wrap">
@@ -6036,7 +6044,7 @@ function renderReportCard(record, averages, sectionComments, overallComment, act
             </div>
             ${overallComment
             ? `<div id="overall-comment-wrap">
-                    <p class="text-slate-700 leading-relaxed fs-15" id="overall-comment-text" style="cursor:pointer;" onclick="editComment('overall')" title="클릭하여 수정">${overallComment.split(/\n+/).map(l => l.trim()).filter(l => l).join('<br>')}</p>
+                    <p class="text-slate-700 leading-relaxed fs-15" id="overall-comment-text" style="cursor:pointer;" onclick="editComment('overall')" title="클릭하여 수정">${cleanCommentSpacing(overallComment).split(/\n+/).map(l => l.trim()).filter(l => l).join('<br>')}</p>
                    </div>`
             : `<div class="text-center py-4">
                     <p class="text-slate-500 mb-4 fs-15">AI 심층 분석을 통해 학생의 강점과 약점을 파악해보세요.</p>
@@ -6223,6 +6231,13 @@ function saveReportData() {
     const overallComment = window.currentReportData.overallComment || '';
     const notes = window.currentReportData.notes || '';
 
+    // 저장 전 띄어쓰기 자동 보정 적용
+    const cleanedOverallComment = cleanCommentSpacing(overallComment);
+    const cleanedSectionComments = {};
+    for (const sec in sectionComments) {
+        cleanedSectionComments[sec] = cleanCommentSpacing(sectionComments[sec]);
+    }
+
     // 화면의 학급 값 추출 및 추천 값 치환
     const clsEl = document.getElementById('report-student-class');
     let studentClass = (clsEl && clsEl.value && clsEl.value !== '__RECOMMEND__') ? clsEl.value : '';
@@ -6256,8 +6271,8 @@ function saveReportData() {
             type: 'SAVE_AI_COMMENT',
             parentFolderId: folderId,
             studentId: stuVal,
-            overallComment: overallComment,
-            sectionComments: sectionComments,
+            overallComment: cleanedOverallComment,
+            sectionComments: cleanedSectionComments,
             notes: notes
         }));
     }
@@ -6267,6 +6282,10 @@ function saveReportData() {
             if (window._dirtyClass && studentClass) {
                 record.studentClass = studentClass;
                 record['등록학급'] = studentClass;
+            }
+            if (window._dirtyComment) {
+                window.currentReportData.overallComment = cleanedOverallComment;
+                window.currentReportData.sectionComments = cleanedSectionComments;
             }
             window._dirtyClass = false;
             window._dirtyComment = false;
@@ -6292,6 +6311,13 @@ async function autoSaveReportData() {
     const overallComment = window.currentReportData.overallComment || '';
     const notes = window.currentReportData.notes || '';
 
+    // 자동 저장 전 띄어쓰기 자동 보정 적용
+    const cleanedOverallComment = cleanCommentSpacing(overallComment);
+    const cleanedSectionComments = {};
+    for (const sec in sectionComments) {
+        cleanedSectionComments[sec] = cleanCommentSpacing(sectionComments[sec]);
+    }
+
     // 화면의 학급 값 추출 및 추천 값 치환
     const clsEl = document.getElementById('report-student-class');
     let studentClass = (clsEl && clsEl.value && clsEl.value !== '__RECOMMEND__') ? clsEl.value : '';
@@ -6305,8 +6331,8 @@ async function autoSaveReportData() {
             type: 'SAVE_AI_COMMENT',
             parentFolderId: folderId,
             studentId: stuVal,
-            overallComment: overallComment,
-            sectionComments: sectionComments,
+            overallComment: cleanedOverallComment,
+            sectionComments: cleanedSectionComments,
             notes: notes
         }),
         sendReliableRequest({
@@ -6322,6 +6348,8 @@ async function autoSaveReportData() {
 
     try {
         await Promise.all(promises);
+        window.currentReportData.overallComment = cleanedOverallComment;
+        window.currentReportData.sectionComments = cleanedSectionComments;
         window._dirtyClass = false;
         window._dirtyComment = false;
         showToast('💾 AI 코멘트 및 학급 정보 자동 저장 완료');
