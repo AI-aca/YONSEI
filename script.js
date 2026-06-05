@@ -2012,7 +2012,19 @@ function recommendClassByScore(totalScore, grade) {
     });
     let bestClass = null, bestDiff = Infinity, minAvg = Infinity, lowestClass = null;
     Object.entries(classMap).forEach(([cls, data]) => {
-        const avg = data.sum / data.cnt;
+        let avg = data.sum / data.cnt; // 기본값: 실제 평균
+        
+        // [New] 수동 평균 설정 캐시가 존재할 경우, 설정된 총합 평균(total)을 우선 잣대로 채택
+        if (window.cachedClassAvgSettings && Array.isArray(window.cachedClassAvgSettings)) {
+            const setting = window.cachedClassAvgSettings.find(s => 
+                normalizeGrade(s.grade) === normalizeGrade(grade) && 
+                String(s.className).trim() === String(cls).trim()
+            );
+            if (setting && setting.total !== undefined && setting.total !== null && setting.total !== '') {
+                avg = parseFloat(setting.total || 0);
+            }
+        }
+        
         const diff = Math.abs(totalScore - avg);
         if (diff < bestDiff) { bestDiff = diff; bestClass = cls; }
         if (avg < minAvg) { minAvg = avg; lowestClass = cls; }
