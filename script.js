@@ -5546,6 +5546,7 @@ async function loadStudentReport() {
 
             const savedSections = report.aiSectionComments || {};
             const savedOverall = report.aiOverallComment || null;
+            const savedNotes = report.notes || null; // 수정: DB에서 기타사항 불러오기
             window.currentReportData = { record: report, averages, activeSections, sectionComments: savedSections, overallComment: savedOverall, notes: savedNotes };
             renderReportCard(report, averages, savedSections, savedOverall, activeSections, savedNotes);
             window._hasLoadedData = true;
