@@ -697,7 +697,7 @@ function startStudentMode() {
 
 
 function renderSidebarNav() {
-    let b = `<button onclick="changeTab('ai_grade')" id="btn-ai_grade" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">🤖 AI 채점 관리</button><button onclick="changeTab('records')" id="btn-records" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📊 학생 성적표 확인</button><button onclick="changeTab('score_input')" id="btn-score_input" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">✏️ 학생 성적 수동 입력</button><button onclick="changeTab('stats')" id="btn-stats" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📈 문항 및 학생 통계</button><button onclick="changeTab('bank')" id="btn-bank" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📋 문항 리스트 등록·수정</button>`;
+    let b = `<button onclick="changeTab('ai_grade')" id="btn-ai_grade" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">🤖 AI 채점 관리</button><button onclick="changeTab('records')" id="btn-records" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📊 학생 성적표 확인</button><button onclick="changeTab('score_input')" id="btn-score_input" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">✏️ 학생 성적 수동 입력</button><button onclick="changeTab('class_avg')" id="btn-class_avg" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">⚙️ 학급 평균 설정</button><button onclick="changeTab('stats')" id="btn-stats" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📈 문항 및 학생 통계</button><button onclick="changeTab('bank')" id="btn-bank" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📋 문항 리스트 등록·수정</button>`;
     b += `<button onclick="changeTab('cat_manage')" id="btn-cat_manage" class="w-full p-4 rounded-xl font-black text-slate-400 hover:text-white flex items-center gap-4 fs-18 text-left transition-all">📂 시험지 관리</button>`;
     document.getElementById('sidebar-nav').innerHTML = b;
     applyBranding();
@@ -733,7 +733,7 @@ function checkUnsavedChanges(callback) {
 }
 
 // [보안] 마스터 코드 잠금 탭
-const _MASTER_LOCKED_TABS = ['bank', 'cat_manage'];
+const _MASTER_LOCKED_TABS = ['bank', 'cat_manage', 'class_avg'];
 
 // [보안] 마스터 코드 인증 모달 표시
 function showMasterCodeModal(tab) {
@@ -838,6 +838,7 @@ function _doChangeTab(tab) {
         if (tab === 'records') renderRecords(c);
         if (tab === 'ai_grade') renderAIGradeManager(c);
         if (tab === 'score_input') renderScoreInput(c);
+        if (tab === 'class_avg') renderClassAvgConfig(c);
         if (tab === 'bank') { curCatId = ''; renderBank(c); }
         if (tab === 'reg') renderRegForm();
         if (tab === 'main_config') renderMainConfig(c);
@@ -1951,6 +1952,25 @@ function recommendClassByScore(totalScore, grade) {
 // 선택 학급의 영역별 평균 계산
 function computeClassAvg(className, grade, secMap) {
     if (!className || !grade) return null;
+
+    // [New] 구글 드라이브(ClassAverageConfig)에서 불러온 마스터 학급 평균 설정 캐시가 존재하면 우선 적용!
+    if (window.cachedClassAvgSettings && Array.isArray(window.cachedClassAvgSettings)) {
+        const setting = window.cachedClassAvgSettings.find(s => 
+            String(s.grade).trim() === String(grade).trim() && 
+            String(s.className).trim() === String(className).trim()
+        );
+        if (setting) {
+            return {
+                '총점': parseFloat(setting.total || 0),
+                'Grammar_점수': parseFloat(setting.grammar || 0),
+                'Writing_점수': parseFloat(setting.writing || 0),
+                'Reading_점수': parseFloat(setting.reading || 0),
+                'Listening_점수': parseFloat(setting.listening || 0),
+                'Vocabulary_점수': parseFloat(setting.vocab || 0)
+            };
+        }
+    }
+
     const records = (window.cachedStudentRecords || []).filter(r => {
         const rGrade = r['학년'] || r.grade || '';
         const rClass = r.studentClass || r['등록학급'] || '';
@@ -11824,6 +11844,344 @@ document.addEventListener('change', function (e) {
 });
 
 // [Merged] renderExamResult → line 3240 참조 (중복 제거)
+
+// --- 학급 평균 마스터 설정 전역 상태 ---
+window.cachedClassAvgSettings = null; // [{grade, className, listening, reading, writing, vocab, grammar, total}]
+window._currentConfigGrade = "중3"; // 기본 선택 학년
+window._dirtyClassAvg = false; // 변경 감지 플래그
+
+// 구글 드라이브로부터 학급 평균 설정 불러오기
+async function loadClassAvgSettings(silent = false) {
+    if (!silent) toggleLoading(true);
+    try {
+        const folderId = extractFolderId(globalConfig.mainServerLink);
+        if (!folderId) {
+            if (!silent) showToast("⚠️ 메인 서버 폴더 설정을 먼저 진행해 주세요.");
+            return false;
+        }
+        const res = await fetch(globalConfig.masterUrl, {
+            method: "POST",
+            body: JSON.stringify({
+                type: "GET_CLASS_AVG",
+                parentFolderId: folderId
+            })
+        });
+        const d = JSON.parse(await res.text());
+        if (d.status === "Success") {
+            window.cachedClassAvgSettings = d.data || [];
+            console.log("✅ 학급 평균 설정 로드 완료:", window.cachedClassAvgSettings);
+            return true;
+        } else {
+            throw new Error(d.message || "Unknown Error");
+        }
+    } catch (e) {
+        console.error("학급 평균 설정 로드 실패:", e);
+        if (!silent) showToast("❌ 학급 평균 설정 로드 실패: " + e.message);
+        return false;
+    } finally {
+        if (!silent) toggleLoading(false);
+    }
+}
+
+// 구글 드라이브에 학급 평균 설정 저장하기
+async function saveClassAvgSettings() {
+    const folderId = extractFolderId(globalConfig.mainServerLink);
+    if (!folderId) {
+        showToast("⚠️ 메인 서버 폴더 설정을 먼저 진행해 주세요.");
+        return;
+    }
+
+    // 화면 입력 폼에서 데이터 취합
+    const configList = [];
+    const rows = document.querySelectorAll("#class-avg-config-table tbody tr");
+    rows.forEach(row => {
+        const grade = row.dataset.grade;
+        const className = row.dataset.className;
+        if (!grade || !className) return;
+
+        const listening = parseFloat(row.querySelector(".input-listening")?.value || 0);
+        const reading = parseFloat(row.querySelector(".input-reading")?.value || 0);
+        const writing = parseFloat(row.querySelector(".input-writing")?.value || 0);
+        const vocab = parseFloat(row.querySelector(".input-vocab")?.value || 0);
+        const grammar = parseFloat(row.querySelector(".input-grammar")?.value || 0);
+        const total = parseFloat(row.querySelector(".span-total")?.textContent || 0);
+
+        configList.push({
+            grade, className, listening, reading, writing, vocab, grammar, total
+        });
+    });
+
+    // 전역 캐시 업데이트
+    const otherGrades = (window.cachedClassAvgSettings || []).filter(s => s.grade !== window._currentConfigGrade);
+    window.cachedClassAvgSettings = [...otherGrades, ...configList];
+
+    toggleLoading(true);
+    try {
+        const res = await fetch(globalConfig.masterUrl, {
+            method: "POST",
+            body: JSON.stringify({
+                type: "SAVE_CLASS_AVG",
+                parentFolderId: folderId,
+                configList: window.cachedClassAvgSettings
+            })
+        });
+        const d = JSON.parse(await res.text());
+        if (d.status === "Success") {
+            window._dirtyClassAvg = false;
+            showToast("💾 학급 평균 설정 저장 완료!");
+            renderClassAvgConfig(document.getElementById("dynamic-content"));
+        } else {
+            throw new Error(d.message || "Unknown Error");
+        }
+    } catch (e) {
+        console.error("저장 실패:", e);
+        showToast("❌ 저장 실패: " + e.message);
+    } finally {
+        toggleLoading(false);
+    }
+}
+
+// 학급 평균 설정 화면 렌더링
+async function renderClassAvgConfig(c) {
+    if (!c) return;
+    setCanvasId("class_avg_config");
+
+    // 최초 1회 클라우드 데이터 로드
+    if (window.cachedClassAvgSettings === null) {
+        const success = await loadClassAvgSettings(true);
+        if (!success) {
+            window.cachedClassAvgSettings = [];
+        }
+    }
+
+    const currentGrade = window._currentConfigGrade || "중3";
+    const classes = getClassesForGrade(currentGrade) || [];
+
+    // 학년별 한국어 명칭
+    const gradeTitleMap = {
+        "초5": "초등 5학년",
+        "초6": "초등 6학년",
+        "중1": "중등 1학년",
+        "중2": "중등 2학년",
+        "중3": "중등 3학년"
+    };
+
+    let tableRowsHtml = "";
+    if (classes.length === 0) {
+        tableRowsHtml = `<tr><td colspan="8" class="px-6 py-10 text-center text-slate-400 italic">해당 학년에 등록된 학급이 없습니다.<br><span class="text-xs text-slate-400">([시험지 관리] 탭에서 학년별 학급을 먼저 추가해 주세요)</span></td></tr>`;
+    } else {
+        classes.forEach(className => {
+            // 기존 설정 검색
+            const setting = (window.cachedClassAvgSettings || []).find(s => 
+                String(s.grade).trim() === String(currentGrade).trim() && 
+                String(s.className).trim() === String(className).trim()
+            ) || { listening: 0, reading: 0, writing: 0, vocab: 0, grammar: 0, total: 0 };
+
+            tableRowsHtml += `
+                <tr data-grade="${currentGrade}" data-class-name="${className}" class="border-b hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4 font-black text-[#013976] fs-16">${className}</td>
+                    <td class="px-4 py-2">
+                        <input type="number" step="0.1" min="0" value="${setting.listening}" class="input-listening ys-field text-center font-bold !py-1" oninput="calcRowTotal(this)">
+                    </td>
+                    <td class="px-4 py-2">
+                        <input type="number" step="0.1" min="0" value="${setting.vocab}" class="input-vocab ys-field text-center font-bold !py-1" oninput="calcRowTotal(this)">
+                    </td>
+                    <td class="px-4 py-2">
+                        <input type="number" step="0.1" min="0" value="${setting.reading}" class="input-reading ys-field text-center font-bold !py-1" oninput="calcRowTotal(this)">
+                    </td>
+                    <td class="px-4 py-2">
+                        <input type="number" step="0.1" min="0" value="${setting.grammar}" class="input-grammar ys-field text-center font-bold !py-1" oninput="calcRowTotal(this)">
+                    </td>
+                    <td class="px-4 py-2">
+                        <input type="number" step="0.1" min="0" value="${setting.writing}" class="input-writing ys-field text-center font-bold !py-1" oninput="calcRowTotal(this)">
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="span-total font-black text-indigo-600 fs-18">${parseFloat(setting.total || 0).toFixed(1)}</span>점
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    c.innerHTML = `
+        <div class="card space-y-6 animate-fade-in mt-5">
+            <div class="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 gap-4">
+                <div>
+                    <h2 class="fs-24 font-black text-[#013976]">⚙️ 학급 평균 설정</h2>
+                    <p class="fs-14 text-slate-500 mt-1">성적표 그래프 및 AI 피드백에 활용될 학급별 목표 기준 평균치를 튜닝합니다.</p>
+                </div>
+                <div class="flex items-center gap-3 self-end md:self-auto no-print">
+                    <button onclick="loadRealAveragesToInputs()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 border text-slate-700 font-bold fs-14 hover:bg-slate-200 transition-all active:scale-95 shadow-sm">
+                        📊 실제 평균 채우기
+                    </button>
+                    <button onclick="saveClassAvgSettings()" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-[#013976] text-white font-bold fs-14 hover:bg-[#012456] transition-all active:scale-95 shadow">
+                        💾 설정 저장
+                    </button>
+                </div>
+            </div>
+
+            <!-- 학년 탭 선택 -->
+            <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar no-print">
+                ${["초5", "초6", "중1", "중2", "중3"].map(g => {
+                    const isActive = g === currentGrade;
+                    return `
+                        <button onclick="changeConfigGrade('${g}')" 
+                            class="px-5 py-2.5 rounded-xl font-bold fs-15 whitespace-nowrap transition-all ${isActive ? 'bg-[#013976] text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                            ${gradeTitleMap[g] || g}
+                        </button>
+                    `;
+                }).join("")}
+            </div>
+
+            <!-- 테이블 그리드 편집 영역 -->
+            <div class="border rounded-2xl overflow-hidden shadow-sm bg-white">
+                <table class="w-full text-left border-collapse" id="class-avg-config-table">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-700 font-bold border-b fs-15">
+                            <th class="px-6 py-4 w-[15%]">학급명</th>
+                            <th class="px-4 py-4 text-center w-[14%]">🎧 Listening (듣기)</th>
+                            <th class="px-4 py-4 text-center w-[14%]">📚 Vocabulary (어휘)</th>
+                            <th class="px-4 py-4 text-center w-[14%]">📖 Reading (독해)</th>
+                            <th class="px-4 py-4 text-center w-[14%]">✏️ Grammar (문법)</th>
+                            <th class="px-4 py-4 text-center w-[14%]">✍️ Writing (영작)</th>
+                            <th class="px-6 py-4 text-center w-[15%] bg-indigo-50/50">📊 Total (총점)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRowsHtml}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+// 학년 변경 시
+function changeConfigGrade(grade) {
+    window._currentConfigGrade = grade;
+    renderClassAvgConfig(document.getElementById("dynamic-content"));
+}
+
+// 각 입력값 변동 시 실시간 총점 계산
+function calcRowTotal(input) {
+    window._dirtyClassAvg = true;
+    const tr = input.closest("tr");
+    if (!tr) return;
+
+    const listening = parseFloat(tr.querySelector(".input-listening")?.value || 0) || 0;
+    const reading = parseFloat(tr.querySelector(".input-reading")?.value || 0) || 0;
+    const writing = parseFloat(tr.querySelector(".input-writing")?.value || 0) || 0;
+    const vocab = parseFloat(tr.querySelector(".input-vocab")?.value || 0) || 0;
+    const grammar = parseFloat(tr.querySelector(".input-grammar")?.value || 0) || 0;
+
+    const total = listening + reading + writing + vocab + grammar;
+    const totalSpan = tr.querySelector(".span-total");
+    if (totalSpan) {
+        totalSpan.textContent = total.toFixed(1);
+    }
+}
+
+// 실제 DB 평균 데이터 채우기
+async function loadRealAveragesToInputs() {
+    const currentGrade = window._currentConfigGrade || "중3";
+    const classes = getClassesForGrade(currentGrade) || [];
+    if (classes.length === 0) return;
+
+    let records = window.cachedStudentRecords || [];
+    if (records.length === 0) {
+        toggleLoading(true);
+        try {
+            const cats = globalConfig.categories || [];
+            const relevantCats = cats.filter(c => {
+                const name = String(c.name).toLowerCase();
+                if (currentGrade.includes("초5") && name.includes("5")) return true;
+                if (currentGrade.includes("초6") && name.includes("6")) return true;
+                if (currentGrade.includes("중1") && name.includes("중1")) return true;
+                if (currentGrade.includes("중2") && name.includes("중2")) return true;
+                if (currentGrade.includes("중3") && name.includes("중3")) return true;
+                return false;
+            });
+
+            if (relevantCats.length > 0) {
+                const firstCat = relevantCats[0];
+                const folderId = extractFolderId(firstCat.targetFolderUrl);
+                if (folderId) {
+                    const res = await sendReliableRequest({
+                        type: 'GET_STUDENT_LIST',
+                        parentFolderId: folderId,
+                        categoryName: firstCat.name
+                    });
+                    if (res.status === 'Success') {
+                        records = res.data || [];
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn("실제 평균용 데이터 로딩 실패:", e);
+        } finally {
+            toggleLoading(false);
+        }
+    }
+
+    if (records.length === 0) {
+        showToast("⚠️ 실제 응시 데이터(학생DB)가 로드되지 않았습니다. 먼저 성적표 탭에서 학생을 조회해 주세요.");
+        return;
+    }
+
+    const secMap = {
+        grammar: ['문법_점수', 'grammarScore', 'Grammar'],
+        writing: ['작문_점수', 'writingScore', 'Writing'],
+        reading: ['독해_점수', 'readingScore', 'Reading'],
+        listening: ['듣기_점수', 'listeningScore', 'Listening'],
+        vocab: ['어휘_점수', 'vocabScore', 'Vocab', 'Vocabulary'],
+        total: ['총점', 'totalScore', 'Total']
+    };
+
+    const getVal = (rec, key) => {
+        const keys = secMap[key];
+        for (const k of keys) {
+            if (rec[k] !== undefined && rec[k] !== "") return parseFloat(rec[k]) || 0;
+        }
+        return 0;
+    };
+
+    let filledCount = 0;
+    classes.forEach(className => {
+        const classRecords = records.filter(r => {
+            const rGrade = r['학년'] || r.grade || '';
+            const rClass = r.studentClass || r['등록학급'] || '';
+            return String(rGrade).trim() === String(currentGrade).trim() && String(rClass).trim() === String(className).trim();
+        });
+
+        if (classRecords.length > 0) {
+            filledCount++;
+            const cnt = classRecords.length;
+            const avgL = classRecords.reduce((s, r) => s + getVal(r, 'listening'), 0) / cnt;
+            const avgV = classRecords.reduce((s, r) => s + getVal(r, 'vocab'), 0) / cnt;
+            const avgR = classRecords.reduce((s, r) => s + getVal(r, 'reading'), 0) / cnt;
+            const avgG = classRecords.reduce((s, r) => s + getVal(r, 'grammar'), 0) / cnt;
+            const avgW = classRecords.reduce((s, r) => s + getVal(r, 'writing'), 0) / cnt;
+            const avgT = classRecords.reduce((s, r) => s + getVal(r, 'total'), 0) / cnt;
+
+            const tr = document.querySelector(`#class-avg-config-table tbody tr[data-class-name="${className}"]`);
+            if (tr) {
+                tr.querySelector(".input-listening").value = avgL.toFixed(1);
+                tr.querySelector(".input-vocab").value = avgV.toFixed(1);
+                tr.querySelector(".input-reading").value = avgR.toFixed(1);
+                tr.querySelector(".input-grammar").value = avgG.toFixed(1);
+                tr.querySelector(".input-writing").value = avgW.toFixed(1);
+                tr.querySelector(".span-total").textContent = avgT.toFixed(1);
+            }
+        }
+    });
+
+    window._dirtyClassAvg = true;
+    if (filledCount > 0) {
+        showToast(`📊 ${filledCount}개 학급의 실제 평균을 불러왔습니다. (저장 버튼을 눌러야 반영됩니다)`);
+    } else {
+        showToast("⚠️ 현재 로드된 학생 데이터 중 이 학년에 부합하는 반평균 데이터가 없습니다.");
+    }
+}
 
 
 

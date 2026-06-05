@@ -290,9 +290,76 @@ function doPost(e) {
       return ContentService.createTextOutput("Success").setMimeType(ContentService.MimeType.TEXT);
     }
 
-    // --- [\uae30\ub2a5 5-2] \ub4f1\ub85d\ud559\uae09 \uc800\uc7a5/\uc5c5\ub370\uc774\ud2b8 ---
+    // --- [신규 기능 1] 학급 평균 설정 불러오기 ---
+    else if (data.type === "GET_CLASS_AVG") {
+      if (!rootFolderId) throw new Error("최상위 폴더 ID가 없습니다.");
+      var rootFolder = DriveApp.getFolderById(rootFolderId);
+      var configSheet = getOrCreateSpreadsheet(rootFolder, "ClassAverageConfig");
+      var sheet = configSheet.getSheets()[0];
+      
+      var lastRow = sheet.getLastRow();
+      var lastCol = sheet.getLastColumn();
+      var dataList = [];
+      
+      if (lastRow > 1) {
+        var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+        var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+        for (var i = 0; i < values.length; i++) {
+          var row = {};
+          for (var j = 0; j < headers.length; j++) {
+            row[headers[j]] = values[i][j];
+          }
+          dataList.push(row);
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "Success",
+        data: dataList
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // --- [신규 기능 2] 학급 평균 설정 저장하기 ---
+    else if (data.type === "SAVE_CLASS_AVG") {
+      if (!rootFolderId) throw new Error("최상위 폴더 ID가 없습니다.");
+      var rootFolder = DriveApp.getFolderById(rootFolderId);
+      var configSheet = getOrCreateSpreadsheet(rootFolder, "ClassAverageConfig");
+      var sheet = configSheet.getSheets()[0];
+      
+      // 시트 초기화 후 새로 쓰기
+      sheet.clear();
+      
+      var headers = ["grade", "className", "listening", "reading", "writing", "vocab", "grammar", "total"];
+      sheet.appendRow(headers);
+      sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#6c5ce7").setFontColor("#FFFFFF");
+      
+      var rows = data.configList || []; 
+      var writeRows = [];
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        writeRows.push([
+          r.grade || "",
+          r.className || "",
+          parseFloat(r.listening || 0),
+          parseFloat(r.reading || 0),
+          parseFloat(r.writing || 0),
+          parseFloat(r.vocab || 0),
+          parseFloat(r.grammar || 0),
+          parseFloat(r.total || 0)
+        ]);
+      }
+      
+      if (writeRows.length > 0) {
+        sheet.getRange(2, 1, writeRows.length, headers.length).setValues(writeRows);
+      }
+      
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "Success"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // --- [기능 5-2] 등록학급 저장/업데이트 ---
     else if (data.type === "SAVE_STUDENT_CLASS") {
-      if (!rootFolderId) throw new Error("\ud3f4\ub354\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.");
+      if (!rootFolderId) throw new Error("폴더가 없습니다.");
       var rootFolder = DriveApp.getFolderById(rootFolderId);
       var files3 = rootFolder.getFiles();
       var tf3 = null;
