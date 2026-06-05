@@ -736,7 +736,7 @@ function checkUnsavedChanges(callback) {
 }
 
 // [보안] 마스터 코드 잠금 탭
-const _MASTER_LOCKED_TABS = ['bank', 'cat_manage', 'class_avg'];
+const _MASTER_LOCKED_TABS = ['bank', 'cat_manage'];
 
 // [보안] 마스터 코드 인증 모달 표시
 function showMasterCodeModal(tab) {
