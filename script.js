@@ -12104,37 +12104,37 @@ async function renderClassAvgConfig(c) {
                     <td class="px-6 py-4 font-black text-[#013976] fs-16 text-center align-middle">${className}</td>
                     <td class="px-4 py-3 text-center align-middle">
                         <div class="flex flex-col items-center gap-1">
-                            <span class="text-slate-400 font-bold block" style="font-size: 11px; letter-spacing: 0.5px;">실제: ${parseFloat(realAvg.listening || 0).toFixed(1)}</span>
-                            <input type="number" step="0.1" min="0" value="${setting.listening}" class="input-listening ys-field text-center font-bold !py-1 w-20" oninput="calcRowTotal(this)">
+                            <span class="text-slate-400 font-bold block" style="font-size: 14px !important; letter-spacing: 0.5px;">실제: ${parseFloat(realAvg.listening || 0).toFixed(1)}</span>
+                            <input type="number" step="0.1" min="0" value="${setting.listening}" class="input-listening ys-field text-center font-bold !py-1 w-20" style="height: 40px !important; padding: 4px 8px !important;" oninput="calcRowTotal(this)">
                         </div>
                     </td>
                     <td class="px-4 py-3 text-center align-middle">
                         <div class="flex flex-col items-center gap-1">
-                            <span class="text-slate-400 font-bold block" style="font-size: 11px; letter-spacing: 0.5px;">실제: ${parseFloat(realAvg.vocab || 0).toFixed(1)}</span>
-                            <input type="number" step="0.1" min="0" value="${setting.vocab}" class="input-vocab ys-field text-center font-bold !py-1 w-20" oninput="calcRowTotal(this)">
+                            <span class="text-slate-400 font-bold block" style="font-size: 14px !important; letter-spacing: 0.5px;">실제: ${parseFloat(realAvg.vocab || 0).toFixed(1)}</span>
+                            <input type="number" step="0.1" min="0" value="${setting.vocab}" class="input-vocab ys-field text-center font-bold !py-1 w-20" style="height: 40px !important; padding: 4px 8px !important;" oninput="calcRowTotal(this)">
                         </div>
                     </td>
                     <td class="px-4 py-3 text-center align-middle">
                         <div class="flex flex-col items-center gap-1">
-                            <span class="text-slate-400 font-bold block" style="font-size: 11px; letter-spacing: 0.5px;">실제: ${parseFloat(realAvg.reading || 0).toFixed(1)}</span>
-                            <input type="number" step="0.1" min="0" value="${setting.reading}" class="input-reading ys-field text-center font-bold !py-1 w-20" oninput="calcRowTotal(this)">
+                            <span class="text-slate-400 font-bold block" style="font-size: 14px !important; letter-spacing: 0.5px;">실제: ${parseFloat(realAvg.reading || 0).toFixed(1)}</span>
+                            <input type="number" step="0.1" min="0" value="${setting.reading}" class="input-reading ys-field text-center font-bold !py-1 w-20" style="height: 40px !important; padding: 4px 8px !important;" oninput="calcRowTotal(this)">
                         </div>
                     </td>
                     <td class="px-4 py-3 text-center align-middle">
                         <div class="flex flex-col items-center gap-1">
-                            <span class="text-slate-400 font-bold block" style="font-size: 11px; letter-spacing: 0.5px;">실제: ${parseFloat(realAvg.grammar || 0).toFixed(1)}</span>
-                            <input type="number" step="0.1" min="0" value="${setting.grammar}" class="input-grammar ys-field text-center font-bold !py-1 w-20" oninput="calcRowTotal(this)">
+                            <span class="text-slate-400 font-bold block" style="font-size: 14px !important; letter-spacing: 0.5px;">실제: ${parseFloat(realAvg.grammar || 0).toFixed(1)}</span>
+                            <input type="number" step="0.1" min="0" value="${setting.grammar}" class="input-grammar ys-field text-center font-bold !py-1 w-20" style="height: 40px !important; padding: 4px 8px !important;" oninput="calcRowTotal(this)">
                         </div>
                     </td>
                     <td class="px-4 py-3 text-center align-middle">
                         <div class="flex flex-col items-center gap-1">
-                            <span class="text-slate-400 font-bold block" style="font-size: 11px; letter-spacing: 0.5px;">실제: ${parseFloat(realAvg.writing || 0).toFixed(1)}</span>
-                            <input type="number" step="0.1" min="0" value="${setting.writing}" class="input-writing ys-field text-center font-bold !py-1 w-20" oninput="calcRowTotal(this)">
+                            <span class="text-slate-400 font-bold block" style="font-size: 14px !important; letter-spacing: 0.5px;">실제: ${parseFloat(realAvg.writing || 0).toFixed(1)}</span>
+                            <input type="number" step="0.1" min="0" value="${setting.writing}" class="input-writing ys-field text-center font-bold !py-1 w-20" style="height: 40px !important; padding: 4px 8px !important;" oninput="calcRowTotal(this)">
                         </div>
                     </td>
                     <td class="px-6 py-4 text-center align-middle">
                         <div class="flex flex-col items-center gap-1">
-                            <span class="text-slate-400 font-bold block" style="font-size: 11px; letter-spacing: 0.5px;">실제: ${parseFloat(realAvg.total || 0).toFixed(1)}</span>
+                            <span class="text-slate-400 font-bold block" style="font-size: 14px !important; letter-spacing: 0.5px;">실제: ${parseFloat(realAvg.total || 0).toFixed(1)}</span>
                             <span class="span-total font-black text-indigo-600 fs-18">${parseFloat(setting.total || 0).toFixed(1)}</span>
                         </div>
                     </td>
