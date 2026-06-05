@@ -3200,6 +3200,35 @@ function warnClassChange05(sel) {
     window._dirtyClass = true;
 }
 
+// 현재 화면의 학급 정보를 로컬 데이터에 동기화하고 confirm 승인창을 띄우는 헬퍼
+function confirmAndSyncClass05() {
+    if (!window.currentReportData) return false;
+    const clsEl = document.getElementById('report-student-class');
+    let clsVal = clsEl?.value?.trim() || '';
+    if (clsVal === '__RECOMMEND__') {
+        clsVal = clsEl?.dataset?.rec || '';
+    }
+    if (!clsVal) {
+        showToast('⚠️ 등록학급을 먼저 선택해주세요.');
+        clsEl?.focus();
+        return false;
+    }
+
+    const msg = `현재 화면에 권장설정된 "${clsVal}"으로 코멘트가 생성됩니다.\n"${clsVal}"이(가) 맞습니까?`;
+    if (!confirm(msg)) return false;
+
+    // 현재 화면 기준 학급명 동기화 및 dirty 표시
+    if (window.currentReportData.record) {
+        window.currentReportData.record.studentClass = clsVal;
+        window.currentReportData.record['등록학급'] = clsVal;
+    }
+    if (clsEl && clsEl.value === '__RECOMMEND__') {
+        clsEl.value = clsVal; // 화면 드롭다운의 '추천' 상태를 실제 학급명 텍스트로 전환
+    }
+    window._dirtyClass = true;
+    return true;
+}
+
 // 미달 제외 최저학급 평균 계산
 function getLowestClassAvg(grade, secMap) {
     const records = (window.cachedStudentRecords || []).filter(function (r) {
@@ -6441,6 +6470,11 @@ function renderRadarChart(record, averages, activeSections, secMap, maxMap, clas
 // 영역별 개별 AI 코멘트 재생성
 async function regenerateSectionComment(section) {
     if (!window.currentReportData) { showToast('⚠️ 성적 데이터가 없습니다.'); return; }
+    
+    // 현재 화면 학급 동기화 및 승인 확인
+    if (!confirmAndSyncClass05()) return;
+
+    // 동기화된 최신 데이터 활용
     const { record, averages, activeSections, sectionComments, overallComment } = window.currentReportData;
 
     // 버튼 로딩 표시
@@ -6582,6 +6616,11 @@ function cancelCommentEdit(type, section) {
 // 종합 코멘트 재생성
 async function regenerateOverallComment() {
     if (!window.currentReportData) { showToast('⚠️ 성적 데이터가 없습니다.'); return; }
+    
+    // 현재 화면 학급 동기화 및 승인 확인
+    if (!confirmAndSyncClass05()) return;
+
+    // 동기화된 최신 데이터 활용
     const { record, averages, activeSections, sectionComments } = window.currentReportData;
     const btn = document.querySelector('button[onclick="regenerateOverallComment()"]');
     if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
@@ -6603,6 +6642,11 @@ async function regenerateOverallComment() {
 // 영역별 + 종합 코멘트 전체 재생성
 async function regenerateAllComments() {
     if (!window.currentReportData) { showToast('⚠️ 성적 데이터가 없습니다.'); return; }
+    
+    // 현재 화면 학급 동기화 및 승인 확인
+    if (!confirmAndSyncClass05()) return;
+
+    // 동기화된 최신 데이터 활용
     const { record, averages, activeSections } = window.currentReportData;
     const allBtn = document.querySelector('button[onclick="regenerateAllComments()"]');
     const oaBtn = document.querySelector('button[onclick="regenerateOverallComment()"]');
@@ -6654,6 +6698,11 @@ function toggleNotesBox(checked) {
 
 async function triggerAIAnalysis() {
     if (!window.currentReportData) return;
+    
+    // 현재 화면 학급 동기화 및 승인 확인
+    if (!confirmAndSyncClass05()) return;
+
+    // 동기화된 최신 레코드로 구조분해
     const { record, averages, activeSections } = window.currentReportData;
     toggleLoading(true);
     try {
@@ -6681,15 +6730,36 @@ async function triggerAIAnalysis() {
             const _aiCat = globalConfig.categories?.find(c => c.id === catVal2);
             const _aiFolId = _aiCat ? extractFolderId(_aiCat.targetFolderUrl) : null;
             if (_aiFolId) {
-                sendReliableRequest({
-                    type: 'SAVE_AI_COMMENT',
-                    parentFolderId: _aiFolId,
-                    studentId: stuVal2,
-                    overallComment,
-                    sectionComments,
-                    notes: window.currentReportData?.notes
-                }).then(() => showToast('💾 AI 코멘트 및 기타사항 저장 완료'))
-                    .catch(e => console.warn('AI 코멘트 GAS 저장 실패:', e));
+                const promises = [
+                    sendReliableRequest({
+                        type: 'SAVE_AI_COMMENT',
+                        parentFolderId: _aiFolId,
+                        studentId: stuVal2,
+                        overallComment,
+                        sectionComments,
+                        notes: window.currentReportData?.notes
+                    })
+                ];
+                
+                // 학급명도 동기화되었으므로 같이 자동 백그라운드 저장 진행
+                const clsEl = document.getElementById('report-student-class');
+                const clsVal = clsEl?.value;
+                if (window._dirtyClass && clsVal && clsVal !== '__RECOMMEND__') {
+                    promises.push(sendReliableRequest({
+                        type: 'SAVE_STUDENT_CLASS',
+                        parentFolderId: _aiFolId,
+                        studentId: stuVal2,
+                        studentClass: clsVal
+                    }));
+                }
+
+                Promise.all(promises)
+                    .then(() => {
+                        window._dirtyClass = false;
+                        window._dirtyComment = false;
+                        showToast('💾 AI 코멘트 및 학급 정보 저장 완료');
+                    })
+                    .catch(e => console.warn('AI 코멘트/학급 GAS 자동 저장 실패:', e));
             }
         }
     } catch (e) {

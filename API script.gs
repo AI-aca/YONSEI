@@ -1150,10 +1150,11 @@ else if (data.type === "GET_AUDIO_B64") {
             });
         }
 
-        // List of models to try in order (Updated 2026-04: fallback 확장)
+        // List of models to try in order (Updated 2026-06: 3.5 모델 추가)
         var models = [
-            "gemini-3-flash-preview",         // Gemini 3 Flash Preview (공식, 실사례 확인)
-            "gemini-3.1-flash-lite-preview",  // Gemini 3.1 Flash Lite Preview (실사례 확인)
+            "gemini-3.5-flash",               // Gemini 3.5 Flash (현존 최신, Agentic/Speed 강화)
+            "gemini-3-flash-preview",         // Gemini 3 Flash Preview
+            "gemini-3.1-flash-lite-preview",  // Gemini 3.1 Flash Lite Preview
             "gemini-2.5-flash",               // Stable fallback
             "gemini-2.5-flash-lite"           // 최저가 Stable fallback
         ];
