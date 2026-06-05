@@ -5546,8 +5546,8 @@ async function loadStudentReport() {
 
             const savedSections = report.aiSectionComments || {};
             const savedOverall = report.aiOverallComment || null;
-            const savedNotes = report.notes || null; // 수정: DB에서 기타사항 불러오기
-            window.currentReportData = { record: report, averages, activeSections, sectionComments: savedSections, overallComment: savedOverall, notes: savedNotes };
+            const originalClass = String(report['등록학급'] || report.studentClass || '').trim();
+            window.currentReportData = { record: report, averages, activeSections, sectionComments: savedSections, overallComment: savedOverall, notes: savedNotes, originalClass };
             renderReportCard(report, averages, savedSections, savedOverall, activeSections, savedNotes);
             window._hasLoadedData = true;
             showToast(`✅ 성적표 로드 완료 (평균 ${validRecs.length}명 기준)`);
@@ -6230,11 +6230,8 @@ function saveReportData() {
         studentClass = clsEl?.dataset?.rec || record.studentClass || record['등록학급'] || '';
     }
 
-    // DB의 오리지널 학급 데이터와 현재 화면의 최종 학급명이 다르면 학급 더티 마크 켬
-    const dbClass = String(record['등록학급'] || record.studentClass || '').trim();
-    if (String(studentClass).trim() !== dbClass) {
-        window._dirtyClass = true;
-    }
+    // [Fix] 원장님 지시: 비교 조건문 없이 화면에 있는 학급명을 무조건 구글 시트에 덮어써서 저장합니다.
+    window._dirtyClass = true;
 
     if (!window._dirtyClass && !window._dirtyComment) { showToast('✅ 변경사항이 없습니다.'); return; }
 
@@ -6270,6 +6267,7 @@ function saveReportData() {
             if (window._dirtyClass && studentClass) {
                 record.studentClass = studentClass;
                 record['등록학급'] = studentClass;
+                window.currentReportData.originalClass = studentClass; // 오리지널 학급명 갱신
             }
             window._dirtyClass = false;
             window._dirtyComment = false;
@@ -6302,6 +6300,7 @@ async function autoSaveReportData() {
         studentClass = clsEl?.dataset?.rec || record.studentClass || record['등록학급'] || '';
     }
 
+    // [Fix] 원장님 지시: 비교 조건문을 완전히 제거하고, AI 코멘트 저장 시 화면의 학급명도 무조건 함께 구글 시트에 저장합니다.
     const promises = [
         sendReliableRequest({
             type: 'SAVE_AI_COMMENT',
@@ -6310,20 +6309,19 @@ async function autoSaveReportData() {
             overallComment: overallComment,
             sectionComments: sectionComments,
             notes: notes
-        })
-    ];
-
-    // DB와 다를 때만 등록학급 저장 호출 및 로컬 동기화
-    const dbClass = String(record['등록학급'] || record.studentClass || '').trim();
-    if (String(studentClass).trim() !== dbClass) {
-        promises.push(sendReliableRequest({
+        }),
+        sendReliableRequest({
             type: 'SAVE_STUDENT_CLASS',
             parentFolderId: folderId,
             studentId: stuVal,
             studentClass: studentClass
-        }));
-        record.studentClass = studentClass;
-        record['등록학급'] = studentClass;
+        })
+    ];
+
+    record.studentClass = studentClass;
+    record['등록학급'] = studentClass;
+    if (window.currentReportData) {
+        window.currentReportData.originalClass = studentClass;
     }
 
     try {
