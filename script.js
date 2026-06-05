@@ -1892,6 +1892,12 @@ function renderMainConfig(c) {
         </div>`
 }
 
+// 학년 문자열 정규화 헬퍼 (공백 및 '학년' 단어 제거)
+function normalizeGrade(grade) {
+    if (!grade) return '';
+    return String(grade).replace(/학년/g, '').replace(/\s+/g, '').trim();
+}
+
 // 학급 목록 HTML 렌더링 (학년별 그룹)
 function renderClassListHtml() {
     const classes = (globalConfig.classes || []).filter(c => typeof c === 'object' && c.grade && c.name);
@@ -1911,7 +1917,7 @@ function renderClassListHtml() {
 function getClassesForGrade(grade) {
     if (!grade || !globalConfig.classes) return [];
     return (globalConfig.classes)
-        .filter(c => typeof c === 'object' && c.grade === grade)
+        .filter(c => typeof c === 'object' && normalizeGrade(c.grade) === normalizeGrade(grade))
         .map(c => c.name);
 }
 
@@ -1923,7 +1929,7 @@ function recommendClassByScore(totalScore, grade) {
     const gradeRecs = records.filter(r => {
         const rGrade = r['학년'] || r.grade || '';
         const rClass = r.studentClass || r['등록학급'] || '';
-        return rGrade === grade && rClass && !rClass.includes('미달');
+        return normalizeGrade(rGrade) === normalizeGrade(grade) && rClass && !rClass.includes('미달');
     });
     if (!gradeRecs.length) {
         // 실제 학급 데이터 없음 → 미달반 직접 반환
@@ -1959,7 +1965,7 @@ function computeClassAvg(className, grade, secMap) {
     // [New] 구글 드라이브(ClassAverageConfig)에서 불러온 마스터 학급 평균 설정 캐시가 존재하면 우선 적용!
     if (window.cachedClassAvgSettings && Array.isArray(window.cachedClassAvgSettings)) {
         const setting = window.cachedClassAvgSettings.find(s => 
-            String(s.grade).trim() === String(grade).trim() && 
+            normalizeGrade(s.grade) === normalizeGrade(grade) && 
             String(s.className).trim() === String(className).trim()
         );
         if (setting) {
@@ -1977,7 +1983,7 @@ function computeClassAvg(className, grade, secMap) {
     const records = (window.cachedStudentRecords || []).filter(r => {
         const rGrade = r['학년'] || r.grade || '';
         const rClass = r.studentClass || r['등록학급'] || '';
-        return rGrade === grade && rClass === className;
+        return normalizeGrade(rGrade) === normalizeGrade(grade) && rClass === className;
     });
     if (!records.length) return null;
     const avg = {};
@@ -5455,7 +5461,7 @@ async function loadStudentReport() {
             
             if (studentClass && studentGrade && window.cachedClassAvgSettings) {
                 const setting = window.cachedClassAvgSettings.find(s => 
-                    String(s.grade).trim() === String(studentGrade).trim() && 
+                    normalizeGrade(s.grade) === normalizeGrade(studentGrade) && 
                     String(s.className).trim() === String(studentClass).trim()
                 );
                 if (setting) {
@@ -12148,7 +12154,7 @@ function getRealClassAvgMap(grade, records) {
         const classRecords = records.filter(r => {
             const rGrade = r['학년'] || r.grade || '';
             const rClass = r.studentClass || r['등록학급'] || '';
-            return String(rGrade).trim() === String(grade).trim() && String(rClass).trim() === String(className).trim();
+            return normalizeGrade(rGrade) === normalizeGrade(grade) && String(rClass).trim() === String(className).trim();
         });
 
         if (classRecords.length > 0) {
@@ -12233,11 +12239,11 @@ async function renderClassAvgConfig(c) {
     // classes 정렬: 설정된 총합(setting.total) 높은 순 -> 실제 평균 총합(realAvg.total) 높은 순
     const sortedClasses = [...classes].sort((a, b) => {
         const setA = (window.cachedClassAvgSettings || []).find(s => 
-            String(s.grade).trim() === String(currentGrade).trim() && 
+            normalizeGrade(s.grade) === normalizeGrade(currentGrade) && 
             String(s.className).trim() === String(a).trim()
         ) || { total: 0 };
         const setB = (window.cachedClassAvgSettings || []).find(s => 
-            String(s.grade).trim() === String(currentGrade).trim() && 
+            normalizeGrade(s.grade) === normalizeGrade(currentGrade) && 
             String(s.className).trim() === String(b).trim()
         ) || { total: 0 };
 
@@ -12269,7 +12275,7 @@ async function renderClassAvgConfig(c) {
         sortedClasses.forEach(className => {
             // 기존 설정 검색
             const setting = (window.cachedClassAvgSettings || []).find(s => 
-                String(s.grade).trim() === String(currentGrade).trim() && 
+                normalizeGrade(s.grade) === normalizeGrade(currentGrade) && 
                 String(s.className).trim() === String(className).trim()
             ) || { listening: 0, reading: 0, writing: 0, vocab: 0, grammar: 0, total: 0 };
 
@@ -12466,7 +12472,7 @@ async function loadRealAveragesToInputs() {
         const classRecords = records.filter(r => {
             const rGrade = r['학년'] || r.grade || '';
             const rClass = r.studentClass || r['등록학급'] || '';
-            return String(rGrade).trim() === String(currentGrade).trim() && String(rClass).trim() === String(className).trim();
+            return normalizeGrade(rGrade) === normalizeGrade(currentGrade) && String(rClass).trim() === String(className).trim();
         });
 
         if (classRecords.length > 0) {
