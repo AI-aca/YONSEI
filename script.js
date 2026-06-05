@@ -1898,6 +1898,72 @@ function normalizeGrade(grade) {
     return String(grade).replace(/학년/g, '').replace(/\s+/g, '').trim();
 }
 
+// 현재 선택된 학급 및 학년에 맞춰 수동 평균 편차(shifts) 및 averages 덮어쓰기 재연산
+function recalculateStudentReportShifts(record, averages) {
+    if (!record || !averages) return;
+
+    // 화면 드롭다운에 선택된 유효 학급명이 있으면 우선 채용, 없으면 학생 DB 등록학급 채용
+    const clsEl = document.getElementById('report-student-class');
+    let studentClass = (clsEl && clsEl.value && clsEl.value !== '__RECOMMEND__') ? clsEl.value : '';
+    if (!studentClass) {
+        studentClass = record.studentClass || record['등록학급'] || '';
+    }
+    const studentGrade = record.grade || record['학년'] || '';
+    
+    // shifts 초기화
+    averages.shifts = { listening: 0, vocab: 0, reading: 0, grammar: 0, writing: 0, total: 0 };
+
+    // 실제 DB 평균 복원 계산
+    const allRecords = window.cachedStudentRecords || [];
+    const validRecs = allRecords.filter(r => {
+        const v = r['총점'] ?? r.totalScore;
+        return v !== undefined && v !== '' && v !== null;
+    });
+    const cnt = validRecs.length || 1;
+    const avgOf = (koKey, enKey) =>
+        validRecs.reduce((sum, r) => sum + parseFloat(r[koKey] || r[enKey] || 0), 0) / cnt;
+
+    const originalAverages = {
+        grammar: avgOf('Grammar_점수', 'grammarScore'),
+        writing: avgOf('Writing_점수', 'writingScore'),
+        reading: avgOf('Reading_점수', 'readingScore'),
+        listening: avgOf('Listening_점수', 'listeningScore'),
+        vocab: avgOf('Vocabulary_점수', 'vocabScore'),
+        total: avgOf('총점', 'totalScore')
+    };
+
+    if (studentClass && studentGrade && window.cachedClassAvgSettings) {
+        const setting = window.cachedClassAvgSettings.find(s => 
+            normalizeGrade(s.grade) === normalizeGrade(studentGrade) && 
+            String(s.className).trim() === String(studentClass).trim()
+        );
+        if (setting) {
+            // 편차 계산 (수동 - 실제)
+            averages.shifts.total = parseFloat(setting.total || 0) - originalAverages.total;
+            averages.shifts.grammar = parseFloat(setting.grammar || 0) - originalAverages.grammar;
+            averages.shifts.writing = parseFloat(setting.writing || 0) - originalAverages.writing;
+            averages.shifts.reading = parseFloat(setting.reading || 0) - originalAverages.reading;
+            averages.shifts.listening = parseFloat(setting.listening || 0) - originalAverages.listening;
+            averages.shifts.vocab = parseFloat(setting.vocab || 0) - originalAverages.vocab;
+
+            // averages 객체 수동 평균으로 덮어쓰기
+            averages['총점'] = parseFloat(setting.total || 0);
+            averages.grammarScore = parseFloat(setting.grammar || 0);
+            averages.writingScore = parseFloat(setting.writing || 0);
+            averages.readingScore = parseFloat(setting.reading || 0);
+            averages.listeningScore = parseFloat(setting.listening || 0);
+            averages.vocabScore = parseFloat(setting.vocab || 0);
+
+            averages['Grammar_점수'] = averages.grammarScore;
+            averages['Writing_점수'] = averages.writingScore;
+            averages['Reading_점수'] = averages.readingScore;
+            averages['Listening_점수'] = averages.listeningScore;
+            averages['Vocabulary_점수'] = averages.vocabScore;
+            console.log("✏️ [공통 헬퍼] averages 수동 설정 및 편차(shifts) 계산 완료:", averages);
+        }
+    }
+}
+
 // 학급 목록 HTML 렌더링 (학년별 그룹)
 function renderClassListHtml() {
     const classes = (globalConfig.classes || []).filter(c => typeof c === 'object' && c.grade && c.name);
@@ -5456,47 +5522,7 @@ async function loadStudentReport() {
             averages['Vocabulary_점수'] = averages.vocabScore;
 
             // [New] 수동 평균 설정이 있으면 averages를 덮어쓰고, 편차(shifts)를 기록해 둠
-            const studentClass = report.studentClass || report['등록학급'] || '';
-            const studentGrade = report.grade || report['학년'] || '';
-            averages.shifts = { listening: 0, vocab: 0, reading: 0, grammar: 0, writing: 0, total: 0 };
-            
-            if (studentClass && studentGrade && window.cachedClassAvgSettings) {
-                const setting = window.cachedClassAvgSettings.find(s => 
-                    normalizeGrade(s.grade) === normalizeGrade(studentGrade) && 
-                    String(s.className).trim() === String(studentClass).trim()
-                );
-                if (setting) {
-                    const originalTotal = averages['총점'] || 0;
-                    const originalGrammar = averages.grammarScore || 0;
-                    const originalWriting = averages.writingScore || 0;
-                    const originalReading = averages.readingScore || 0;
-                    const originalListening = averages.listeningScore || 0;
-                    const originalVocab = averages.vocabScore || 0;
-
-                    // 편차 계산 (수동 - 실제)
-                    averages.shifts.total = parseFloat(setting.total || 0) - originalTotal;
-                    averages.shifts.grammar = parseFloat(setting.grammar || 0) - originalGrammar;
-                    averages.shifts.writing = parseFloat(setting.writing || 0) - originalWriting;
-                    averages.shifts.reading = parseFloat(setting.reading || 0) - originalReading;
-                    averages.shifts.listening = parseFloat(setting.listening || 0) - originalListening;
-                    averages.shifts.vocab = parseFloat(setting.vocab || 0) - originalVocab;
-
-                    // averages 객체 수동 평균으로 덮어쓰기
-                    averages['총점'] = parseFloat(setting.total || 0);
-                    averages.grammarScore = parseFloat(setting.grammar || 0);
-                    averages.writingScore = parseFloat(setting.writing || 0);
-                    averages.readingScore = parseFloat(setting.reading || 0);
-                    averages.listeningScore = parseFloat(setting.listening || 0);
-                    averages.vocabScore = parseFloat(setting.vocab || 0);
-
-                    averages['Grammar_점수'] = averages.grammarScore;
-                    averages['Writing_점수'] = averages.writingScore;
-                    averages['Reading_점수'] = averages.readingScore;
-                    averages['Listening_점수'] = averages.listeningScore;
-                    averages['Vocabulary_점수'] = averages.vocabScore;
-                    console.log("✏️ averages 수동 설정 및 편차(shifts) 저장 완료:", averages);
-                }
-            }
+            recalculateStudentReportShifts(report, averages);
 
             const _mxMap = { Grammar: 'grammarMax', Writing: 'writingMax', Reading: 'readingMax', Listening: 'listeningMax', Vocabulary: 'vocabMax' };
             const activeSections = allSections.filter(section => {
@@ -6635,6 +6661,9 @@ async function regenerateSectionComment(section) {
     // 동기화된 최신 데이터 활용
     const { record, averages, activeSections, sectionComments, overallComment } = window.currentReportData;
 
+    // [New] 동기화된 최신 학급 정보에 기반하여 수동 편차(shifts) 및 averages 실시간 재연산 적용
+    recalculateStudentReportShifts(record, averages);
+
     // 버튼 로딩 표시
     const btn = document.querySelector(`button[onclick="regenerateSectionComment('${section}')"]`);
     if (btn) { btn.disabled = true; btn.textContent = '⏳ 생성 중...'; }
@@ -6781,6 +6810,9 @@ async function regenerateOverallComment() {
 
     // 동기화된 최신 데이터 활용
     const { record, averages, activeSections, sectionComments } = window.currentReportData;
+
+    // [New] 동기화된 최신 학급 정보에 기반하여 수동 편차(shifts) 및 averages 실시간 재연산 적용
+    recalculateStudentReportShifts(record, averages);
     const btn = document.querySelector('button[onclick="regenerateOverallComment()"]');
     if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
     toggleLoading(true);
@@ -6808,6 +6840,9 @@ async function regenerateAllComments() {
 
     // 동기화된 최신 데이터 활용
     const { record, averages, activeSections } = window.currentReportData;
+
+    // [New] 동기화된 학급명에 맞추어 수동 편차(shifts) 및 averages 실시간 재연산 적용
+    recalculateStudentReportShifts(record, averages);
     const allBtn = document.querySelector('button[onclick="regenerateAllComments()"]');
     const oaBtn = document.querySelector('button[onclick="regenerateOverallComment()"]');
     if (allBtn) { allBtn.disabled = true; allBtn.textContent = '⏳ 생성중...'; }
