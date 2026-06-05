@@ -12198,40 +12198,38 @@ async function renderClassAvgConfig(c) {
     const currentGrade = window._currentConfigGrade || "중3";
     const classes = getClassesForGrade(currentGrade) || [];
 
-    // 실제 평균을 구하기 위해, 학생DB 데이터(cachedStudentRecords)가 없으면 백그라운드로 가져옴
-    if (!window.cachedStudentRecords || window.cachedStudentRecords.length === 0) {
-        toggleLoading(true);
-        try {
-            const cats = globalConfig.categories || [];
-            const relevantCats = cats.filter(cat => {
-                const name = String(cat.name).toLowerCase();
-                if (currentGrade.includes("초5") && name.includes("5")) return true;
-                if (currentGrade.includes("초6") && name.includes("6")) return true;
-                if (currentGrade.includes("중1") && name.includes("중1")) return true;
-                if (currentGrade.includes("중2") && name.includes("중2")) return true;
-                if (currentGrade.includes("중3") && name.includes("중3")) return true;
-                return false;
-            });
+    // 실제 평균을 구하기 위해, 학생DB 데이터를 캐시 없이 항상 서버에서 직접 fresh하게 로드
+    toggleLoading(true);
+    try {
+        const cats = globalConfig.categories || [];
+        const relevantCats = cats.filter(cat => {
+            const name = String(cat.name).toLowerCase();
+            if (currentGrade.includes("초5") && name.includes("5")) return true;
+            if (currentGrade.includes("초6") && name.includes("6")) return true;
+            if (currentGrade.includes("중1") && name.includes("중1")) return true;
+            if (currentGrade.includes("중2") && name.includes("중2")) return true;
+            if (currentGrade.includes("중3") && name.includes("중3")) return true;
+            return false;
+        });
 
-            if (relevantCats.length > 0) {
-                const firstCat = relevantCats[0];
-                const folderId = extractFolderId(firstCat.targetFolderUrl);
-                if (folderId) {
-                    const res = await sendReliableRequest({
-                        type: 'GET_STUDENT_LIST',
-                        parentFolderId: folderId,
-                        categoryName: firstCat.name
-                    });
-                    if (res.status === 'Success') {
-                        window.cachedStudentRecords = res.data || [];
-                    }
+        if (relevantCats.length > 0) {
+            const firstCat = relevantCats[0];
+            const folderId = extractFolderId(firstCat.targetFolderUrl);
+            if (folderId) {
+                const res = await sendReliableRequest({
+                    type: 'GET_STUDENT_LIST',
+                    parentFolderId: folderId,
+                    categoryName: firstCat.name
+                });
+                if (res.status === 'Success') {
+                    window.cachedStudentRecords = res.data || [];
                 }
             }
-        } catch (e) {
-            console.warn("실제 평균용 학생 데이터 자동 로드 실패:", e);
-        } finally {
-            toggleLoading(false);
         }
+    } catch (e) {
+        console.warn("실제 평균용 학생 데이터 자동 로드 실패:", e);
+    } finally {
+        toggleLoading(false);
     }
 
     const realAvgMap = getRealClassAvgMap(currentGrade, window.cachedStudentRecords || []);
@@ -12409,40 +12407,39 @@ async function loadRealAveragesToInputs() {
     const classes = getClassesForGrade(currentGrade) || [];
     if (classes.length === 0) return;
 
-    let records = window.cachedStudentRecords || [];
-    if (records.length === 0) {
-        toggleLoading(true);
-        try {
-            const cats = globalConfig.categories || [];
-            const relevantCats = cats.filter(c => {
-                const name = String(c.name).toLowerCase();
-                if (currentGrade.includes("초5") && name.includes("5")) return true;
-                if (currentGrade.includes("초6") && name.includes("6")) return true;
-                if (currentGrade.includes("중1") && name.includes("중1")) return true;
-                if (currentGrade.includes("중2") && name.includes("중2")) return true;
-                if (currentGrade.includes("중3") && name.includes("중3")) return true;
-                return false;
-            });
+    let records = [];
+    toggleLoading(true);
+    try {
+        const cats = globalConfig.categories || [];
+        const relevantCats = cats.filter(c => {
+            const name = String(c.name).toLowerCase();
+            if (currentGrade.includes("초5") && name.includes("5")) return true;
+            if (currentGrade.includes("초6") && name.includes("6")) return true;
+            if (currentGrade.includes("중1") && name.includes("중1")) return true;
+            if (currentGrade.includes("중2") && name.includes("중2")) return true;
+            if (currentGrade.includes("중3") && name.includes("중3")) return true;
+            return false;
+        });
 
-            if (relevantCats.length > 0) {
-                const firstCat = relevantCats[0];
-                const folderId = extractFolderId(firstCat.targetFolderUrl);
-                if (folderId) {
-                    const res = await sendReliableRequest({
-                        type: 'GET_STUDENT_LIST',
-                        parentFolderId: folderId,
-                        categoryName: firstCat.name
-                    });
-                    if (res.status === 'Success') {
-                        records = res.data || [];
-                    }
+        if (relevantCats.length > 0) {
+            const firstCat = relevantCats[0];
+            const folderId = extractFolderId(firstCat.targetFolderUrl);
+            if (folderId) {
+                const res = await sendReliableRequest({
+                    type: 'GET_STUDENT_LIST',
+                    parentFolderId: folderId,
+                    categoryName: firstCat.name
+                });
+                if (res.status === 'Success') {
+                    records = res.data || [];
+                    window.cachedStudentRecords = records;
                 }
             }
-        } catch (e) {
-            console.warn("실제 평균용 데이터 로딩 실패:", e);
-        } finally {
-            toggleLoading(false);
         }
+    } catch (e) {
+        console.warn("실제 평균용 데이터 로딩 실패:", e);
+    } finally {
+        toggleLoading(false);
     }
 
     if (records.length === 0) {
