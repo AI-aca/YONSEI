@@ -11909,6 +11909,9 @@ async function loadClassAvgSettings(silent = false) {
 
 // 구글 드라이브에 학급 평균 설정 저장하기
 async function saveClassAvgSettings() {
+    if (!confirm("입력하신 수동 설정 평균값으로 데이터가 덮어씌워져 저장됩니다. 진행하시겠습니까?")) {
+        return;
+    }
     const folderId = extractFolderId(globalConfig.mainServerLink);
     if (!folderId) {
         showToast("⚠️ 메인 서버 폴더 설정을 먼저 진행해 주세요.");
@@ -11966,6 +11969,61 @@ async function saveClassAvgSettings() {
 }
 
 // 학급 평균 설정 화면 렌더링
+// 학년별/학급별 실제 평균 데이터 계산 헬퍼
+function getRealClassAvgMap(grade, records) {
+    const classes = getClassesForGrade(grade) || [];
+    const avgMap = {};
+
+    const secMap = {
+        grammar: ['Grammar_점수', '문법_점수', 'grammarScore', 'Grammar'],
+        writing: ['Writing_점수', '작문_점수', 'writingScore', 'Writing'],
+        reading: ['Reading_점수', '독해_점수', 'readingScore', 'Reading'],
+        listening: ['Listening_점수', '듣기_점수', 'listeningScore', 'Listening'],
+        vocab: ['Vocabulary_점수', '어휘_점수', 'vocabScore', 'Vocab', 'Vocabulary'],
+        total: ['총점', 'totalScore', 'Total']
+    };
+
+    const getVal = (rec, key) => {
+        const keys = secMap[key];
+        for (const k of keys) {
+            if (rec[k] !== undefined && rec[k] !== "") return parseFloat(rec[k]) || 0;
+        }
+        return 0;
+    };
+
+    classes.forEach(className => {
+        const classRecords = records.filter(r => {
+            const rGrade = r['학년'] || r.grade || '';
+            const rClass = r.studentClass || r['등록학급'] || '';
+            return String(rGrade).trim() === String(grade).trim() && String(rClass).trim() === String(className).trim();
+        });
+
+        if (classRecords.length > 0) {
+            const cnt = classRecords.length;
+            avgMap[className] = {
+                listening: classRecords.reduce((s, r) => s + getVal(r, 'listening'), 0) / cnt,
+                vocab: classRecords.reduce((s, r) => s + getVal(r, 'vocab'), 0) / cnt,
+                reading: classRecords.reduce((s, r) => s + getVal(r, 'reading'), 0) / cnt,
+                grammar: classRecords.reduce((s, r) => s + getVal(r, 'grammar'), 0) / cnt,
+                writing: classRecords.reduce((s, r) => s + getVal(r, 'writing'), 0) / cnt,
+                total: classRecords.reduce((s, r) => s + getVal(r, 'total'), 0) / cnt
+            };
+        } else {
+            avgMap[className] = { listening: 0, vocab: 0, reading: 0, grammar: 0, writing: 0, total: 0 };
+        }
+    });
+
+    return avgMap;
+}
+
+// 저장된 설정값 다시 불러오기 (롤백)
+async function rollbackClassAvgConfig() {
+    window.cachedClassAvgSettings = null;
+    renderClassAvgConfig(document.getElementById("dynamic-content"));
+    showToast("🔄 저장된 설정값을 새로 불러왔습니다.");
+}
+
+// 학급 평균 설정 화면 렌더링
 async function renderClassAvgConfig(c) {
     if (!c) return;
     setCanvasId("class_avg_config");
@@ -11980,6 +12038,44 @@ async function renderClassAvgConfig(c) {
 
     const currentGrade = window._currentConfigGrade || "중3";
     const classes = getClassesForGrade(currentGrade) || [];
+
+    // 실제 평균을 구하기 위해, 학생DB 데이터(cachedStudentRecords)가 없으면 백그라운드로 가져옴
+    if (!window.cachedStudentRecords || window.cachedStudentRecords.length === 0) {
+        toggleLoading(true);
+        try {
+            const cats = globalConfig.categories || [];
+            const relevantCats = cats.filter(cat => {
+                const name = String(cat.name).toLowerCase();
+                if (currentGrade.includes("초5") && name.includes("5")) return true;
+                if (currentGrade.includes("초6") && name.includes("6")) return true;
+                if (currentGrade.includes("중1") && name.includes("중1")) return true;
+                if (currentGrade.includes("중2") && name.includes("중2")) return true;
+                if (currentGrade.includes("중3") && name.includes("중3")) return true;
+                return false;
+            });
+
+            if (relevantCats.length > 0) {
+                const firstCat = relevantCats[0];
+                const folderId = extractFolderId(firstCat.targetFolderUrl);
+                if (folderId) {
+                    const res = await sendReliableRequest({
+                        type: 'GET_STUDENT_LIST',
+                        parentFolderId: folderId,
+                        categoryName: firstCat.name
+                    });
+                    if (res.status === 'Success') {
+                        window.cachedStudentRecords = res.data || [];
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn("실제 평균용 학생 데이터 자동 로드 실패:", e);
+        } finally {
+            toggleLoading(false);
+        }
+    }
+
+    const realAvgMap = getRealClassAvgMap(currentGrade, window.cachedStudentRecords || []);
 
     // 학년별 한국어 명칭
     const gradeTitleMap = {
@@ -12001,26 +12097,46 @@ async function renderClassAvgConfig(c) {
                 String(s.className).trim() === String(className).trim()
             ) || { listening: 0, reading: 0, writing: 0, vocab: 0, grammar: 0, total: 0 };
 
+            const realAvg = realAvgMap[className] || { listening: 0, vocab: 0, reading: 0, grammar: 0, writing: 0, total: 0 };
+
             tableRowsHtml += `
                 <tr data-grade="${currentGrade}" data-class-name="${className}" class="border-b hover:bg-slate-50 transition-colors">
-                    <td class="px-6 py-4 font-black text-[#013976] fs-16">${className}</td>
-                    <td class="px-4 py-2">
-                        <input type="number" step="0.1" min="0" value="${setting.listening}" class="input-listening ys-field text-center font-bold !py-1" oninput="calcRowTotal(this)">
+                    <td class="px-6 py-4 font-black text-[#013976] fs-16 text-center align-middle">${className}</td>
+                    <td class="px-4 py-3 text-center align-middle">
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="text-slate-400 font-bold block" style="font-size: 11px; letter-spacing: 0.5px;">실제: ${parseFloat(realAvg.listening || 0).toFixed(1)}</span>
+                            <input type="number" step="0.1" min="0" value="${setting.listening}" class="input-listening ys-field text-center font-bold !py-1 w-20" oninput="calcRowTotal(this)">
+                        </div>
                     </td>
-                    <td class="px-4 py-2">
-                        <input type="number" step="0.1" min="0" value="${setting.vocab}" class="input-vocab ys-field text-center font-bold !py-1" oninput="calcRowTotal(this)">
+                    <td class="px-4 py-3 text-center align-middle">
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="text-slate-400 font-bold block" style="font-size: 11px; letter-spacing: 0.5px;">실제: ${parseFloat(realAvg.vocab || 0).toFixed(1)}</span>
+                            <input type="number" step="0.1" min="0" value="${setting.vocab}" class="input-vocab ys-field text-center font-bold !py-1 w-20" oninput="calcRowTotal(this)">
+                        </div>
                     </td>
-                    <td class="px-4 py-2">
-                        <input type="number" step="0.1" min="0" value="${setting.reading}" class="input-reading ys-field text-center font-bold !py-1" oninput="calcRowTotal(this)">
+                    <td class="px-4 py-3 text-center align-middle">
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="text-slate-400 font-bold block" style="font-size: 11px; letter-spacing: 0.5px;">실제: ${parseFloat(realAvg.reading || 0).toFixed(1)}</span>
+                            <input type="number" step="0.1" min="0" value="${setting.reading}" class="input-reading ys-field text-center font-bold !py-1 w-20" oninput="calcRowTotal(this)">
+                        </div>
                     </td>
-                    <td class="px-4 py-2">
-                        <input type="number" step="0.1" min="0" value="${setting.grammar}" class="input-grammar ys-field text-center font-bold !py-1" oninput="calcRowTotal(this)">
+                    <td class="px-4 py-3 text-center align-middle">
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="text-slate-400 font-bold block" style="font-size: 11px; letter-spacing: 0.5px;">실제: ${parseFloat(realAvg.grammar || 0).toFixed(1)}</span>
+                            <input type="number" step="0.1" min="0" value="${setting.grammar}" class="input-grammar ys-field text-center font-bold !py-1 w-20" oninput="calcRowTotal(this)">
+                        </div>
                     </td>
-                    <td class="px-4 py-2">
-                        <input type="number" step="0.1" min="0" value="${setting.writing}" class="input-writing ys-field text-center font-bold !py-1" oninput="calcRowTotal(this)">
+                    <td class="px-4 py-3 text-center align-middle">
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="text-slate-400 font-bold block" style="font-size: 11px; letter-spacing: 0.5px;">실제: ${parseFloat(realAvg.writing || 0).toFixed(1)}</span>
+                            <input type="number" step="0.1" min="0" value="${setting.writing}" class="input-writing ys-field text-center font-bold !py-1 w-20" oninput="calcRowTotal(this)">
+                        </div>
                     </td>
-                    <td class="px-6 py-4 text-center">
-                        <span class="span-total font-black text-indigo-600 fs-18">${parseFloat(setting.total || 0).toFixed(1)}</span>
+                    <td class="px-6 py-4 text-center align-middle">
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="text-slate-400 font-bold block" style="font-size: 11px; letter-spacing: 0.5px;">실제: ${parseFloat(realAvg.total || 0).toFixed(1)}</span>
+                            <span class="span-total font-black text-indigo-600 fs-18">${parseFloat(setting.total || 0).toFixed(1)}</span>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -12049,7 +12165,7 @@ async function renderClassAvgConfig(c) {
                     </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0 no-print">
-                    <button onclick="loadRealAveragesToInputs()" class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2" style="height:45px;">📊 실제 평균 넣기</button>
+                    <button onclick="rollbackClassAvgConfig()" class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2" style="height:45px;">🔄 저장값 불러오기</button>
                     <button onclick="saveClassAvgSettings()" class="btn-ys !bg-[#013976] !text-white !border-2 !border-[#013976] hover:!bg-[#012456] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2" style="height:45px;">💾 수동 입력 저장</button>
                 </div>
             </div>
@@ -12059,13 +12175,13 @@ async function renderClassAvgConfig(c) {
                 <table class="w-full text-left border-collapse" id="class-avg-config-table">
                     <thead>
                         <tr class="bg-slate-100 text-slate-700 font-bold border-b fs-15">
-                            <th class="px-6 py-4 w-[15%]">Class</th>
-                            <th class="px-4 py-4 text-center w-[14%]">Listening</th>
-                            <th class="px-4 py-4 text-center w-[14%]">Vocabulary</th>
-                            <th class="px-4 py-4 text-center w-[14%]">Reading</th>
-                            <th class="px-4 py-4 text-center w-[14%]">Grammar</th>
-                            <th class="px-4 py-4 text-center w-[14%]">Writing</th>
-                            <th class="px-6 py-4 text-center w-[15%] bg-indigo-50/50">Total</th>
+                            <th class="px-6 py-4 w-[15%] text-center align-middle">Class</th>
+                            <th class="px-4 py-4 text-center w-[14%] align-middle">Listening</th>
+                            <th class="px-4 py-4 text-center w-[14%] align-middle">Vocabulary</th>
+                            <th class="px-4 py-4 text-center w-[14%] align-middle">Reading</th>
+                            <th class="px-4 py-4 text-center w-[14%] align-middle">Grammar</th>
+                            <th class="px-4 py-4 text-center w-[14%] align-middle">Writing</th>
+                            <th class="px-6 py-4 text-center w-[15%] bg-indigo-50/50 align-middle">Total</th>
                         </tr>
                     </thead>
                     <tbody>
