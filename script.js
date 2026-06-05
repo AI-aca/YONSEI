@@ -2036,7 +2036,7 @@ function addClassItem() {
     if (!name) { showToast('학급명을 입력하세요'); return; }
     if (!globalConfig.classes) globalConfig.classes = [];
     // 중복 확인
-    if (globalConfig.classes.some(c => typeof c === 'object' && c.grade === grade && c.name === name)) {
+    if (globalConfig.classes.some(c => typeof c === 'object' && normalizeGrade(c.grade) === normalizeGrade(grade) && String(c.name).trim() === String(name).trim())) {
         showToast('이미 등록된 학급입니다'); return;
     }
     globalConfig.classes.push({ grade, name });
@@ -2160,7 +2160,7 @@ function applyStudentDBFilters() {
     const grade = document.getElementById('sdb-grade')?.value || '전체';
     let list = (_sdbCache.records || []).slice();
     if (year !== '전체') list = list.filter(r => dateToYear(r['응시일'] || r.date || '') === year);
-    if (grade !== '전체') list = list.filter(r => String(r['학년'] || r.grade || '') === grade);
+    if (grade !== '전체') list = list.filter(r => normalizeGrade(r['학년'] || r.grade || '') === normalizeGrade(grade));
     _sdbList = list;
     _renderStudentDBTable();
 }
@@ -3263,7 +3263,7 @@ function getLowestClassAvg(grade, secMap) {
     const records = (window.cachedStudentRecords || []).filter(function (r) {
         const rGrade = r['학년'] || r.grade || '';
         const rClass = r['등록학급'] || r.studentClass || '';
-        return rGrade === grade && rClass && !rClass.includes('미달');
+        return normalizeGrade(rGrade) === normalizeGrade(grade) && rClass && !rClass.includes('미달');
     });
     if (!records.length) return null;
     const classMap = {};
@@ -5139,7 +5139,7 @@ function onReportGradeChange() {
 
     let filtered = records;
     if (year && year !== '전체') filtered = filtered.filter(r => dateToYear(r['응시일'] || r.date || '') === year);
-    if (grade && grade !== '전체') filtered = filtered.filter(r => String(r['학년'] || r.grade || '') === grade);
+    if (grade && grade !== '전체') filtered = filtered.filter(r => normalizeGrade(r['학년'] || r.grade || '') === normalizeGrade(grade));
 
     // 최근 1개월 필터
     const _recentChk = document.getElementById('chk-report-recent-1m');
@@ -5269,7 +5269,7 @@ async function generateOverallComment(record, averages, activeSections, sectionC
     const _oaClsData = (_oaCls && _oaGrd) ? computeClassAvg(_oaCls, _oaGrd, null) : null;
     const clsTotalAvg = _oaClsData ? parseFloat(_oaClsData['총점'] || 0) : null;
     const _clsTotalRecs = (_oaCls && _oaGrd) ? _allRecordsOA.filter(r =>
-        (r['학년'] || r.grade || '') === _oaGrd && (r.studentClass || r['등록학급'] || '') === _oaCls
+        normalizeGrade(r['학년'] || r.grade || '') === normalizeGrade(_oaGrd) && String(r.studentClass || r['등록학급'] || '').trim() === String(_oaCls).trim()
     ) : [];
     const _clsTotalScores = _clsTotalRecs.map(r => parseFloat(r['총점'] || r.totalScore || 0)).filter(v => !isNaN(v) && v > 0);
 
@@ -5646,7 +5646,7 @@ async function generateSectionComments(record, averages, activeSections) {
             const _clsRecordsAll = (_recCls && _sGrd) ? _allRecords.filter(r => {
                 const rG = r['학년'] || r.grade || '';
                 const rC = r.studentClass || r['등록학급'] || '';
-                return rG === _sGrd && rC === _recCls;
+                return normalizeGrade(rG) === normalizeGrade(_sGrd) && String(rC).trim() === String(_recCls).trim();
             }) : [];
             const _clsSectionScores = _clsRecordsAll.map(r => parseFloat(r[section + '_점수'] || r[secMap[section]] || 0)).filter(v => !isNaN(v) && v > 0);
 
