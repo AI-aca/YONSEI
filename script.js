@@ -12150,11 +12150,11 @@ async function loadRealAveragesToInputs() {
     }
 
     const secMap = {
-        grammar: ['문법_점수', 'grammarScore', 'Grammar'],
-        writing: ['작문_점수', 'writingScore', 'Writing'],
-        reading: ['독해_점수', 'readingScore', 'Reading'],
-        listening: ['듣기_점수', 'listeningScore', 'Listening'],
-        vocab: ['어휘_점수', 'vocabScore', 'Vocab', 'Vocabulary'],
+        grammar: ['Grammar_점수', '문법_점수', 'grammarScore', 'Grammar'],
+        writing: ['Writing_점수', '작문_점수', 'writingScore', 'Writing'],
+        reading: ['Reading_점수', '독해_점수', 'readingScore', 'Reading'],
+        listening: ['Listening_점수', '듣기_점수', 'listeningScore', 'Listening'],
+        vocab: ['Vocabulary_점수', '어휘_점수', 'vocabScore', 'Vocab', 'Vocabulary'],
         total: ['총점', 'totalScore', 'Total']
     };
 
