@@ -11983,11 +11983,11 @@ async function renderClassAvgConfig(c) {
 
     // 학년별 한국어 명칭
     const gradeTitleMap = {
-        "초5": "초등 5학년",
-        "초6": "초등 6학년",
-        "중1": "중등 1학년",
-        "중2": "중등 2학년",
-        "중3": "중등 3학년"
+        "초5": "초5학년",
+        "초6": "초6학년",
+        "중1": "중1학년",
+        "중2": "중2학년",
+        "중3": "중3학년"
     };
 
     let tableRowsHtml = "";
@@ -12029,7 +12029,7 @@ async function renderClassAvgConfig(c) {
 
     c.innerHTML = `
         <div class="animate-fade-in-safe space-y-6 pb-10 mt-5">
-            <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">⚙️ CLASS AVERAGE CONFIG</h2>
+            <h2 class="fs-32 text-[#013976] leading-none font-black uppercase !border-none !pb-0">⚙️ Class Average Config</h2>
 
             <!-- 1. Grade & Action Control Bar -->
             <div class="card !py-3.5 !px-6 !flex-row !flex-nowrap items-center justify-between shadow-lg relative overflow-hidden flex-none gap-4" style="background: linear-gradient(135deg, #ffffff 0%, #eef4ff 100%); border: 2px solid rgba(1,57,118,0.15);">
@@ -12049,8 +12049,8 @@ async function renderClassAvgConfig(c) {
                     </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0 no-print">
-                    <button onclick="loadRealAveragesToInputs()" class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2" style="height:45px;">📊 Load Real Averages</button>
-                    <button onclick="saveClassAvgSettings()" class="btn-ys !bg-[#013976] !text-white !border-2 !border-[#013976] hover:!bg-[#012456] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2" style="height:45px;">💾 Save Config</button>
+                    <button onclick="loadRealAveragesToInputs()" class="btn-ys !bg-white !text-slate-500 !border-2 !border-slate-300 hover:!border-[#013976] hover:!text-[#013976] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2" style="height:45px;">📊 실제 평균 넣기</button>
+                    <button onclick="saveClassAvgSettings()" class="btn-ys !bg-[#013976] !text-white !border-2 !border-[#013976] hover:!bg-[#012456] !px-5 !py-2.5 !text-[15px] !font-black rounded-xl whitespace-nowrap flex items-center gap-2" style="height:45px;">💾 수동 입력 저장</button>
                 </div>
             </div>
 
