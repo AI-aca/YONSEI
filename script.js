@@ -5240,8 +5240,13 @@ async function generateOverallComment(record, averages, activeSections, sectionC
     // 총점 전체 백분위 + 7단계 성취레벨
     const _allRecordsOA = window.cachedStudentRecords || [];
     const _allTotalScores = _allRecordsOA.map(r => parseFloat(r['총점'] || r.totalScore || 0)).filter(v => !isNaN(v) && v > 0);
-    const _oaAbove = _allTotalScores.filter(s => s > totalScore).length;
-    const oaUpperPercentile = _allTotalScores.length > 0 ? Math.min(100, Math.round((_oaAbove / _allTotalScores.length) * 100) + 1) : 50;
+
+    // [New] 수동 평균 보정(Shift) 적용
+    const shiftTotal = (averages.shifts && averages.shifts.total) ? parseFloat(averages.shifts.total) : 0;
+    const _allTotalScoresShifted = _allTotalScores.map(v => v + shiftTotal);
+
+    const _oaAbove = _allTotalScoresShifted.filter(s => s > totalScore).length;
+    const oaUpperPercentile = _allTotalScoresShifted.length > 0 ? Math.min(100, Math.round((_oaAbove / _allTotalScoresShifted.length) * 100) + 1) : 50;
     const _oaDiff = totalAvg > 0 ? totalScore - totalAvg : 0;
     let totalLevel;
     if (oaUpperPercentile <= 10) totalLevel = '매우 우수';
@@ -5261,8 +5266,12 @@ async function generateOverallComment(record, averages, activeSections, sectionC
         (r['학년'] || r.grade || '') === _oaGrd && (r.studentClass || r['등록학급'] || '') === _oaCls
     ) : [];
     const _clsTotalScores = _clsTotalRecs.map(r => parseFloat(r['총점'] || r.totalScore || 0)).filter(v => !isNaN(v) && v > 0);
-    const _clsTotalAbove = _clsTotalScores.filter(s => s > totalScore).length;
-    const clsTotalPercentile = _clsTotalScores.length > 0 ? Math.min(100, Math.round((_clsTotalAbove / _clsTotalScores.length) * 100) + 1) : null;
+
+    // [New] 수동 평균 보정(Shift) 적용
+    const _clsTotalScoresShifted = _clsTotalScores.map(v => v + shiftTotal);
+
+    const _clsTotalAbove = _clsTotalScoresShifted.filter(s => s > totalScore).length;
+    const clsTotalPercentile = _clsTotalScoresShifted.length > 0 ? Math.min(100, Math.round((_clsTotalAbove / _clsTotalScoresShifted.length) * 100) + 1) : null;
 
     const gradeTone = getGradeTone(record.grade || record['학년']);
 
@@ -5439,6 +5448,49 @@ async function loadStudentReport() {
             averages['Listening_점수'] = averages.listeningScore;
             averages['Vocabulary_점수'] = averages.vocabScore;
 
+            // [New] 수동 평균 설정이 있으면 averages를 덮어쓰고, 편차(shifts)를 기록해 둠
+            const studentClass = report.studentClass || report['등록학급'] || '';
+            const studentGrade = report.grade || report['학년'] || '';
+            averages.shifts = { listening: 0, vocab: 0, reading: 0, grammar: 0, writing: 0, total: 0 };
+            
+            if (studentClass && studentGrade && window.cachedClassAvgSettings) {
+                const setting = window.cachedClassAvgSettings.find(s => 
+                    String(s.grade).trim() === String(studentGrade).trim() && 
+                    String(s.className).trim() === String(studentClass).trim()
+                );
+                if (setting) {
+                    const originalTotal = averages['총점'] || 0;
+                    const originalGrammar = averages.grammarScore || 0;
+                    const originalWriting = averages.writingScore || 0;
+                    const originalReading = averages.readingScore || 0;
+                    const originalListening = averages.listeningScore || 0;
+                    const originalVocab = averages.vocabScore || 0;
+
+                    // 편차 계산 (수동 - 실제)
+                    averages.shifts.total = parseFloat(setting.total || 0) - originalTotal;
+                    averages.shifts.grammar = parseFloat(setting.grammar || 0) - originalGrammar;
+                    averages.shifts.writing = parseFloat(setting.writing || 0) - originalWriting;
+                    averages.shifts.reading = parseFloat(setting.reading || 0) - originalReading;
+                    averages.shifts.listening = parseFloat(setting.listening || 0) - originalListening;
+                    averages.shifts.vocab = parseFloat(setting.vocab || 0) - originalVocab;
+
+                    // averages 객체 수동 평균으로 덮어쓰기
+                    averages['총점'] = parseFloat(setting.total || 0);
+                    averages.grammarScore = parseFloat(setting.grammar || 0);
+                    averages.writingScore = parseFloat(setting.writing || 0);
+                    averages.readingScore = parseFloat(setting.reading || 0);
+                    averages.listeningScore = parseFloat(setting.listening || 0);
+                    averages.vocabScore = parseFloat(setting.vocab || 0);
+
+                    averages['Grammar_점수'] = averages.grammarScore;
+                    averages['Writing_점수'] = averages.writingScore;
+                    averages['Reading_점수'] = averages.readingScore;
+                    averages['Listening_점수'] = averages.listeningScore;
+                    averages['Vocabulary_점수'] = averages.vocabScore;
+                    console.log("✏️ averages 수동 설정 및 편차(shifts) 저장 완료:", averages);
+                }
+            }
+
             const _mxMap = { Grammar: 'grammarMax', Writing: 'writingMax', Reading: 'readingMax', Listening: 'listeningMax', Vocabulary: 'vocabMax' };
             const activeSections = allSections.filter(section => {
                 // 만점 > 0이면 포함 (0점이어도 해당 영역 문항이 있으면 표시)
@@ -5554,8 +5606,17 @@ async function generateSectionComments(record, averages, activeSections) {
             const _allSectionScores = _allRecords
                 .map(r => parseFloat(r[section + '_점수'] || r[secMap[section]] || 0))
                 .filter(v => !isNaN(v) && v > 0);
-            const _aboveCount = _allSectionScores.filter(s => s > studentScore).length;
-            const _totalCount = _allSectionScores.length;
+
+            // [New] 수동 평균 보정(Shift) 적용
+            const secKey = {
+                'Grammar': 'grammar', 'Writing': 'writing',
+                'Reading': 'reading', 'Listening': 'listening', 'Vocabulary': 'vocab'
+            }[section] || section.toLowerCase();
+            const shiftVal = (averages.shifts && averages.shifts[secKey]) ? parseFloat(averages.shifts[secKey]) : 0;
+            const _allSectionScoresShifted = _allSectionScores.map(v => v + shiftVal);
+
+            const _aboveCount = _allSectionScoresShifted.filter(s => s > studentScore).length;
+            const _totalCount = _allSectionScoresShifted.length;
             const upperPercentile = _totalCount > 0 ? Math.min(100, Math.round((_aboveCount / _totalCount) * 100) + 1) : 50;
 
             // 백분위 기반 성취레벨 (7단계) + 전체 평균 대비 보정
@@ -5582,8 +5643,12 @@ async function generateSectionComments(record, averages, activeSections) {
                 return rG === _sGrd && rC === _recCls;
             }) : [];
             const _clsSectionScores = _clsRecordsAll.map(r => parseFloat(r[section + '_점수'] || r[secMap[section]] || 0)).filter(v => !isNaN(v) && v > 0);
-            const _clsAbove = _clsSectionScores.filter(s => s > studentScore).length;
-            const clsUpperPercentile = _clsSectionScores.length > 0 ? Math.min(100, Math.round((_clsAbove / _clsSectionScores.length) * 100) + 1) : null;
+
+            // [New] 수동 평균 보정(Shift) 적용
+            const _clsSectionScoresShifted = _clsSectionScores.map(v => v + shiftVal);
+
+            const _clsAbove = _clsSectionScoresShifted.filter(s => s > studentScore).length;
+            const clsUpperPercentile = _clsSectionScoresShifted.length > 0 ? Math.min(100, Math.round((_clsAbove / _clsSectionScoresShifted.length) * 100) + 1) : null;
 
             // 세부영역(subType) + 정오답 문항 파싱
             let subTypeInfo = '';
@@ -11968,7 +12033,95 @@ async function saveClassAvgSettings() {
     }
 }
 
-// 학급 평균 설정 화면 렌더링
+// 전역 정렬 세션 변수 (학급평균 설정 화면용)
+window._configSortKey = 'total'; // 기본값: total
+window._configSortOrder = 'desc'; // 기본값: desc (점수 높은 것부터)
+
+function sortTableByConfig(colKey) {
+    const table = document.getElementById("class-avg-config-table");
+    if (!table) return;
+    const tbody = table.querySelector("tbody");
+    if (!tbody) return;
+
+    if (window._configSortKey === colKey) {
+        window._configSortOrder = window._configSortOrder === 'desc' ? 'asc' : 'desc';
+    } else {
+        window._configSortKey = colKey;
+        window._configSortOrder = 'desc';
+    }
+
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+    if (rows.length <= 1 && rows[0]?.querySelector("td[colspan]")) return;
+
+    const getRowValue = (row, key) => {
+        if (key === 'class') {
+            return row.querySelector("td:first-child")?.textContent.trim() || '';
+        }
+        if (key === 'total') {
+            return parseFloat(row.querySelector(".span-total")?.textContent || 0) || 0;
+        }
+        const input = row.querySelector(`.input-${key}`);
+        return parseFloat(input?.value || 0) || 0;
+    };
+
+    rows.sort((a, b) => {
+        const valA = getRowValue(a, colKey);
+        const valB = getRowValue(b, colKey);
+
+        if (typeof valA === 'string') {
+            return window._configSortOrder === 'asc' 
+                ? valA.localeCompare(valB) 
+                : valB.localeCompare(valA);
+        } else {
+            return window._configSortOrder === 'asc' 
+                ? valA - valB 
+                : valB - valA;
+        }
+    });
+
+    rows.forEach(row => tbody.appendChild(row));
+    updateSortHeadersUI();
+}
+
+function updateSortHeadersUI() {
+    const table = document.getElementById("class-avg-config-table");
+    if (!table) return;
+    const headers = table.querySelectorAll("thead th");
+    
+    const keyMap = {
+        0: 'class',
+        1: 'listening',
+        2: 'vocab',
+        3: 'reading',
+        4: 'grammar',
+        5: 'writing',
+        6: 'total'
+    };
+
+    headers.forEach((th, idx) => {
+        const key = keyMap[idx];
+        if (!key) return;
+
+        let text = th.getAttribute("data-base-text");
+        if (!text) {
+            text = th.textContent.replace(/[▲▼\s]/g, "");
+            th.setAttribute("data-base-text", text);
+        }
+
+        th.style.cursor = 'pointer';
+        th.style.userSelect = 'none';
+        th.setAttribute("onclick", `sortTableByConfig('${key}')`);
+
+        if (window._configSortKey === key) {
+            th.innerHTML = `${text} ${window._configSortOrder === 'desc' ? '▼' : '▲'}`;
+            th.classList.add("text-indigo-600");
+        } else {
+            th.innerHTML = text;
+            th.classList.remove("text-indigo-600");
+        }
+    });
+}
+
 // 학년별/학급별 실제 평균 데이터 계산 헬퍼
 function getRealClassAvgMap(grade, records) {
     const classes = getClassesForGrade(grade) || [];
@@ -12077,6 +12230,29 @@ async function renderClassAvgConfig(c) {
 
     const realAvgMap = getRealClassAvgMap(currentGrade, window.cachedStudentRecords || []);
 
+    // classes 정렬: 설정된 총합(setting.total) 높은 순 -> 실제 평균 총합(realAvg.total) 높은 순
+    const sortedClasses = [...classes].sort((a, b) => {
+        const setA = (window.cachedClassAvgSettings || []).find(s => 
+            String(s.grade).trim() === String(currentGrade).trim() && 
+            String(s.className).trim() === String(a).trim()
+        ) || { total: 0 };
+        const setB = (window.cachedClassAvgSettings || []).find(s => 
+            String(s.grade).trim() === String(currentGrade).trim() && 
+            String(s.className).trim() === String(b).trim()
+        ) || { total: 0 };
+
+        const totalA = parseFloat(setA.total || 0);
+        const totalB = parseFloat(setB.total || 0);
+
+        if (totalA !== totalB) {
+            return totalB - totalA; // 내림차순
+        }
+
+        const realA = realAvgMap[a] || { total: 0 };
+        const realB = realAvgMap[b] || { total: 0 };
+        return parseFloat(realB.total || 0) - parseFloat(realA.total || 0);
+    });
+
     // 학년별 한국어 명칭
     const gradeTitleMap = {
         "초5": "초5학년",
@@ -12087,10 +12263,10 @@ async function renderClassAvgConfig(c) {
     };
 
     let tableRowsHtml = "";
-    if (classes.length === 0) {
+    if (sortedClasses.length === 0) {
         tableRowsHtml = `<tr><td colspan="8" class="px-6 py-10 text-center text-slate-400 italic">No classes registered in this grade.<br><span class="text-xs text-slate-400">(Please add classes in the [Exam Paper Management] tab first)</span></td></tr>`;
     } else {
-        classes.forEach(className => {
+        sortedClasses.forEach(className => {
             // 기존 설정 검색
             const setting = (window.cachedClassAvgSettings || []).find(s => 
                 String(s.grade).trim() === String(currentGrade).trim() && 
@@ -12191,6 +12367,9 @@ async function renderClassAvgConfig(c) {
             </div>
         </div>
     `;
+
+    // 렌더링 직후 정렬 헤더 UI 및 클릭 바인딩 동적 실행
+    updateSortHeadersUI();
 }
 
 // 학년 변경 시
