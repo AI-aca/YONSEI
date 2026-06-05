@@ -5424,7 +5424,7 @@ ${sectionSummary}
 [총점 현황]
 개인 총점: ${totalScore}점 / 시험지 만점: ${totalMax}점 / 전체 평균: ${totalAvg.toFixed(1)}점(전체 대비 ${_oaDiff >= 0 ? '+' : ''}${_oaDiff.toFixed(1)}점) / 정답률: ${totalRate}% / 성취레벨: ${totalLevel} / 전체 백분위: 약 ${oaUpperPercentile}%(즉, ${_pctLabel(oaUpperPercentile)})${clsTotalAvg !== null ? ' / 권장학급(' + _oaCls + ') 총점 평균: ' + clsTotalAvg.toFixed(1) + '점(학급 평균 대비 ' + (totalScore - clsTotalAvg >= 0 ? '+' : '') + (totalScore - clsTotalAvg).toFixed(1) + '점)' + (clsTotalPercentile !== null ? ' / 권장학급 내 백분위: 약 ' + clsTotalPercentile + '%(권장학급에서는 ' + _pctLabel(clsTotalPercentile, '권장학급 내') + ')' : '') : ''}
 
-[전체 성취 수준 — 코멘트에 이 수준을 반드시 리터런리 반영할 것]
+[전체 성취 수준 — 기계적 문구 그대로가 아닌, 한국어 흐름에 맞게 부드럽게 풀어서 반영할 것]
 전체 수준: ${_pctLabel(oaUpperPercentile)} / 성취레벨: ${totalLevel} / 전체 평균 대비: ${_oaDiff >= 0 ? '+' : ''}${_oaDiff.toFixed(1)}점(${_oaDiff >= 0 ? '평균 이상' : '평균 미달'})${clsTotalPercentile !== null ? ' / 권장학급 수준: ' + _pctLabel(clsTotalPercentile, '권장학급 내') : ''}
 
 ⚠️ 백분위 해석 주의 (절대 엄수): 백분위(%) 숫자는 작을수록 우수합니다. 상위 1%=최상위 / 상위 100%=최하위. 예시: 상위 75%는 하위권이므로 "높은 백분위", "우수한 실력" 절대 사용 금지.
@@ -5446,6 +5446,7 @@ ${sectionSummary}
 - 학원명, 교재명, 브랜드명 절대 금지. 모든 답변은 순수 한국어로 작성하세요.
 - ⛔ "수업을 잘 따라오고 있습니다", "수업에 적응하고 있습니다", "학원 생활" 등 재원생 대상 표현 절대 금지. (이 시험은 입학 전 레벨테스트임)
 - ⛔ 줄바꿈(\n, 개행) 절대 금지. 전체 코멘트를 하나의 연속된 문단으로 작성하세요. 마침표(.), 물음표(?), 느낌표(!) 뒤에는 반드시 띄어쓰기(공백)를 한 칸 포함하여 문장을 이어 나가세요.
+- 성취레벨 단어(예: 매우 우수, 많이 부족 등)를 코멘트에 서술할 때는 '성취레벨 많이 부족'처럼 기계적 용어를 그대로 꽂아 넣어 딱딱하고 부자연스러운 문장을 절대 만들지 마세요. 대신 '성취도가 많이 부족하여 기초를 다질 필요가 있습니다' 또는 '성취 수준이 많이 부족한 단계에 해당합니다'처럼 학부모에게 보내는 정성스럽고 부드러운 교사의 언어로 자연스럽게 다듬어 작성하세요.
 - 🔢 전체 코멘트는 공백 포함 500자 이내로 작성하세요. 초과 절대 금지.`;
 
     // [디버그] 종합 코멘트 산출 정보 콘솔 출력
@@ -5774,7 +5775,7 @@ async function generateSectionComments(record, averages, activeSections) {
 [성적 데이터]
 개인 점수: ${studentScore}점 / 영역 만점: ${maxScore > 0 ? maxScore + '점' : '정보 없음'} / 전체 평균: ${overallAvgScore.toFixed(1)}점(전체 대비 ${diff >= 0 ? '+' : ''}${diff.toFixed(1)}점) / 성취레벨: ${level} / 전체 백분위: 약 ${upperPercentile}%(= 전체 학생 중 ${upperPercentile}%가 이 학생보다 높은 점수 → ${_pctLabel(upperPercentile)})${clsAvgScore !== null ? ' / 권장학급(' + _recCls + ') 평균: ' + clsAvgScore.toFixed(1) + '점(학급 평균 대비 ' + (studentScore - clsAvgScore >= 0 ? '+' : '') + (studentScore - clsAvgScore).toFixed(1) + '점)' : ''}${clsUpperPercentile !== null ? ' / 권장학급 내 백분위: 약 ' + clsUpperPercentile + '%(= 권장학급에서도 ' + clsUpperPercentile + '%가 이 학생보다 높음 → ' + _pctLabel(clsUpperPercentile, '권장학급 내') + ')' : ''}${subTypeInfo}${wrongInfo}
 
-[이 영역 성취 수준 — 코멘트에 이 수준을 반드시 리터런리 반영할 것]
+[이 영역 성취 수준 — 기계적 문구 그대로가 아닌, 한국어 흐름에 맞게 부드럽게 풀어서 반영할 것]
 전체 수준: ${_pctLabel(upperPercentile)} / 성취레벨: ${level} / 전체 평균 대비: ${diff >= 0 ? '+' : ''}${diff.toFixed(1)}점(${diff >= 0 ? '평균 이상' : '평균 미달'})${clsUpperPercentile !== null ? ' / 권장학급 수준: ' + _pctLabel(clsUpperPercentile, '권장학급 내') : ''}
 ⚠️ 백분위 해석 주의 (절대 엄수): 백분위(%) 숫자는 작을수록 우수합니다. 상위 1%=최상위 / 상위 100%=최하위. 예시: 상위 75%는 하위권이므로 "높은 백분위", "우수한 실력"  절대 사용 금지. 상위 5%이면 영역에서 실력이 뛰어남을 시사합니다.
 
@@ -5794,6 +5795,7 @@ ${_weaknessRule}
 - 학원명, 교재명, 브랜드명 절대 금지. 모든 답변은 순수 한국어로 작성하세요.
 - ⛔ "수업을 잘 따라오고 있습니다", "수업에 적응하고 있습니다", "학원 생활" 등 재원생 대상 표현 절대 금지. (이 시험은 입학 전 레벨테스트임)
 - ⛔ 줄바꿈(\n, 개행) 절대 금지. 전체 코멘트를 하나의 연속된 문단으로 작성하세요. 마침표(.), 물음표(?), 느낌표(!) 뒤에는 반드시 띄어쓰기(공백)를 한 칸 포함하여 문장을 이어 나가세요.
+- 성취레벨 단어(예: 매우 우수, 많이 부족 등)를 코멘트에 서술할 때는 '성취레벨 많이 부족'처럼 기계적 용어를 그대로 꽂아 넣어 딱딱하고 부자연스러운 문장을 절대 만들지 마세요. 대신 '성취도가 많이 부족하여 기초를 다질 필요가 있습니다' 또는 '성취 수준이 많이 부족한 단계에 해당합니다'처럼 학부모에게 보내는 정성스럽고 부드러운 교사의 언어로 자연스럽게 다듬어 작성하세요.
 - 🔢 전체 코멘트는 공백 포함 280자 이내로 작성하세요. 초과 절대 금지.`;
 
             // [디버그] 영역 코멘트 산출 정보 콘솔 출력
