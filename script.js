@@ -5546,8 +5546,7 @@ async function loadStudentReport() {
 
             const savedSections = report.aiSectionComments || {};
             const savedOverall = report.aiOverallComment || null;
-            const originalClass = String(report['등록학급'] || report.studentClass || '').trim();
-            window.currentReportData = { record: report, averages, activeSections, sectionComments: savedSections, overallComment: savedOverall, notes: savedNotes, originalClass };
+            window.currentReportData = { record: report, averages, activeSections, sectionComments: savedSections, overallComment: savedOverall, notes: savedNotes };
             renderReportCard(report, averages, savedSections, savedOverall, activeSections, savedNotes);
             window._hasLoadedData = true;
             showToast(`✅ 성적표 로드 완료 (평균 ${validRecs.length}명 기준)`);
@@ -6267,7 +6266,6 @@ function saveReportData() {
             if (window._dirtyClass && studentClass) {
                 record.studentClass = studentClass;
                 record['등록학급'] = studentClass;
-                window.currentReportData.originalClass = studentClass; // 오리지널 학급명 갱신
             }
             window._dirtyClass = false;
             window._dirtyComment = false;
@@ -6320,9 +6318,6 @@ async function autoSaveReportData() {
 
     record.studentClass = studentClass;
     record['등록학급'] = studentClass;
-    if (window.currentReportData) {
-        window.currentReportData.originalClass = studentClass;
-    }
 
     try {
         await Promise.all(promises);
