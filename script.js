@@ -352,7 +352,10 @@ async function sendReliableRequest(payload, silent = false, maxRetries = 5) {
             // [Modified] Use custom timeout from opts or default 60s (Increased for large GET)
             const timeoutMs = (payload.timeout) ? payload.timeout : 60000;
 
-            const response = await fetchWithTimeout(masterUrl, {
+            // 브라우저의 TCP 커넥션 재사용에 의한 ERR_FAILED(CORS)를 방지하기 위해 매 시도마다 고유 URL 생성
+            const currentUrl = masterUrl + (masterUrl.includes('?') ? '&' : '?') + "retry=" + Date.now() + "_" + i;
+
+            const response = await fetchWithTimeout(currentUrl, {
                 method: 'POST',
                 // [Revert] Use default fetch behavior (like loadConfigFromCloud) which works reliably
                 // redirect: 'follow', 
