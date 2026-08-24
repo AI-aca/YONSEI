@@ -36,7 +36,7 @@ const SUB_TYPE_MAP = {
 let globalConfig = {
     adminCode: "", // [보안] 서버에서만 관리 - 프론트엔드 저장 안 함
     masterCode: "", // [보안] 서버에서만 관리 - 프론트엔드 저장 안 함
-    masterUrl: "https://script.google.com/macros/s/AKfycbw_wP7aQlfrUVyEZlORObmrQghbRBMz3qpmz7aMj18jTc4WkuZhRVlp2kFfYxPWH3jFmQ/exec",
+    masterUrl: "https://script.google.com/macros/s/AKfycbzzOLVci94gCvoWw0r084XiJEDS2LHa5ps8zppBWD0FzcccV8Y81FYItKOb9xPWbkx4Eg/exec",
     mainServerLink: "https://drive.google.com/drive/folders/18dd5Gssjlw9jGZJHmES91HWNxKVqD32A", // [New] 연세국제 설정링크 중앙관리 시트 연동 링크
     // geminiKey: [보안] 서버에서만 관리 - 프론트엔드에서 완전 제거
     categories: [], // { id, name, createdDate, targetFolderUrl }
