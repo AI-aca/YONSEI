@@ -173,6 +173,8 @@ async function loadConfigFromCloud(silent = false) {
 
         // [구글 서버 간헐적 뻗음 방어] 최대 3회 재시도 로직 추가
         let res = null;
+        let text = "";
+        let json = null;
         for (let i = 1; i <= 3; i++) {
             try {
                 res = await fetch(globalConfig.masterUrl, {
@@ -182,25 +184,18 @@ async function loadConfigFromCloud(silent = false) {
                         parentFolderId: rootId
                     })
                 });
-                break;
+                text = await res.text();
+                // HTML 에러 응답(404 등)일 경우 JSON.parse에서 에러가 발생하여 catch로 넘어감
+                json = JSON.parse(text);
+                break; // 성공 시 루프 탈출
             } catch (err) {
-                console.warn(`Fetch attempt ${i} failed:`, err);
+                console.warn(`Fetch attempt ${i} failed (Network or 404 HTML):`, err);
                 if (i === 3) throw err;
                 await new Promise(r => setTimeout(r, 1000 * i));
             }
         }
 
-        const text = await res.text();
         console.log("📡 Raw Response:", text);
-
-        let json;
-        try {
-            json = JSON.parse(text);
-        } catch (e) {
-            console.error("JSON Parse Error", e);
-            if (!silent) showToast("⚠️ 서버 응답 형식이 올바르지 않습니다.");
-            return false;
-        }
 
         if (json.status === "Success" && json.config) {
             console.log("✅ Config Loaded:", json.config);
@@ -12218,6 +12213,7 @@ async function loadClassAvgSettings(silent = false) {
         }
         // [구글 서버 간헐적 뻗음 방어] 최대 3회 재시도 로직 추가
         let res = null;
+        let d = null;
         for (let i = 1; i <= 3; i++) {
             try {
                 res = await fetch(globalConfig.masterUrl, {
@@ -12227,6 +12223,8 @@ async function loadClassAvgSettings(silent = false) {
                         parentFolderId: folderId
                     })
                 });
+                const text = await res.text();
+                d = JSON.parse(text); // HTML 에러 시 catch로 넘어감
                 break;
             } catch (err) {
                 console.warn(`Class Avg fetch attempt ${i} failed:`, err);
@@ -12234,7 +12232,6 @@ async function loadClassAvgSettings(silent = false) {
                 await new Promise(r => setTimeout(r, 1000 * i));
             }
         }
-        const d = JSON.parse(await res.text());
         if (d.status === "Success") {
             window.cachedClassAvgSettings = d.data || [];
             console.log("✅ 학급 평균 설정 로드 완료:", window.cachedClassAvgSettings);
