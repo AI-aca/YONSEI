@@ -170,15 +170,25 @@ async function loadConfigFromCloud(silent = false) {
 
 
         console.log(`📡 Fetching Config... Root: ${rootId}, URL: ${globalConfig.masterUrl}`);
-        // showToast(`📡 Loading... (${rootId ? 'Folder Set' : 'No Folder'})`);
 
-        const res = await fetch(globalConfig.masterUrl, {
-            method: "POST",
-            body: JSON.stringify({
-                type: "GET_CONFIG",
-                parentFolderId: rootId
-            })
-        });
+        // [구글 서버 간헐적 뻗음 방어] 최대 3회 재시도 로직 추가
+        let res = null;
+        for (let i = 1; i <= 3; i++) {
+            try {
+                res = await fetch(globalConfig.masterUrl, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        type: "GET_CONFIG",
+                        parentFolderId: rootId
+                    })
+                });
+                break;
+            } catch (err) {
+                console.warn(`Fetch attempt ${i} failed:`, err);
+                if (i === 3) throw err;
+                await new Promise(r => setTimeout(r, 1000 * i));
+            }
+        }
 
         const text = await res.text();
         console.log("📡 Raw Response:", text);
@@ -12206,13 +12216,24 @@ async function loadClassAvgSettings(silent = false) {
             if (!silent) showToast("⚠️ 메인 서버 폴더 설정을 먼저 진행해 주세요.");
             return false;
         }
-        const res = await fetch(globalConfig.masterUrl, {
-            method: "POST",
-            body: JSON.stringify({
-                type: "GET_CLASS_AVG",
-                parentFolderId: folderId
-            })
-        });
+        // [구글 서버 간헐적 뻗음 방어] 최대 3회 재시도 로직 추가
+        let res = null;
+        for (let i = 1; i <= 3; i++) {
+            try {
+                res = await fetch(globalConfig.masterUrl, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        type: "GET_CLASS_AVG",
+                        parentFolderId: folderId
+                    })
+                });
+                break;
+            } catch (err) {
+                console.warn(`Class Avg fetch attempt ${i} failed:`, err);
+                if (i === 3) throw err;
+                await new Promise(r => setTimeout(r, 1000 * i));
+            }
+        }
         const d = JSON.parse(await res.text());
         if (d.status === "Success") {
             window.cachedClassAvgSettings = d.data || [];
