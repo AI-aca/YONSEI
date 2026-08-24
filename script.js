@@ -42,8 +42,8 @@ let globalConfig = {
     categories: [], // { id, name, createdDate, targetFolderUrl }
     questions: [], // 로컬 캐싱된 문항 리스트
     classes: [], // 등록 학급 목록 예) ["중2A반", "중3B반"]
-    logo: "https://drive.google.com/thumbnail?id=1-w2OQx2-M504_S7eEis0hF6nljhP3HwM&sz=w1000", // [Refactor] Flattened from assets
-    banner: "https://drive.google.com/thumbnail?id=1-v3M4W_A3f5B-p9L75Bw3H5Z5kI7lJbX&sz=w1000", // [Refactor] Flattened from assets
+    logo: "https://drive.google.com/uc?id=1mxkDPO8g_0Ol2mk_bKTkit_XAKVGvC8F", // [Update] 사용자 제공 로고
+    banner: "https://drive.google.com/uc?id=1w0E_NNm4ssJnNfC4pYAy3GvMKTb70xaa", // [Update] 사용자 제공 배너
 };
 
 // --- 초기화 및 로컬 저장소 함수 ---
