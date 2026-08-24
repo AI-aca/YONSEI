@@ -1,5 +1,5 @@
 // --- 전역 설정 및 상태 관리 ---
-const DEFAULT_MASTER_URL = "https://script.google.com/macros/s/AKfycbw_wP7aQlfrUVyEZlORObmrQghbRBMz3qpmz7aMj18jTc4WkuZhRVlp2kFfYxPWH3jFmQ/exec";
+const DEFAULT_MASTER_URL = "https://script.google.com/macros/s/AKfycbzzOLVci94gCvoWw0r084XiJEDS2LHa5ps8zppBWD0FzcccV8Y81FYItKOb9xPWbkx4Eg/exec";
 // 중요: 본인의 Apps Script 배포 URL로 교체 필요 (설정 메뉴에서 입력 권장)
 const DEFAULT_TEST_ROOT_URL = "https://drive.google.com/drive/folders/18dd5Gssjlw9jGZJHmES91HWNxKVqD32A";
 
