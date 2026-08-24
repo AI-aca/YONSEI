@@ -54,6 +54,13 @@ function load() {
             const parsed = JSON.parse(data);
             // 병합 로직 (새로운 필드가 생길 수 있으므로)
             globalConfig = { ...globalConfig, ...parsed };
+            
+            // [강제 캐시 무효화] 폐기된 과거 GAS 링크가 캐시에서 복원되는 것 방지
+            if (globalConfig.masterUrl !== DEFAULT_MASTER_URL) {
+                globalConfig.masterUrl = DEFAULT_MASTER_URL;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(globalConfig));
+            }
+
             // 중첩 객체 병합 보정
             if (parsed.assets) {
                 // [Migration] 구버전 assets 객체가 있다면 평탄화하여 복구
@@ -139,10 +146,15 @@ async function saveConfigToCloud(silent = false) {
     }
 }
 
+let _isConfigLoading = false;
 async function loadConfigFromCloud(silent = false) {
+    if (_isConfigLoading) return true; // 중복 호출 방지 락
+    _isConfigLoading = true;
+
     if (!globalConfig.masterUrl) {
         console.error("Load Config Failed: No Master URL");
         if (!silent) showToast("⚠️ Master URL이 없습니다.");
+        _isConfigLoading = false;
         return false;
     }
 
@@ -225,6 +237,7 @@ async function loadConfigFromCloud(silent = false) {
         if (!silent) showToast("⚠️ 네트워크/서버 통신 실패");
         return false;
     } finally {
+        _isConfigLoading = false;
         if (!silent) toggleLoading(false);
     }
 }
