@@ -352,11 +352,12 @@ async function sendReliableRequest(payload, silent = false, maxRetries = 5) {
             // [Modified] Use custom timeout from opts or default 60s (Increased for large GET)
             const timeoutMs = (payload.timeout) ? payload.timeout : 60000;
 
-            // 브라우저의 TCP 커넥션 재사용에 의한 ERR_FAILED(CORS)를 방지하기 위해 매 시도마다 고유 URL 생성
-            const currentUrl = masterUrl + (masterUrl.includes('?') ? '&' : '?') + "retry=" + Date.now() + "_" + i;
+            // [Fix] 구글 서버의 CORS 차단을 피하기 위해 URL 대신 payload 내부에 난수 추가
+            payload._retryBuster = Date.now() + "_" + i;
 
-            const response = await fetchWithTimeout(currentUrl, {
+            const response = await fetchWithTimeout(masterUrl, {
                 method: 'POST',
+                cache: 'no-store', // [Fix] 브라우저 커넥션 재사용 차단 및 캐시 무시
                 // [Revert] Use default fetch behavior (like loadConfigFromCloud) which works reliably
                 // redirect: 'follow', 
                 // headers: { "Content-Type": "text/plain;charset=utf-8" }, 
@@ -418,8 +419,8 @@ async function sendReliableRequest(payload, silent = false, maxRetries = 5) {
                     throw e; // Throw original error if no-cors also fails
                 }
             }
-            // 점진적 대기 시간 증가 (1초, 2초, 4초, ...)
-            await new Promise(r => setTimeout(r, 1000 * Math.pow(1.2, i)));
+            // 점진적 대기 시간 증가 (구글 방화벽 차단 방지용: 2초, 4초, 6초...)
+            await new Promise(r => setTimeout(r, 2000 * i));
         }
     }
 }
