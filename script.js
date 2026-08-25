@@ -4875,6 +4875,16 @@ function normalizeGrade(grade) {
 // AI 코멘트 문장 부호(., ?, !) 뒤 띄어쓰기 보정 헬퍼
 function cleanCommentSpacing(text) {
     if (!text || typeof text !== 'string') return text;
+    
+    // [추가] AI 특유의 장황한 '단계' 서술어 물리적 원천 봉쇄 (강제 다이어트)
+    text = text.replace(/하는 단계에 해당(합니다|됩니다)/g, '합니다')
+               .replace(/한 단계에 해당(합니다|됩니다)/g, '합니다')
+               .replace(/인 단계에 해당(합니다|됩니다)/g, '입니다')
+               .replace(/단계에 해당(합니다|됩니다)/g, '수준입니다')
+               .replace(/하는 단계입니다/g, '합니다')
+               .replace(/한 단계입니다/g, '합니다')
+               .replace(/인 단계입니다/g, '입니다');
+
     // 마침표(.), 물음표(?), 느낌표(!) 뒤에 한글(가-힣) 또는 영문 대소문자(a-zA-Z)가 공백 없이 바로 붙어 나오는 경우 공백 삽입
     return text.replace(/([\.!\?])([가-힣a-zA-Z])/g, '$1 $2');
 }
@@ -8458,7 +8468,36 @@ async function generateOverallComment(record, averages, activeSections, sectionC
         _gapRuleAppend = ' ⛔ 주의: 모든 영역이 하위권인데 편차가 적은 것이므로 절대 "균형 잡힌 강점"이라고 포장하지 말고 전반적인 기초 보완이 시급함을 지적하세요.';
     }
 
-    let diffAnalysis = window._globalDiffAnalysis || '';
+    let diffAnalysis = '';
+    try {
+        const qsRaw = record.questionScores || (window.currentReportData && window.currentReportData.record ? window.currentReportData.record.questionScores : null);
+        let questionScores = [];
+        if (qsRaw) {
+            questionScores = typeof qsRaw === 'string' ? JSON.parse(qsRaw) : qsRaw;
+        }
+        if (questionScores && questionScores.length > 0) {
+            const diffStats = { '하': { total: 0, wrong: 0 }, '중': { total: 0, wrong: 0 }, '상': { total: 0, wrong: 0 }, '최상': { total: 0, wrong: 0 }, '기초': { total: 0, wrong: 0 } };
+            questionScores.forEach(q => {
+                const meta = getQuestionMeta(record.grade || record['학년'], q.no);
+                if (meta && meta.diff) {
+                    const d = meta.diff;
+                    if (!diffStats[d]) diffStats[d] = { total: 0, wrong: 0 };
+                    diffStats[d].total++;
+                    const isWrong = (q.correct === false || q.correct === 'X') || (parseFloat(q.score || 0) < parseFloat(q.maxScore || 0));
+                    if (isWrong) diffStats[d].wrong++;
+                }
+            });
+            let diffLines = [];
+            ['기초', '하', '중', '상', '최상'].forEach(d => {
+                if (diffStats[d] && diffStats[d].total > 0) {
+                    diffLines.push(`난이도[${d}]: ${diffStats[d].total}문제 중 ${diffStats[d].wrong}문제 오답`);
+                }
+            });
+            if (diffLines.length > 0) {
+                diffAnalysis = `\n[문항 난이도별 오답 현황 (종합)]\n${diffLines.join('\n')}\n* 참고: 하/기초 오답이 많으면 기초 부실, 최상 오답이 많으면 심화 적용 부족을 의미합니다.`;
+            }
+        }
+    } catch(e) { console.error("Difficulty analysis error:", e); }
 
     const prompt = `${gradeTone}
 
