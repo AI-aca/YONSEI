@@ -8363,7 +8363,7 @@ async function generateOverallComment(record, averages, activeSections, sectionC
     const classLabelText = isLowestMode ? '최저학급' : '권장학급';
 
     const _oaClsData = (targetCompareClass && _oaGrd) ? computeClassAvg(targetCompareClass, _oaGrd, null) : null;
-    const clsTotalAvg = _oaClsData ? parseFloat(_oaClsData['총점'] || 0) : null;
+    let clsTotalAvg = _oaClsData ? parseFloat(_oaClsData['총점'] || 0) : null;
     const _clsTotalRecs = (targetCompareClass && _oaGrd) ? _allRecordsOA.filter(r =>
         normalizeGrade(r['학년'] || r.grade || '') === normalizeGrade(_oaGrd) && String(r.studentClass || r['등록학급'] || '').trim() === String(targetCompareClass).trim()
     ) : [];
@@ -8390,7 +8390,8 @@ async function generateOverallComment(record, averages, activeSections, sectionC
     const _clsTotalScoresShifted = _clsTotalScores.map(v => v + finalShiftTotal);
 
     const _clsTotalAbove = _clsTotalScoresShifted.filter(s => s > totalScore).length;
-    const clsTotalPercentile = _clsTotalScoresShifted.length > 0 ? Math.min(100, Math.round((_clsTotalAbove / _clsTotalScoresShifted.length) * 100) + 1) : null;
+    let clsTotalPercentile = _clsTotalScoresShifted.length > 0 ? Math.min(100, Math.round((_clsTotalAbove / _clsTotalScoresShifted.length) * 100) + 1) : null;
+    if (isLowestMode) { clsTotalAvg = null; clsTotalPercentile = null; }
 
     const gradeTone = getGradeTone(record.grade || record['학년']);
 
