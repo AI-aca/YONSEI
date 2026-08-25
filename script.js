@@ -7,6 +7,2962 @@ const DEFAULT_TEST_ROOT_URL = "https://drive.google.com/drive/folders/18dd5Gssjl
 const STORAGE_KEY = "YONSEI_PREMIUM_CONFIG_V2";
 
 // 전역 상태 변수
+// --- [NEW] 문항별 난이도/유형 메타데이터 ---
+const QUESTION_META = {
+  "초5~초6": {
+    "1": {
+      "section": "Listening",
+      "subType": "그림 묘사",
+      "type": "객관형",
+      "diff": "하"
+    },
+    "2": {
+      "section": "Listening",
+      "subType": "그림 묘사",
+      "type": "객관형",
+      "diff": "하"
+    },
+    "3": {
+      "section": "Listening",
+      "subType": "그림 묘사",
+      "type": "객관형",
+      "diff": "하"
+    },
+    "4": {
+      "section": "Listening",
+      "subType": "그림 묘사",
+      "type": "객관형",
+      "diff": "하"
+    },
+    "5": {
+      "section": "Listening",
+      "subType": "그림 묘사",
+      "type": "객관형",
+      "diff": "하"
+    },
+    "6": {
+      "section": "Listening",
+      "subType": "세부사항",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "7": {
+      "section": "Listening",
+      "subType": "세부사항",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "8": {
+      "section": "Listening",
+      "subType": "세부사항",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "9": {
+      "section": "Listening",
+      "subType": "세부사항",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "10": {
+      "section": "Listening",
+      "subType": "세부사항",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "11": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "하"
+    },
+    "12": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "하"
+    },
+    "13": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "하"
+    },
+    "14": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "하"
+    },
+    "15": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "하"
+    },
+    "16": {
+      "section": "Listening",
+      "subType": "정보 요약",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "17": {
+      "section": "Listening",
+      "subType": "정보 요약",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "18": {
+      "section": "Listening",
+      "subType": "정보 요약",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "19": {
+      "section": "Listening",
+      "subType": "정보 요약",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "20": {
+      "section": "Listening",
+      "subType": "정보 요약",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "21": {
+      "section": "Listening",
+      "subType": "정보 요약",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "22": {
+      "section": "Listening",
+      "subType": "정보 요약",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "23": {
+      "section": "Listening",
+      "subType": "정보 요약",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "24": {
+      "section": "Listening",
+      "subType": "정보 요약",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "25": {
+      "section": "Listening",
+      "subType": "정보 요약",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "26": {
+      "section": "Reading",
+      "subType": "문장 의미",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "27": {
+      "section": "Reading",
+      "subType": "문장 의미",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "28": {
+      "section": "Reading",
+      "subType": "문장 의미",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "29": {
+      "section": "Reading",
+      "subType": "문장 의미",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "30": {
+      "section": "Reading",
+      "subType": "문장 의미",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "31": {
+      "section": "Reading",
+      "subType": "어휘 활용",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "32": {
+      "section": "Reading",
+      "subType": "어휘 활용",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "33": {
+      "section": "Reading",
+      "subType": "어휘 활용",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "34": {
+      "section": "Reading",
+      "subType": "어휘 활용",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "35": {
+      "section": "Reading",
+      "subType": "어휘 활용",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "36": {
+      "section": "Reading",
+      "subType": "문장 연결성",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "37": {
+      "section": "Reading",
+      "subType": "문장 연결성",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "38": {
+      "section": "Reading",
+      "subType": "문장 연결성",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "39": {
+      "section": "Reading",
+      "subType": "문장 연결성",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "40": {
+      "section": "Reading",
+      "subType": "문장 연결성",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "41": {
+      "section": "Reading",
+      "subType": "문장 연결성",
+      "type": "주관형",
+      "diff": "상"
+    },
+    "42": {
+      "section": "Reading",
+      "subType": "문장 연결성",
+      "type": "주관형",
+      "diff": "상"
+    },
+    "43": {
+      "section": "Reading",
+      "subType": "문장 연결성",
+      "type": "주관형",
+      "diff": "상"
+    },
+    "44": {
+      "section": "Reading",
+      "subType": "문장 연결성",
+      "type": "주관형",
+      "diff": "상"
+    },
+    "45": {
+      "section": "Reading",
+      "subType": "문장 연결성",
+      "type": "주관형",
+      "diff": "상"
+    },
+    "46": {
+      "section": "Reading",
+      "subType": "세부사항",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "47": {
+      "section": "Reading",
+      "subType": "세부사항",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "48": {
+      "section": "Reading",
+      "subType": "세부사항",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "49": {
+      "section": "Reading",
+      "subType": "세부사항",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "50": {
+      "section": "Reading",
+      "subType": "세부사항",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "51": {
+      "section": "Reading",
+      "subType": "세부사항",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "52": {
+      "section": "Reading",
+      "subType": "세부사항",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "53": {
+      "section": "Reading",
+      "subType": "빈칸추론",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "54": {
+      "section": "Reading",
+      "subType": "빈칸추론",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "55": {
+      "section": "Reading",
+      "subType": "빈칸추론",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "56": {
+      "section": "Reading",
+      "subType": "빈칸추론",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "57": {
+      "section": "Reading",
+      "subType": "빈칸추론",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "58": {
+      "section": "Reading",
+      "subType": "빈칸추론",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "59": {
+      "section": "Reading",
+      "subType": "빈칸추론",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "60": {
+      "section": "Reading",
+      "subType": "빈칸추론",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "61": {
+      "section": "Reading",
+      "subType": "어휘 추론",
+      "type": "주관형",
+      "diff": "기초"
+    },
+    "62": {
+      "section": "Reading",
+      "subType": "어휘 추론",
+      "type": "주관형",
+      "diff": "기초"
+    },
+    "63": {
+      "section": "Reading",
+      "subType": "어휘 추론",
+      "type": "주관형",
+      "diff": "기초"
+    },
+    "64": {
+      "section": "Reading",
+      "subType": "어휘 추론",
+      "type": "주관형",
+      "diff": "기초"
+    },
+    "65": {
+      "section": "Reading",
+      "subType": "어휘 추론",
+      "type": "주관형",
+      "diff": "기초"
+    },
+    "66": {
+      "section": "Writing",
+      "subType": "문장 완성",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "67": {
+      "section": "Writing",
+      "subType": "문장 완성",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "68": {
+      "section": "Writing",
+      "subType": "문장 완성",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "69": {
+      "section": "Writing",
+      "subType": "문장 완성",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "70": {
+      "section": "Writing",
+      "subType": "문장 완성",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "71": {
+      "section": "Writing",
+      "subType": "문장 완성",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "72": {
+      "section": "Writing",
+      "subType": "문장 완성",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "73": {
+      "section": "Writing",
+      "subType": "문장 완성",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "74": {
+      "section": "Writing",
+      "subType": "문장 완성",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "75": {
+      "section": "Writing",
+      "subType": "문장 완성",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "76": {
+      "section": "Writing",
+      "subType": "글 요약",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "77": {
+      "section": "Writing",
+      "subType": "글 요약",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "78": {
+      "section": "Writing",
+      "subType": "글 요약",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "79": {
+      "section": "Writing",
+      "subType": "글 요약",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "80": {
+      "section": "Writing",
+      "subType": "문장 완성",
+      "type": "주관형",
+      "diff": "하"
+    }
+  },
+  "중1": {
+    "1": {
+      "section": "Listening",
+      "subType": "세부사항",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "2": {
+      "section": "Listening",
+      "subType": "목적 파악",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "3": {
+      "section": "Listening",
+      "subType": "상황파악",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "4": {
+      "section": "Listening",
+      "subType": "주제",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "5": {
+      "section": "Listening",
+      "subType": "세부사항",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "6": {
+      "section": "Listening",
+      "subType": "그림 묘사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "7": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "8": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "9": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "10": {
+      "section": "Listening",
+      "subType": "상황파악",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "11": {
+      "section": "Listening",
+      "subType": "그림 묘사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "12": {
+      "section": "Listening",
+      "subType": "심리/심경",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "13": {
+      "section": "Listening",
+      "subType": "묘사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "14": {
+      "section": "Listening",
+      "subType": "세부사항",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "15": {
+      "section": "Listening",
+      "subType": "계산",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "16": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "17": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "18": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "19": {
+      "section": "Listening",
+      "subType": "계산",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "20": {
+      "section": "Listening",
+      "subType": "세부사항",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "21": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "22": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "23": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "24": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "25": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "26": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "27": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "28": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "29": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "30": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "31": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "32": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "33": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "34": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "35": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "36": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "37": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "38": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "39": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "40": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "41": {
+      "section": "Vocabulary",
+      "subType": "레벨1",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "42": {
+      "section": "Vocabulary",
+      "subType": "레벨1",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "43": {
+      "section": "Vocabulary",
+      "subType": "레벨1",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "44": {
+      "section": "Vocabulary",
+      "subType": "레벨1",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "45": {
+      "section": "Vocabulary",
+      "subType": "레벨2",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "46": {
+      "section": "Vocabulary",
+      "subType": "레벨2",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "47": {
+      "section": "Vocabulary",
+      "subType": "레벨2",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "48": {
+      "section": "Vocabulary",
+      "subType": "레벨2",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "49": {
+      "section": "Vocabulary",
+      "subType": "레벨3",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "50": {
+      "section": "Vocabulary",
+      "subType": "레벨3",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "51": {
+      "section": "Vocabulary",
+      "subType": "레벨3",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "52": {
+      "section": "Vocabulary",
+      "subType": "레벨3",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "53": {
+      "section": "Vocabulary",
+      "subType": "레벨4",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "54": {
+      "section": "Vocabulary",
+      "subType": "레벨4",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "55": {
+      "section": "Vocabulary",
+      "subType": "레벨4",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "56": {
+      "section": "Vocabulary",
+      "subType": "레벨4",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "57": {
+      "section": "Vocabulary",
+      "subType": "레벨5",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "58": {
+      "section": "Vocabulary",
+      "subType": "레벨5",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "59": {
+      "section": "Vocabulary",
+      "subType": "레벨5",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "60": {
+      "section": "Vocabulary",
+      "subType": "레벨5",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "61": {
+      "section": "Vocabulary",
+      "subType": "레벨6",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "62": {
+      "section": "Vocabulary",
+      "subType": "레벨6",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "63": {
+      "section": "Vocabulary",
+      "subType": "레벨6",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "64": {
+      "section": "Vocabulary",
+      "subType": "레벨6",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "65": {
+      "section": "Vocabulary",
+      "subType": "레벨7",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "66": {
+      "section": "Vocabulary",
+      "subType": "레벨7",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "67": {
+      "section": "Vocabulary",
+      "subType": "레벨7",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "68": {
+      "section": "Vocabulary",
+      "subType": "레벨7",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "69": {
+      "section": "Vocabulary",
+      "subType": "숙어",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "70": {
+      "section": "Vocabulary",
+      "subType": "숙어",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "71": {
+      "section": "Vocabulary",
+      "subType": "숙어",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "72": {
+      "section": "Vocabulary",
+      "subType": "숙어",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "73": {
+      "section": "Vocabulary",
+      "subType": "레벨1",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "74": {
+      "section": "Vocabulary",
+      "subType": "레벨1",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "75": {
+      "section": "Vocabulary",
+      "subType": "레벨2",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "76": {
+      "section": "Vocabulary",
+      "subType": "레벨2",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "77": {
+      "section": "Vocabulary",
+      "subType": "레벨3",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "78": {
+      "section": "Vocabulary",
+      "subType": "레벨3",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "79": {
+      "section": "Vocabulary",
+      "subType": "레벨4",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "80": {
+      "section": "Vocabulary",
+      "subType": "레벨4",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "81": {
+      "section": "Vocabulary",
+      "subType": "레벨5",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "82": {
+      "section": "Vocabulary",
+      "subType": "레벨5",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "83": {
+      "section": "Vocabulary",
+      "subType": "레벨6",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "84": {
+      "section": "Vocabulary",
+      "subType": "레벨6",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "85": {
+      "section": "Vocabulary",
+      "subType": "레벨7",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "86": {
+      "section": "Vocabulary",
+      "subType": "레벨7",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "87": {
+      "section": "Vocabulary",
+      "subType": "숙어",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "88": {
+      "section": "Reading",
+      "subType": "내용 일치",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "89": {
+      "section": "Reading",
+      "subType": "내용 일치",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "90": {
+      "section": "Reading",
+      "subType": "내용 일치",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "91": {
+      "section": "Reading",
+      "subType": "내용 일치",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "92": {
+      "section": "Reading",
+      "subType": "내용 일치",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "93": {
+      "section": "Reading",
+      "subType": "내용 일치",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "94": {
+      "section": "Reading",
+      "subType": "내용 일치",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "95": {
+      "section": "Reading",
+      "subType": "내용 일치",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "96": {
+      "section": "Reading",
+      "subType": "요약/요지",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "97": {
+      "section": "Reading",
+      "subType": "주제",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "98": {
+      "section": "Reading",
+      "subType": "내용 일치",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "99": {
+      "section": "Reading",
+      "subType": "목적",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "100": {
+      "section": "Reading",
+      "subType": "삽입",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "101": {
+      "section": "Reading",
+      "subType": "요약/요지",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "102": {
+      "section": "Reading",
+      "subType": "내용 일치",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "103": {
+      "section": "Reading",
+      "subType": "어휘 추론",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "104": {
+      "section": "Reading",
+      "subType": "추론",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "105": {
+      "section": "Reading",
+      "subType": "순서",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "106": {
+      "section": "Reading",
+      "subType": "빈칸추론",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "107": {
+      "section": "Reading",
+      "subType": "제목",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "108": {
+      "section": "Reading",
+      "subType": "순서",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "109": {
+      "section": "Reading",
+      "subType": "빈칸추론",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "110": {
+      "section": "Reading",
+      "subType": "내용 일치",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "111": {
+      "section": "Reading",
+      "subType": "추론",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "112": {
+      "section": "Grammar",
+      "subType": "시제",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "113": {
+      "section": "Grammar",
+      "subType": "시제",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "114": {
+      "section": "Grammar",
+      "subType": "조동사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "115": {
+      "section": "Grammar",
+      "subType": "준동사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "116": {
+      "section": "Grammar",
+      "subType": "준동사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "117": {
+      "section": "Grammar",
+      "subType": "명사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "118": {
+      "section": "Grammar",
+      "subType": "접속사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "119": {
+      "section": "Grammar",
+      "subType": "접속사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "120": {
+      "section": "Grammar",
+      "subType": "관계사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "121": {
+      "section": "Grammar",
+      "subType": "수일치",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "122": {
+      "section": "Grammar",
+      "subType": "형용사/부사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "123": {
+      "section": "Grammar",
+      "subType": "비교급",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "124": {
+      "section": "Grammar",
+      "subType": "수동태",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "125": {
+      "section": "Grammar",
+      "subType": "수동태",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "126": {
+      "section": "Grammar",
+      "subType": "형식",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "127": {
+      "section": "Grammar",
+      "subType": "형식",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "128": {
+      "section": "Grammar",
+      "subType": "준동사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "129": {
+      "section": "Grammar",
+      "subType": "준동사",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "130": {
+      "section": "Grammar",
+      "subType": "준동사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "131": {
+      "section": "Grammar",
+      "subType": "관계사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "132": {
+      "section": "Grammar",
+      "subType": "가정법",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "133": {
+      "section": "Grammar",
+      "subType": "가정법",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "134": {
+      "section": "Grammar",
+      "subType": "지칭 복합",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "135": {
+      "section": "Grammar",
+      "subType": "관계사",
+      "type": "객관형",
+      "diff": "상"
+    }
+  },
+  "중2": {
+    "1": {
+      "section": "Listening",
+      "subType": "세부사항",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "2": {
+      "section": "Listening",
+      "subType": "목적 파악",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "3": {
+      "section": "Listening",
+      "subType": "상황파악",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "4": {
+      "section": "Listening",
+      "subType": "주제",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "5": {
+      "section": "Listening",
+      "subType": "세부사항",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "6": {
+      "section": "Listening",
+      "subType": "그림 묘사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "7": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "8": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "9": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "10": {
+      "section": "Listening",
+      "subType": "상황파악",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "11": {
+      "section": "Listening",
+      "subType": "그림 묘사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "12": {
+      "section": "Listening",
+      "subType": "심리/심경",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "13": {
+      "section": "Listening",
+      "subType": "묘사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "14": {
+      "section": "Listening",
+      "subType": "세부사항",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "15": {
+      "section": "Listening",
+      "subType": "계산",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "16": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "17": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "18": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "19": {
+      "section": "Listening",
+      "subType": "계산",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "20": {
+      "section": "Listening",
+      "subType": "세부사항",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "21": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "22": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "23": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "24": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "25": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "26": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "27": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "28": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "29": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "30": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "31": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "32": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "33": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "34": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "35": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "36": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "37": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "38": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "39": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "40": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "41": {
+      "section": "Vocabulary",
+      "subType": "레벨1",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "42": {
+      "section": "Vocabulary",
+      "subType": "레벨1",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "43": {
+      "section": "Vocabulary",
+      "subType": "레벨1",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "44": {
+      "section": "Vocabulary",
+      "subType": "레벨1",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "45": {
+      "section": "Vocabulary",
+      "subType": "레벨2",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "46": {
+      "section": "Vocabulary",
+      "subType": "레벨2",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "47": {
+      "section": "Vocabulary",
+      "subType": "레벨2",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "48": {
+      "section": "Vocabulary",
+      "subType": "레벨2",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "49": {
+      "section": "Vocabulary",
+      "subType": "레벨3",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "50": {
+      "section": "Vocabulary",
+      "subType": "레벨3",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "51": {
+      "section": "Vocabulary",
+      "subType": "레벨3",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "52": {
+      "section": "Vocabulary",
+      "subType": "레벨3",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "53": {
+      "section": "Vocabulary",
+      "subType": "레벨4",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "54": {
+      "section": "Vocabulary",
+      "subType": "레벨4",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "55": {
+      "section": "Vocabulary",
+      "subType": "레벨4",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "56": {
+      "section": "Vocabulary",
+      "subType": "레벨4",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "57": {
+      "section": "Vocabulary",
+      "subType": "레벨5",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "58": {
+      "section": "Vocabulary",
+      "subType": "레벨5",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "59": {
+      "section": "Vocabulary",
+      "subType": "레벨5",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "60": {
+      "section": "Vocabulary",
+      "subType": "레벨5",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "61": {
+      "section": "Vocabulary",
+      "subType": "레벨6",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "62": {
+      "section": "Vocabulary",
+      "subType": "레벨6",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "63": {
+      "section": "Vocabulary",
+      "subType": "레벨6",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "64": {
+      "section": "Vocabulary",
+      "subType": "레벨6",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "65": {
+      "section": "Vocabulary",
+      "subType": "레벨7",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "66": {
+      "section": "Vocabulary",
+      "subType": "레벨7",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "67": {
+      "section": "Vocabulary",
+      "subType": "레벨7",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "68": {
+      "section": "Vocabulary",
+      "subType": "레벨7",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "69": {
+      "section": "Vocabulary",
+      "subType": "숙어",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "70": {
+      "section": "Vocabulary",
+      "subType": "숙어",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "71": {
+      "section": "Vocabulary",
+      "subType": "숙어",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "72": {
+      "section": "Vocabulary",
+      "subType": "숙어",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "73": {
+      "section": "Vocabulary",
+      "subType": "레벨1",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "74": {
+      "section": "Vocabulary",
+      "subType": "레벨1",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "75": {
+      "section": "Vocabulary",
+      "subType": "레벨2",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "76": {
+      "section": "Vocabulary",
+      "subType": "레벨2",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "77": {
+      "section": "Vocabulary",
+      "subType": "레벨3",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "78": {
+      "section": "Vocabulary",
+      "subType": "레벨3",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "79": {
+      "section": "Vocabulary",
+      "subType": "레벨4",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "80": {
+      "section": "Vocabulary",
+      "subType": "레벨4",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "81": {
+      "section": "Vocabulary",
+      "subType": "레벨5",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "82": {
+      "section": "Vocabulary",
+      "subType": "레벨5",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "83": {
+      "section": "Vocabulary",
+      "subType": "레벨6",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "84": {
+      "section": "Vocabulary",
+      "subType": "레벨6",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "85": {
+      "section": "Vocabulary",
+      "subType": "레벨7",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "86": {
+      "section": "Vocabulary",
+      "subType": "레벨7",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "87": {
+      "section": "Vocabulary",
+      "subType": "숙어",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "88": {
+      "section": "Reading",
+      "subType": "대의 파악",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "89": {
+      "section": "Reading",
+      "subType": "대의 파악",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "90": {
+      "section": "Reading",
+      "subType": "어휘 활용",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "91": {
+      "section": "Reading",
+      "subType": "지칭",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "92": {
+      "section": "Reading",
+      "subType": "내용 일치",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "93": {
+      "section": "Reading",
+      "subType": "흐름",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "94": {
+      "section": "Reading",
+      "subType": "순서",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "95": {
+      "section": "Reading",
+      "subType": "요약/요지",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "96": {
+      "section": "Reading",
+      "subType": "장문 제목",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "97": {
+      "section": "Reading",
+      "subType": "장문 빈칸",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "98": {
+      "section": "Reading",
+      "subType": "흐름",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "99": {
+      "section": "Reading",
+      "subType": "심리/심경",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "100": {
+      "section": "Reading",
+      "subType": "내용 일치",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "101": {
+      "section": "Reading",
+      "subType": "대의 파악",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "102": {
+      "section": "Reading",
+      "subType": "순서",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "103": {
+      "section": "Reading",
+      "subType": "대의 파악",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "104": {
+      "section": "Reading",
+      "subType": "삽입",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "105": {
+      "section": "Reading",
+      "subType": "빈칸추론",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "106": {
+      "section": "Reading",
+      "subType": "삽입",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "107": {
+      "section": "Reading",
+      "subType": "빈칸추론",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "108": {
+      "section": "Reading",
+      "subType": "대의 파악",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "109": {
+      "section": "Reading",
+      "subType": "어휘 활용",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "110": {
+      "section": "Reading",
+      "subType": "요약/요지",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "111": {
+      "section": "Reading",
+      "subType": "대의 파악",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "112": {
+      "section": "Grammar",
+      "subType": "형식",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "113": {
+      "section": "Grammar",
+      "subType": "대명사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "114": {
+      "section": "Grammar",
+      "subType": "형식",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "115": {
+      "section": "Grammar",
+      "subType": "형식",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "116": {
+      "section": "Grammar",
+      "subType": "조동사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "117": {
+      "section": "Grammar",
+      "subType": "to부정사",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "118": {
+      "section": "Grammar",
+      "subType": "to부정사/동명사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "119": {
+      "section": "Grammar",
+      "subType": "to부정사/동명사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "120": {
+      "section": "Grammar",
+      "subType": "관계사/접속사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "121": {
+      "section": "Grammar",
+      "subType": "형용사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "122": {
+      "section": "Grammar",
+      "subType": "비교급",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "123": {
+      "section": "Grammar",
+      "subType": "접속사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "124": {
+      "section": "Grammar",
+      "subType": "to부정사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "125": {
+      "section": "Grammar",
+      "subType": "가정법",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "126": {
+      "section": "Grammar",
+      "subType": "분사구문",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "127": {
+      "section": "Grammar",
+      "subType": "분사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "128": {
+      "section": "Grammar",
+      "subType": "관계사/의문사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "129": {
+      "section": "Grammar",
+      "subType": "형식",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "130": {
+      "section": "Grammar",
+      "subType": "관계사",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "131": {
+      "section": "Grammar",
+      "subType": "관계사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "132": {
+      "section": "Grammar",
+      "subType": "특수구문",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "133": {
+      "section": "Grammar",
+      "subType": "to부정사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "134": {
+      "section": "Grammar",
+      "subType": "비교급",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "135": {
+      "section": "Grammar",
+      "subType": "시제",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "136": {
+      "section": "Grammar",
+      "subType": "시제",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "137": {
+      "section": "Grammar",
+      "subType": "수동태",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "138": {
+      "section": "Grammar",
+      "subType": "일치/화법",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "139": {
+      "section": "Grammar",
+      "subType": "가정법",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "140": {
+      "section": "Grammar",
+      "subType": "수동태",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "141": {
+      "section": "Grammar",
+      "subType": "형식",
+      "type": "객관형",
+      "diff": "중"
+    }
+  },
+  "중3": {
+    "1": {
+      "section": "Listening",
+      "subType": "세부사항",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "2": {
+      "section": "Listening",
+      "subType": "목적 파악",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "3": {
+      "section": "Listening",
+      "subType": "상황파악",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "4": {
+      "section": "Listening",
+      "subType": "주제",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "5": {
+      "section": "Listening",
+      "subType": "세부사항",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "6": {
+      "section": "Listening",
+      "subType": "그림 묘사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "7": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "8": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "9": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "10": {
+      "section": "Listening",
+      "subType": "상황파악",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "11": {
+      "section": "Listening",
+      "subType": "그림 묘사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "12": {
+      "section": "Listening",
+      "subType": "심리/심경",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "13": {
+      "section": "Listening",
+      "subType": "묘사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "14": {
+      "section": "Listening",
+      "subType": "세부사항",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "15": {
+      "section": "Listening",
+      "subType": "계산",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "16": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "17": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "18": {
+      "section": "Listening",
+      "subType": "응답",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "19": {
+      "section": "Listening",
+      "subType": "계산",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "20": {
+      "section": "Listening",
+      "subType": "세부사항",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "21": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "22": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "23": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "24": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "25": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "26": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "27": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "28": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "29": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "30": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "31": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "32": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "33": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "34": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "35": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "36": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "37": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "38": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "39": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "40": {
+      "section": "Listening",
+      "subType": "받아쓰기",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "41": {
+      "section": "Vocabulary",
+      "subType": "레벨1",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "42": {
+      "section": "Vocabulary",
+      "subType": "레벨1",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "43": {
+      "section": "Vocabulary",
+      "subType": "레벨1",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "44": {
+      "section": "Vocabulary",
+      "subType": "레벨1",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "45": {
+      "section": "Vocabulary",
+      "subType": "레벨2",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "46": {
+      "section": "Vocabulary",
+      "subType": "레벨2",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "47": {
+      "section": "Vocabulary",
+      "subType": "레벨2",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "48": {
+      "section": "Vocabulary",
+      "subType": "레벨2",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "49": {
+      "section": "Vocabulary",
+      "subType": "레벨3",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "50": {
+      "section": "Vocabulary",
+      "subType": "레벨3",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "51": {
+      "section": "Vocabulary",
+      "subType": "레벨3",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "52": {
+      "section": "Vocabulary",
+      "subType": "레벨3",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "53": {
+      "section": "Vocabulary",
+      "subType": "레벨4",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "54": {
+      "section": "Vocabulary",
+      "subType": "레벨4",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "55": {
+      "section": "Vocabulary",
+      "subType": "레벨4",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "56": {
+      "section": "Vocabulary",
+      "subType": "레벨4",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "57": {
+      "section": "Vocabulary",
+      "subType": "레벨5",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "58": {
+      "section": "Vocabulary",
+      "subType": "레벨5",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "59": {
+      "section": "Vocabulary",
+      "subType": "레벨5",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "60": {
+      "section": "Vocabulary",
+      "subType": "레벨5",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "61": {
+      "section": "Vocabulary",
+      "subType": "레벨6",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "62": {
+      "section": "Vocabulary",
+      "subType": "레벨6",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "63": {
+      "section": "Vocabulary",
+      "subType": "레벨6",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "64": {
+      "section": "Vocabulary",
+      "subType": "레벨6",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "65": {
+      "section": "Vocabulary",
+      "subType": "레벨7",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "66": {
+      "section": "Vocabulary",
+      "subType": "레벨7",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "67": {
+      "section": "Vocabulary",
+      "subType": "레벨7",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "68": {
+      "section": "Vocabulary",
+      "subType": "레벨7",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "69": {
+      "section": "Vocabulary",
+      "subType": "숙어",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "70": {
+      "section": "Vocabulary",
+      "subType": "숙어",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "71": {
+      "section": "Vocabulary",
+      "subType": "숙어",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "72": {
+      "section": "Vocabulary",
+      "subType": "숙어",
+      "type": "주관형",
+      "diff": "하"
+    },
+    "73": {
+      "section": "Vocabulary",
+      "subType": "레벨1",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "74": {
+      "section": "Vocabulary",
+      "subType": "레벨1",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "75": {
+      "section": "Vocabulary",
+      "subType": "레벨2",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "76": {
+      "section": "Vocabulary",
+      "subType": "레벨2",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "77": {
+      "section": "Vocabulary",
+      "subType": "레벨3",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "78": {
+      "section": "Vocabulary",
+      "subType": "레벨3",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "79": {
+      "section": "Vocabulary",
+      "subType": "레벨4",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "80": {
+      "section": "Vocabulary",
+      "subType": "레벨4",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "81": {
+      "section": "Vocabulary",
+      "subType": "레벨5",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "82": {
+      "section": "Vocabulary",
+      "subType": "레벨5",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "83": {
+      "section": "Vocabulary",
+      "subType": "레벨6",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "84": {
+      "section": "Vocabulary",
+      "subType": "레벨6",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "85": {
+      "section": "Vocabulary",
+      "subType": "레벨7",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "86": {
+      "section": "Vocabulary",
+      "subType": "레벨7",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "87": {
+      "section": "Vocabulary",
+      "subType": "숙어",
+      "type": "주관형",
+      "diff": "중"
+    },
+    "88": {
+      "section": "Reading",
+      "subType": "빈칸추론",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "89": {
+      "section": "Reading",
+      "subType": "요약/요지",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "90": {
+      "section": "Reading",
+      "subType": "어휘 추론",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "91": {
+      "section": "Reading",
+      "subType": "장문 제목",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "92": {
+      "section": "Reading",
+      "subType": "요약/요지",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "93": {
+      "section": "Reading",
+      "subType": "순서",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "94": {
+      "section": "Reading",
+      "subType": "요약/요지",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "95": {
+      "section": "Reading",
+      "subType": "빈칸추론",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "96": {
+      "section": "Reading",
+      "subType": "주제",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "97": {
+      "section": "Reading",
+      "subType": "삽입",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "98": {
+      "section": "Reading",
+      "subType": "순서",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "99": {
+      "section": "Reading",
+      "subType": "요약/요지",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "100": {
+      "section": "Reading",
+      "subType": "요약/요지",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "101": {
+      "section": "Reading",
+      "subType": "연결사",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "102": {
+      "section": "Reading",
+      "subType": "제목",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "103": {
+      "section": "Reading",
+      "subType": "장문 빈칸",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "104": {
+      "section": "Reading",
+      "subType": "밑줄 추론",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "105": {
+      "section": "Reading",
+      "subType": "삽입",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "106": {
+      "section": "Reading",
+      "subType": "빈칸추론",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "107": {
+      "section": "Reading",
+      "subType": "삽입",
+      "type": "객관형",
+      "diff": "상"
+    },
+    "108": {
+      "section": "Grammar",
+      "subType": "화법",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "109": {
+      "section": "Grammar",
+      "subType": "형식",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "110": {
+      "section": "Grammar",
+      "subType": "가정법",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "111": {
+      "section": "Grammar",
+      "subType": "수동태",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "112": {
+      "section": "Grammar",
+      "subType": "관계대명사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "113": {
+      "section": "Grammar",
+      "subType": "관계부사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "114": {
+      "section": "Grammar",
+      "subType": "가정법",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "115": {
+      "section": "Grammar",
+      "subType": "시제",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "116": {
+      "section": "Grammar",
+      "subType": "수일치",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "117": {
+      "section": "Grammar",
+      "subType": "비교급",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "118": {
+      "section": "Grammar",
+      "subType": "형식",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "119": {
+      "section": "Grammar",
+      "subType": "형식",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "120": {
+      "section": "Grammar",
+      "subType": "시제",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "121": {
+      "section": "Grammar",
+      "subType": "준동사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "122": {
+      "section": "Grammar",
+      "subType": "준동사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "123": {
+      "section": "Grammar",
+      "subType": "준동사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "124": {
+      "section": "Grammar",
+      "subType": "비교급",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "125": {
+      "section": "Grammar",
+      "subType": "접속사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "126": {
+      "section": "Grammar",
+      "subType": "관계사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "127": {
+      "section": "Grammar",
+      "subType": "형용사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "128": {
+      "section": "Grammar",
+      "subType": "수동태",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "129": {
+      "section": "Grammar",
+      "subType": "준동사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "130": {
+      "section": "Grammar",
+      "subType": "병렬 구조",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "131": {
+      "section": "Grammar",
+      "subType": "준동사",
+      "type": "객관형",
+      "diff": "중"
+    },
+    "132": {
+      "section": "Grammar",
+      "subType": "관계사",
+      "type": "객관형",
+      "diff": "중"
+    }
+  }
+};
+
+function getQuestionMeta(gradeStr, qNo) {
+    if (!gradeStr) return null;
+    let targetGrade = '';
+    const g = gradeStr.toLowerCase();
+    if (g.includes('초5') || g.includes('초6') || g.includes('e5') || g.includes('e6')) targetGrade = '초5~초6';
+    else if (g.includes('중1') || g.includes('m1')) targetGrade = '중1';
+    else if (g.includes('중2') || g.includes('m2')) targetGrade = '중2';
+    else if (g.includes('중3') || g.includes('m3')) targetGrade = '중3';
+    
+    if (QUESTION_META[targetGrade] && QUESTION_META[targetGrade][qNo]) {
+        return QUESTION_META[targetGrade][qNo];
+    }
+    return null;
+}
+// ---------------------------------------------
+
 let authMode = 'initial'; // initial, student, admin, master
 let curCatId = "";
 let examSession = {
@@ -5485,6 +8441,17 @@ async function generateOverallComment(record, averages, activeSections, sectionC
         }
     }
 
+    let _rule3 = '3) 부족한 영역의 핵심 학습 방향을 종합 관점에서 간결하게 제안하세요 (1~2문장)';
+    if (oaUpperPercentile > 55) {
+        _rule3 = '3) 부족한 영역의 핵심 학습 방향을 종합 관점에서 간결하게 제안하세요 (1~2문장). ⛔ 주의: 모든 영역이 하위권이므로 상대적으로 나은 영역이 있다고 "우수하다", "잘한다"고 절대 칭찬하지 마세요.';
+    }
+    let _gapRuleAppend = '';
+    if (oaUpperPercentile > 55 && _gap <= 20) {
+        _gapRuleAppend = ' ⛔ 주의: 모든 영역이 하위권인데 편차가 적은 것이므로 절대 "균형 잡힌 강점"이라고 포장하지 말고 전반적인 기초 보완이 시급함을 지적하세요.';
+    }
+
+    let diffAnalysis = window._globalDiffAnalysis || '';
+
     const prompt = `${gradeTone}
 
 아래 학생의 영역별 코멘트를 참고해 종합 피드백을 작성해주세요.
@@ -5500,14 +8467,16 @@ ${sectionSummary}
 
 [전체 성취 수준 — 기계적 문구 그대로가 아닌, 한국어 흐름에 맞게 부드럽게 풀어서 반영할 것]
 전체 수준: ${_pctLabel(oaUpperPercentile)} / 성취레벨: ${totalLevel} / 전체 평균 대비: ${_oaDiff >= 0 ? '+' : ''}${_oaDiff.toFixed(1)}점(${_oaDiff >= 0 ? '평균 이상' : '평균 미달'})${clsTotalPercentile !== null ? ' / ' + classLabelText + ' 수준: ' + _pctLabel(clsTotalPercentile, classLabelText + ' 내') : ''}
+${diffAnalysis}
 
 ⚠️ 백분위 해석 주의 (절대 엄수): 백분위(%) 숫자는 작을수록 우수합니다. 상위 1%=최상위 / 상위 100%=최하위. 예시: 상위 75%는 하위권이므로 "높은 백분위", "우수한 실력" 절대 사용 금지.
 
 [작성 규칙]
 1) 각 영역 코멘트에서 이미 언급된 세부 내용(특정 표현, 문법 항목, 단어 유형 등)은 그대로 반복하지 마세요.
 2) 전체 백분위(약 ${oaUpperPercentile}%)${clsTotalPercentile !== null ? '·' + classLabelText + ' 내 백분위(약 ' + clsTotalPercentile + '%)' : ''}를 활용하여 영역들을 가로질러 보이는 전체적 패턴이나 공통 특징을 종합적으로 언급하세요 (1~2문장)
-3) 부족한 영역의 핵심 학습 방향을 종합 관점에서 간결하게 제안하세요 (1~2문장)
-4) 전체적 격려 메시지로 마무리하세요 (1문장)${_gapRule}
+${_rule3}
+4) 전체적 격려 메시지로 마무리하세요 (1문장)${_gapRule}${_gapRuleAppend}
+5) 위 [전체 성취 수준]에 [문항 난이도별 오답 현황]이 제공된 경우, 학생의 기초 단단함과 심화 응용력을 진단하되, '100% 정답', '0개 틀림' 같은 기계적 수치를 대놓고 언급하지 말고 자연스러운 언어로 풀어서 서술하세요.
 
 ⚠️ 출력 형식 절대 규칙 (위반 시 응답 전체가 무효):
 - 첫 번째 문장은 반드시 전체 성적에 대한 종합적 내용으로 시작하세요.
@@ -5515,8 +8484,7 @@ ${sectionSummary}
 - 인사말(안녕하세요 등) 금지. "축하드립니다", "훌륭합니다", "대단합니다" 같은 과도한 칭찬·축하 표현 절대 금지.
 - 영역명을 영어(Grammar, Reading 등)로 쓰지 마세요. 한국어(문법, 독해 등)로만 쓰세요.
 - 학생을 묘사할 때 경어(-시- 존칭: 받으신, 획득하신, 기록하셨으므로 등) 절대 사용 금지. "획득하여", "기록했으므로" 형식으로 쓰세요.
-- 실제 총점과 만점을 반드시 언급하세요. 호칭이 필요하면 "${sName} 학생은" 형식만 사용하세요.
-- 전체 백분위(약 ${oaUpperPercentile}%)${clsTotalPercentile !== null ? '와 ' + classLabelText + ' 내 백분위(약 ' + clsTotalPercentile + '%)' : ''}를 코멘트에 반드시 활용하여 서술하세요.
+- 실제 총점, 만점, 성취수준, 백분위 지표들을 서술할 때는 장황하게 늘어놓지 말고, 반드시 "${totalMax}점 만점에 ${totalScore}점을 기록(전체 백분위 약 ${oaUpperPercentile}%${clsTotalPercentile !== null ? ', ' + classLabelText + ' 내 백분위 약 ' + clsTotalPercentile + '%' : ''})하여 현재 성취 수준이 ~합니다."와 같이 괄호를 활용하여 직관적이고 압축된 한 문장으로 서술하세요. 호칭이 필요하면 "${sName} 학생은" 형식만 사용하세요.
 - 학원명, 교재명, 브랜드명 절대 금지. 모든 답변은 순수 한국어로 작성하세요.
 - ⛔ "수업을 잘 따라오고 있습니다", "수업에 적응하고 있습니다", "학원 생활" 등 재원생 대상 표현 절대 금지. (이 시험은 입학 전 레벨테스트임)
 - ⛔ 줄바꿈(\n, 개행) 절대 금지. 전체 코멘트를 하나의 연속된 문단으로 작성하세요. 마침표(.), 물음표(?), 느낌표(!) 뒤에는 반드시 띄어쓰기(공백)를 한 칸 포함하여 문장을 이어 나가세요.
@@ -5833,13 +8801,14 @@ async function generateSectionComments(record, averages, activeSections) {
             const _clsSectionScoresShifted = _clsSectionScores.map(v => v + finalShiftVal);
 
             const _clsAbove = _clsSectionScoresShifted.filter(s => s > studentScore).length;
-            const clsUpperPercentile = _clsSectionScoresShifted.length > 0 ? Math.min(100, Math.round((_clsAbove / _clsSectionScoresShifted.length) * 100) + 1) : null;
-
+            let clsUpperPercentile = null;
             // 세부영역(subType) + 정오답 문항 파싱
             let subTypeInfo = '';
             let wrongInfo = '';
             if (questionScores.length > 0) {
                 const secItems = questionScores.filter(q => {
+                    const meta = getQuestionMeta(record.grade || record['학년'], q.no);
+                    if (meta) return meta.section === section;
                     const cq = catQs.find(cq => String(cq.id) === String(q.id));
                     return cq?.section === section;
                 });
@@ -5847,20 +8816,37 @@ async function generateSectionComments(record, averages, activeSections) {
                     const subMap = {};
                     const wrongItems = [];
                     secItems.forEach(q => {
+                        const meta = getQuestionMeta(record.grade || record['학년'], q.no);
                         const cq = catQs.find(cq => String(cq.id) === String(q.id));
-                        const sub = cq?.subType || '기타';
-                        if (!subMap[sub]) subMap[sub] = { score: 0, max: 0 };
+                        const sub = meta ? meta.subType : (cq?.subType || '기타');
+                        if (!subMap[sub]) subMap[sub] = { score: 0, max: 0, qCnt: 0, wCnt: 0 };
                         subMap[sub].score += parseFloat(q.score || 0);
                         subMap[sub].max += parseFloat(q.maxScore || 0);
-                        // 오답 문항 수집
+                        subMap[sub].qCnt++;
+                        
                         const isWrong = (q.correct === false || q.correct === 'X') ||
                             (parseFloat(q.score || 0) < parseFloat(q.maxScore || 0));
-                        if (isWrong) wrongItems.push(`${q.no || '?'}번(${sub})`);
+                        if (isWrong) {
+                            subMap[sub].wCnt++;
+                            wrongItems.push(`${q.no || '?'}번(${sub})`);
+                        }
                     });
+                    
                     const subLines = Object.entries(subMap)
-                        .map(([sub, v]) => `  - ${sub}: ${v.score}/${v.max}점`)
-                        .join('\n');
-                    subTypeInfo = `\n세부 영역별 점수:\n${subLines}`;
+                        .map(([sub, v]) => {
+                            const rate = v.qCnt > 0 ? Math.round(((v.qCnt - v.wCnt) / v.qCnt) * 100) : 0;
+                            return `  - ${sub}: ${v.qCnt - v.wCnt}/${v.qCnt}개 맞음 (정답률 ${rate}%)`;
+                        }).join('\n');
+                        
+                    const sortedSubs = Object.entries(subMap).map(([sub, v]) => ({ sub, rate: v.qCnt > 0 ? ((v.qCnt - v.wCnt) / v.qCnt) : 0 }));
+                    const weakSubs = sortedSubs.filter(x => x.rate <= 0.5).map(x => x.sub);
+                    const strongSubs = sortedSubs.filter(x => x.rate === 1).map(x => x.sub);
+                    
+                    let strengthStr = '';
+                    if (strongSubs.length > 0) strengthStr += `\n🏆 [강점 유형]: ${strongSubs.join(', ')}`;
+                    if (weakSubs.length > 0) strengthStr += `\n🚨 [취약 유형]: ${weakSubs.join(', ')}`;
+
+                    subTypeInfo = `\n[세부 유형별 현황]\n${subLines}${strengthStr}`;
                     if (wrongItems.length > 0)
                         wrongInfo = `\n오답/감점 문항: ${wrongItems.join(', ')}`;
                 }
@@ -5918,7 +8904,7 @@ async function generateSectionComments(record, averages, activeSections) {
 [작성 규칙]
 1) ${_goodPointRule}
 ${_weaknessRule}
-3) 구체적 학습 방향 제시 (1문장) — ${subTypeInfo ? '취약 세부 영역 중심으로 제시하세요.' : '해당 영역 전반적 학습 방향만 제시하세요. 세부 유형 절대 지어내지 마세요.'}
+3) 구체적 학습 방향 제시 (1문장) — ${subTypeInfo ? '✅ 성적 데이터에 [취약/강점 유형]이 있다면 가장 취약한 유형을 콕 집어 보완점을 제시하고 강점 유형을 함께 칭찬하세요(단 "정답률 100%" 같은 수치는 직접 언급 금지). 취약 세부 영역 중심으로 제시하세요.' : '해당 영역 전반적 학습 방향만 제시하세요. 세부 유형 절대 지어내지 마세요.'}
 
 ⚠️ 출력 형식 절대 규칙 (위반 시 응답 전체가 무효):
 - 첫 번째 문장은 성취레벨 ${level}에 맞는 내용으로 시작하세요. ${upperPercentile > 55 ? '⛔ 성취레벨이 ' + level + '이므로 첫 문장에 "잘했다", "우수하다", "높다", "높은 백분위" 등 긍정 과장 표현 절대 금지.' : ''}
@@ -5926,8 +8912,7 @@ ${_weaknessRule}
 - 인사말(안녕하세요 등) 금지. "축하드립니다", "훌륭합니다", "대단합니다" 같은 과도한 칭찬·축하 표현 절대 금지.
 - 영역명을 영어(Grammar, Reading 등)로 쓰지 마세요. 한국어(문법, 독해 등)로만 쓰세요.
 - 학생을 묘사할 때 경어(-시- 존칭: 받으신, 획득하신, 기록하셨으므로 등) 절대 사용 금지. "획득하여", "기록했으므로" 형식으로 쓰세요.
-- 실제 점수와 만점을 반드시 언급하세요. 호칭이 필요하면 "${sName} 학생은" 형식만 사용하세요.
-- 전체 백분위(약 ${upperPercentile}%)${clsUpperPercentile !== null ? '와 ' + classLabelText + ' 내 백분위(약 ' + clsUpperPercentile + '%)' : ''}를 코멘트 어딘가에 반드시 언급하세요.
+- 실제 점수, 만점, 성취수준, 전체 백분위를 서술할 때는 장황하게 늘어놓지 말고, 반드시 "${maxScore > 0 ? maxScore : '?'}점 만점에 ${studentScore}점을 기록(전체 백분위 약 ${upperPercentile}%)하여 현재 성취 수준이 ~합니다."와 같이 괄호를 활용하여 직관적이고 압축된 한 문장으로 서술하세요. 호칭이 필요하면 "${sName} 학생은" 형식만 사용하세요.
 - 학원명, 교재명, 브랜드명 절대 금지. 모든 답변은 순수 한국어로 작성하세요.
 - ⛔ "수업을 잘 따라오고 있습니다", "수업에 적응하고 있습니다", "학원 생활" 등 재원생 대상 표현 절대 금지. (이 시험은 입학 전 레벨테스트임)
 - ⛔ 줄바꿈(\n, 개행) 절대 금지. 전체 코멘트를 하나의 연속된 문단으로 작성하세요. 마침표(.), 물음표(?), 느낌표(!) 뒤에는 반드시 띄어쓰기(공백)를 한 칸 포함하여 문장을 이어 나가세요.
