@@ -8426,7 +8426,7 @@ async function generateOverallComment(record, averages, activeSections, sectionC
         if (_gap <= 10) {
             _gapRule = `\n5) ✅ [편차 평가 필수 언급] 영역별 성취 균형이 고르게 분포되어 있습니다(편차 ${_gap}%p). 이를 강점으로 언급하세요.`;
             _gapInfo.적용단계 = '~10%p: 균형 장점 언급';
-        } else if (_gap <= 20) {
+        } else if (parseInt(_gapInfo.편차) <= 20) {
             _gapRule = `\n5) ✅ [편차 평가 필수 언급] 영역별 성취가 비교적 고르게 분포되어 있습니다(편차 ${_gap}%p). 이를 장점으로 언급하세요.`;
             _gapInfo.적용단계 = '11~20%p: 비교적 균형 장점 언급';
         } else if (_gap <= 30) {
@@ -8446,7 +8446,7 @@ async function generateOverallComment(record, averages, activeSections, sectionC
         _rule3 = '3) 부족한 영역의 핵심 학습 방향을 종합 관점에서 간결하게 제안하세요 (1~2문장). ⛔ 주의: 모든 영역이 하위권이므로 상대적으로 나은 영역이 있다고 "우수하다", "잘한다"고 절대 칭찬하지 마세요.';
     }
     let _gapRuleAppend = '';
-    if (oaUpperPercentile > 55 && _gap <= 20) {
+    if (oaUpperPercentile > 55 && parseInt(_gapInfo.편차) <= 20) {
         _gapRuleAppend = ' ⛔ 주의: 모든 영역이 하위권인데 편차가 적은 것이므로 절대 "균형 잡힌 강점"이라고 포장하지 말고 전반적인 기초 보완이 시급함을 지적하세요.';
     }
 
