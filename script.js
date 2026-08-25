@@ -352,12 +352,8 @@ async function sendReliableRequest(payload, silent = false, maxRetries = 5) {
             // [Modified] Use custom timeout from opts or default 60s (Increased for large GET)
             const timeoutMs = (payload.timeout) ? payload.timeout : 60000;
 
-            // [Fix] 구글 서버의 CORS 차단을 피하기 위해 URL 대신 payload 내부에 난수 추가
-            payload._retryBuster = Date.now() + "_" + i;
-
             const response = await fetchWithTimeout(masterUrl, {
                 method: 'POST',
-                cache: 'no-store', // [Fix] 브라우저 커넥션 재사용 차단 및 캐시 무시
                 // [Revert] Use default fetch behavior (like loadConfigFromCloud) which works reliably
                 // redirect: 'follow', 
                 // headers: { "Content-Type": "text/plain;charset=utf-8" }, 
