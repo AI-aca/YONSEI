@@ -8255,7 +8255,14 @@ function onReportGradeChange() {
 // 학년별 AI 톤앤매너 정의
 function getGradeTone(grade) {
     const g = String(grade || '').trim();
-    const HONORIFIC = '\n[필수 규칙] 모든 문장은 반드시 ~ㅂ니다/~습니다 형식의 격식 존댓말로 작성하세요. ~요, ~네요, ~거예요 등 해요체는 절대 사용하지 마세요. 반말도 절대 금지입니다. 문단 사이에 빈 줄을 넣지 마세요.';
+    const HONORIFIC = '\n[필수 규칙] 모든 문장은 반드시 ~ㅂ니다/~습니다 형식의 격식 존댓말로 작성하세요. ~요, ~네요, ~거예요 등 해요체는 절대 사용하지 마세요. 반말도 절대 금지입니다. 문단 사이에 빈 줄을 넣지 마세요.\n' +
+        '⚠️ [표현 다양화 및 구체화 필수]: 여러 영역 코멘트에서 "차근차근 노력하면", "꾸준히 연습하면", "노력이 필요합니다" 와 같은 똑같은 패턴의 진부한 격려를 로봇처럼 중복해서 반복하지 마세요. 대신 아래처럼 **영역별 실질적인 훈련 방법**을 구체적으로 제안하세요.\n' +
+        '- **영작(Writing)**: 단순 문법 암기보다, 기본 단어 배열 규칙을 익힌 뒤 점진적으로 문장 구조를 확장하는 훈련 권장.\n' +
+        '- **독해(Reading)**: 주어와 동사를 찾는 끊어 읽기 훈련을 병행하여 문장 구조와 지문 문맥 파악.\n' +
+        '- **듣기(Listening)**: 음원을 듣고 핵심 단어를 메모(Dictation)하는 습관을 통한 정보 요약 능력 향상.\n' +
+        '- **문법(Grammar)**: 맹목적 암기를 지양하고, 해당 문법이 실제 문장에서 어떤 규칙으로 적용되는지 원리 파악.\n' +
+        '- **어휘(Vocabulary)**: 눈으로만 암기하지 말고, 예문 속 문맥을 통해 쓰임을 파악하거나 유의어/반의어를 묶어 외우는 확장 학습.';
+        
     // 초등: 초1~6
     if (/^초[1-6]$/.test(g) || /^초등/.test(g)) {
         return `당신은 초등학교 영어 학생을 위한 친절한 선생님입니다.
@@ -8272,7 +8279,6 @@ function getGradeTone(grade) {
 [톤앤매너] 직접적이되 존중하는 톤으로 작성하세요. 부족한 부분은 명확하게 지적하되, 도전 의욕을 불러일으키는 언어를 사용하세요. 학생 스스로 목표를 세울 수 있도록 구체적인 방향을 제시하세요. 성취레벨 표현은 학생의 동기를 꺾지 않으면서도 현실적인 수준을 정확히 전달하세요.
 ⛔ 금지 표현 (절대 사용 금지): "부진", "미흡" 표현 절대 금지. 성취 수준이 낮더라도 "다소 부족", "부족", "많이 부족" 표현만 사용하세요.${HONORIFIC}`;
 }
-
 // 백분위 숫자 → 직관적 텍스트 변환 (숫자가 작을수록 우수)
 // prefix: '전체' (전체 백분위) 또는 '권장학급 내' (학급 내 백분위)
 function _pctLabel(pct, prefix = '전체') {
@@ -8840,8 +8846,9 @@ async function generateSectionComments(record, averages, activeSections) {
                         }).join('\n');
                         
                     const sortedSubs = Object.entries(subMap).map(([sub, v]) => ({ sub, rate: v.qCnt > 0 ? ((v.qCnt - v.wCnt) / v.qCnt) : 0 }));
-                    const weakSubs = sortedSubs.filter(x => x.rate <= 0.5).map(x => x.sub);
-                    const strongSubs = sortedSubs.filter(x => x.rate === 1).map(x => x.sub);
+                    const _addSuffix = (name) => String(name).trim().endsWith('유형') ? String(name).trim() : String(name).trim() + ' 유형';
+                    const weakSubs = sortedSubs.filter(x => x.rate <= 0.5).map(x => _addSuffix(x.sub));
+                    const strongSubs = sortedSubs.filter(x => x.rate === 1).map(x => _addSuffix(x.sub));
                     
                     let strengthStr = '';
                     if (strongSubs.length > 0) strengthStr += `\n🏆 [강점 유형]: ${strongSubs.join(', ')}`;
